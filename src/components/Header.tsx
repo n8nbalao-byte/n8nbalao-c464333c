@@ -7,6 +7,7 @@ const navLinks = [
   { href: "/#benefits", label: "Benefícios" },
   { href: "/#testimonials", label: "Depoimentos" },
   { href: "/loja", label: "Loja" },
+  { href: "/monte-voce-mesmo", label: "Monte Você Mesmo" },
 ];
 
 export function Header() {
