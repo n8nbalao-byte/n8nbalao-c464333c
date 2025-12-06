@@ -21,7 +21,7 @@ export function ProductCard({ product }: ProductCardProps) {
       {/* Image */}
       <div className="relative aspect-square overflow-hidden bg-secondary">
         <img
-          src={product.image}
+          src={product.media?.[0]?.url || "/placeholder.svg"}
           alt={product.title}
           className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
           onError={(e) => {
