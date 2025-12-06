@@ -4,7 +4,8 @@ import { Footer } from "@/components/Footer";
 import { Sidebar } from "@/components/Sidebar";
 import { api, type Product, type HardwareItem, type MediaItem, type ProductComponents } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Pencil, Trash2, Save, X, Upload, Play, Image, Cpu, CircuitBoard, MemoryStick, HardDrive, Monitor, Zap, Box, Package } from "lucide-react";
+import { Plus, Pencil, Trash2, Save, X, Upload, Play, Image, Cpu, CircuitBoard, MemoryStick, HardDrive, Monitor, Zap, Box, Package, Download, Droplets } from "lucide-react";
+import * as XLSX from "xlsx";
 import { HardwareCard } from "@/components/HardwareCard";
 
 // Simple auth - for demo purposes only
@@ -12,7 +13,7 @@ const ADMIN_USER = "n8nbalao";
 const ADMIN_PASS = "Balao2025";
 
 type AdminTab = 'products' | 'hardware';
-type HardwareCategory = 'processor' | 'motherboard' | 'memory' | 'storage' | 'gpu' | 'psu' | 'case';
+type HardwareCategory = 'processor' | 'motherboard' | 'memory' | 'storage' | 'gpu' | 'psu' | 'case' | 'watercooler';
 
 interface ProductFormData {
   title: string;
@@ -72,6 +73,7 @@ const hardwareCategories: { key: HardwareCategory; label: string; icon: React.El
   { key: 'gpu', label: 'Placas de Vídeo', icon: Monitor },
   { key: 'psu', label: 'Fontes', icon: Zap },
   { key: 'case', label: 'Gabinetes', icon: Box },
+  { key: 'watercooler', label: 'Watercooler', icon: Droplets },
 ];
 
 export default function Admin() {
@@ -403,6 +405,94 @@ export default function Admin() {
     }).format(price);
   };
 
+  // Bulk upload functions
+  function downloadExcelTemplate() {
+    const templateData = [
+      {
+        nome: "Exemplo Processador",
+        marca: "Intel",
+        modelo: "Core i7-13700K",
+        preco: 2499.99,
+        categoria: activeHardwareCategory,
+        spec_1_chave: "Núcleos",
+        spec_1_valor: "16",
+        spec_2_chave: "Threads",
+        spec_2_valor: "24",
+        spec_3_chave: "Frequência",
+        spec_3_valor: "3.4GHz",
+      },
+    ];
+
+    const ws = XLSX.utils.json_to_sheet(templateData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Hardware");
+
+    // Auto-size columns
+    ws["!cols"] = [
+      { wch: 25 }, { wch: 15 }, { wch: 20 }, { wch: 12 }, { wch: 15 },
+      { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 },
+    ];
+
+    XLSX.writeFile(wb, `template_hardware_${activeHardwareCategory}.xlsx`);
+    toast({ title: "Download iniciado", description: "Use este modelo para envio em massa" });
+  }
+
+  async function handleBulkUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      const data = new Uint8Array(event.target?.result as ArrayBuffer);
+      const workbook = XLSX.read(data, { type: "array" });
+      const sheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
+      const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+      let successCount = 0;
+      let errorCount = 0;
+
+      for (const row of jsonData as any[]) {
+        const specs: Record<string, string> = {};
+        
+        // Extract specs from columns
+        for (let i = 1; i <= 10; i++) {
+          const key = row[`spec_${i}_chave`];
+          const value = row[`spec_${i}_valor`];
+          if (key && value) {
+            specs[key] = String(value);
+          }
+        }
+
+        const hardwareItem = {
+          name: row.nome || "",
+          brand: row.marca || "",
+          model: row.modelo || "",
+          price: parseFloat(row.preco) || 0,
+          image: "",
+          specs,
+          category: (row.categoria || activeHardwareCategory) as HardwareCategory,
+        };
+
+        if (hardwareItem.name && hardwareItem.brand && hardwareItem.model) {
+          const success = await api.createHardware(hardwareItem);
+          if (success) successCount++;
+          else errorCount++;
+        } else {
+          errorCount++;
+        }
+      }
+
+      toast({
+        title: "Upload concluído",
+        description: `${successCount} itens criados, ${errorCount} erros`,
+      });
+      fetchHardwareData();
+    };
+    reader.readAsArrayBuffer(file);
+    e.target.value = "";
+  }
+
   // Login Screen
   if (!isAuthenticated) {
     return (
@@ -578,6 +668,27 @@ export default function Admin() {
           {/* Hardware Tab */}
           {activeTab === 'hardware' && (
             <>
+              {/* Bulk Upload Button */}
+              <div className="mb-4 flex gap-2">
+                <button
+                  onClick={downloadExcelTemplate}
+                  className="inline-flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-green-700"
+                >
+                  <Download className="h-4 w-4" />
+                  Envio em Massa
+                </button>
+                <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-secondary px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-secondary/80">
+                  <Upload className="h-4 w-4" />
+                  Importar Excel
+                  <input
+                    type="file"
+                    accept=".xlsx,.xls"
+                    onChange={handleBulkUpload}
+                    className="hidden"
+                  />
+                </label>
+              </div>
+
               {/* Hardware Category Tabs */}
               <div className="mb-6 flex flex-wrap gap-2">
                 {hardwareCategories.map(cat => {
