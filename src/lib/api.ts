@@ -26,6 +26,7 @@ export interface ProductComponents {
   gpu?: HardwareItem;
   psu?: HardwareItem;
   case?: HardwareItem;
+  watercooler?: HardwareItem;
 }
 
 // Component IDs only for saving to database (lighter payload)
@@ -37,6 +38,7 @@ export interface ProductComponentIds {
   gpu?: string;
   psu?: string;
   case?: string;
+  watercooler?: string;
 }
 
 // Helper to extract only IDs from components
@@ -58,7 +60,7 @@ export interface HardwareItem {
   price: number;
   image: string;
   specs: Record<string, string>;
-  category: 'processor' | 'motherboard' | 'memory' | 'storage' | 'gpu' | 'psu' | 'case';
+  category: 'processor' | 'motherboard' | 'memory' | 'storage' | 'gpu' | 'psu' | 'case' | 'watercooler';
   createdAt: string;
 }
 
