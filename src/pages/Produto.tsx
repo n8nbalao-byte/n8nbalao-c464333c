@@ -3,8 +3,20 @@ import { useParams, Link } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Sidebar } from "@/components/Sidebar";
+import { MediaCarousel } from "@/components/MediaCarousel";
+import { HardwareCard } from "@/components/HardwareCard";
 import { api, type Product } from "@/lib/api";
-import { ArrowLeft, Check, Shield, Headphones, Zap, MessageCircle } from "lucide-react";
+import { ArrowLeft, Shield, Headphones, Zap, MessageCircle } from "lucide-react";
+
+const componentLabels: Record<string, string> = {
+  processor: "Processador",
+  motherboard: "Placa-Mãe",
+  memory: "Memória RAM",
+  storage: "Armazenamento",
+  gpu: "Placa de Vídeo",
+  psu: "Fonte",
+  case: "Gabinete",
+};
 
 export default function Produto() {
   const { id } = useParams<{ id: string }>();
@@ -30,9 +42,9 @@ export default function Produto() {
   };
 
   const trustBadges = [
-    { icon: Shield, label: "Pagamento Seguro" },
-    { icon: Headphones, label: "Suporte 24/7" },
-    { icon: Zap, label: "Ativação Imediata" },
+    { icon: Shield, label: "Garantia Incluída" },
+    { icon: Headphones, label: "Suporte Técnico" },
+    { icon: Zap, label: "Pronta Entrega" },
   ];
 
   if (loading) {
@@ -61,6 +73,9 @@ export default function Produto() {
     );
   }
 
+  const components = product.components || {};
+  const hasComponents = Object.keys(components).length > 0;
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
@@ -78,21 +93,9 @@ export default function Produto() {
           </div>
 
           <div className="grid gap-12 lg:grid-cols-2">
-            {/* Product Image */}
-            <div className="relative">
-              {product.categories && product.categories.length > 0 && (
-                <span className="absolute right-4 top-4 z-10 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground">
-                  {product.categories[0]}
-                </span>
-              )}
-              <img
-                src={product.image}
-                alt={product.title}
-                className="w-full max-w-lg mx-auto rounded-2xl shadow-card"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).src = "/placeholder.svg";
-                }}
-              />
+            {/* Product Media */}
+            <div>
+              <MediaCarousel media={product.media || []} />
 
               {/* Trust Badges */}
               <div className="mt-8 flex justify-around">
@@ -107,6 +110,16 @@ export default function Produto() {
 
             {/* Product Info */}
             <div className="space-y-6">
+              {product.categories && product.categories.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {product.categories.map((cat) => (
+                    <span key={cat} className="rounded-full bg-primary/20 px-3 py-1 text-sm font-medium text-primary">
+                      {cat}
+                    </span>
+                  ))}
+                </div>
+              )}
+
               <h1 className="text-4xl font-bold text-foreground">{product.title}</h1>
               
               {product.subtitle && (
@@ -117,48 +130,64 @@ export default function Produto() {
                 <span className="text-4xl font-bold text-primary">
                   {formatPrice(product.totalPrice)}
                 </span>
-                <span className="text-lg text-muted-foreground">/mês</span>
+                <span className="text-lg text-muted-foreground">à vista</span>
               </div>
-
-              {/* Specs */}
-              {product.specs && Object.keys(product.specs).length > 0 && (
-                <div className="space-y-4">
-                  <h3 className="text-xl font-semibold text-foreground">O que está incluído:</h3>
-                  <ul className="space-y-3">
-                    {Object.entries(product.specs).map(([key, value]) => (
-                      <li key={key} className="flex items-start gap-3">
-                        <Check className="mt-1 h-5 w-5 flex-shrink-0 text-primary" />
-                        <div>
-                          <span className="font-medium text-foreground">{key}:</span>{" "}
-                          <span className="text-muted-foreground">{value}</span>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
 
               {/* CTA Buttons */}
               <div className="flex flex-col gap-4 pt-4 sm:flex-row">
                 <a
-                  href={`https://wa.me/5519981470446?text=Olá! Tenho interesse no plano: ${product.title}`}
+                  href={`https://wa.me/5519981470446?text=Olá! Tenho interesse no PC: ${product.title}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-8 py-4 text-lg font-semibold text-primary-foreground shadow-glow transition-colors hover:bg-primary/90"
                 >
                   <MessageCircle className="h-5 w-5" />
-                  Contratar Agora
+                  Comprar Agora
                 </a>
                 <Link
                   to="/loja"
                   className="inline-flex items-center justify-center gap-2 rounded-lg border border-border px-8 py-4 text-lg font-semibold text-foreground transition-colors hover:bg-secondary"
                 >
                   <ArrowLeft className="h-5 w-5" />
-                  Ver Outros Planos
+                  Ver Outros PCs
                 </Link>
               </div>
             </div>
           </div>
+
+          {/* Components Section */}
+          {hasComponents && (
+            <section className="mt-16">
+              <h2 className="mb-8 text-3xl font-bold text-foreground">Componentes</h2>
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                {Object.entries(components).map(([key, hw]) => {
+                  if (!hw) return null;
+                  return (
+                    <HardwareCard key={key} hardware={hw} />
+                  );
+                })}
+              </div>
+            </section>
+          )}
+
+          {/* Extra Specs */}
+          {product.specs && Object.keys(product.specs).length > 0 && (
+            <section className="mt-16">
+              <h2 className="mb-8 text-3xl font-bold text-foreground">Especificações</h2>
+              <div className="overflow-hidden rounded-xl border border-border bg-card">
+                <table className="w-full">
+                  <tbody className="divide-y divide-border">
+                    {Object.entries(product.specs).map(([key, value]) => (
+                      <tr key={key} className="hover:bg-secondary/50">
+                        <td className="px-6 py-4 font-medium text-foreground">{key}</td>
+                        <td className="px-6 py-4 text-muted-foreground">{value}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          )}
         </div>
       </main>
 
