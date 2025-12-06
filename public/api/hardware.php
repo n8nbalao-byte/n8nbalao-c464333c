@@ -40,10 +40,17 @@ $pdo->exec("
         price DECIMAL(10,2) DEFAULT 0,
         image LONGTEXT,
         specs JSON,
-        category ENUM('processor', 'motherboard', 'memory', 'storage', 'gpu', 'psu', 'case') NOT NULL,
+        category ENUM('processor', 'motherboard', 'memory', 'storage', 'gpu', 'psu', 'case', 'watercooler') NOT NULL,
         createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
     )
 ");
+
+// Add watercooler to existing table if needed
+try {
+    $pdo->exec("ALTER TABLE hardware MODIFY COLUMN category ENUM('processor', 'motherboard', 'memory', 'storage', 'gpu', 'psu', 'case', 'watercooler') NOT NULL");
+} catch (PDOException $e) {
+    // Column might already have the correct type
+}
 
 $method = $_SERVER['REQUEST_METHOD'];
 
