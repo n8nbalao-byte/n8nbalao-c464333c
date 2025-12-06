@@ -28,6 +28,28 @@ export interface ProductComponents {
   case?: HardwareItem;
 }
 
+// Component IDs only for saving to database (lighter payload)
+export interface ProductComponentIds {
+  processor?: string;
+  motherboard?: string;
+  memory?: string;
+  storage?: string;
+  gpu?: string;
+  psu?: string;
+  case?: string;
+}
+
+// Helper to extract only IDs from components
+function extractComponentIds(components: ProductComponents): ProductComponentIds {
+  const ids: ProductComponentIds = {};
+  for (const [key, value] of Object.entries(components)) {
+    if (value?.id) {
+      ids[key as keyof ProductComponentIds] = value.id;
+    }
+  }
+  return ids;
+}
+
 export interface HardwareItem {
   id: string;
   name: string;
@@ -68,6 +90,9 @@ export const api = {
   // Create a new product
   async createProduct(product: Omit<Product, 'id' | 'createdAt'>): Promise<boolean> {
     try {
+      // Extract only component IDs to reduce payload size
+      const componentIds = extractComponentIds(product.components);
+      
       const response = await fetch(`${API_BASE_URL}/products.php`, {
         method: 'POST',
         headers: {
@@ -75,6 +100,7 @@ export const api = {
         },
         body: JSON.stringify({
           ...product,
+          components: componentIds, // Only IDs, not full objects
           id: crypto.randomUUID(),
           createdAt: new Date().toISOString(),
         }),
@@ -89,12 +115,18 @@ export const api = {
   // Update a product
   async updateProduct(id: string, product: Partial<Product>): Promise<boolean> {
     try {
+      // Extract only component IDs if components are provided
+      const payload: Record<string, unknown> = { id, ...product };
+      if (product.components) {
+        payload.components = extractComponentIds(product.components);
+      }
+      
       const response = await fetch(`${API_BASE_URL}/products.php`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ id, ...product }),
+        body: JSON.stringify(payload),
       });
       return response.ok;
     } catch (error) {
