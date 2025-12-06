@@ -972,45 +972,159 @@ export default function Admin() {
                 </div>
               </div>
 
-              {/* Component Selection */}
+              {/* Component Selection - Step by Step */}
               <div className="space-y-6">
                 <h3 className="text-lg font-semibold text-foreground">Componentes Obrigatórios</h3>
                 
-                {componentSteps.map(step => {
-                  const Icon = step.icon;
-                  const items = hardware[step.key] || [];
-                  const selected = productFormData.components[step.key as keyof ProductComponents];
+                {/* Progress indicators */}
+                <div className="flex flex-wrap gap-2">
+                  {componentSteps.map((step, index) => {
+                    const Icon = step.icon;
+                    const isCompleted = !!productFormData.components[step.key as keyof ProductComponents];
+                    const currentStepIndex = componentSteps.findIndex(
+                      s => !productFormData.components[s.key as keyof ProductComponents]
+                    );
+                    const isCurrent = index === currentStepIndex;
+                    
+                    return (
+                      <div
+                        key={step.key}
+                        className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm transition-colors ${
+                          isCompleted
+                            ? 'bg-primary text-primary-foreground'
+                            : isCurrent
+                            ? 'bg-primary/20 text-primary border border-primary'
+                            : 'bg-secondary text-muted-foreground'
+                        }`}
+                      >
+                        <Icon className="h-4 w-4" />
+                        <span className="hidden sm:inline">{step.label}</span>
+                        {isCompleted && <span>✓</span>}
+                      </div>
+                    );
+                  })}
+                </div>
 
+                {/* Current step selection */}
+                {(() => {
+                  const currentStepIndex = componentSteps.findIndex(
+                    s => !productFormData.components[s.key as keyof ProductComponents]
+                  );
+                  
+                  // All steps completed
+                  if (currentStepIndex === -1) {
+                    return (
+                      <div className="rounded-xl border border-primary bg-primary/10 p-6 text-center">
+                        <p className="text-lg font-semibold text-primary">Todos os componentes selecionados!</p>
+                        <p className="mt-2 text-sm text-muted-foreground">
+                          Você pode clicar nos componentes abaixo para alterar a seleção.
+                        </p>
+                        
+                        {/* Show all selected components for editing */}
+                        <div className="mt-4 space-y-3 text-left">
+                          {componentSteps.map(step => {
+                            const Icon = step.icon;
+                            const selected = productFormData.components[step.key as keyof ProductComponents];
+                            if (!selected) return null;
+                            
+                            return (
+                              <div
+                                key={step.key}
+                                onClick={() => selectComponent(step.key, undefined)}
+                                className="flex cursor-pointer items-center justify-between rounded-lg border border-border bg-card p-3 transition-colors hover:border-destructive hover:bg-destructive/10"
+                              >
+                                <div className="flex items-center gap-3">
+                                  <Icon className="h-5 w-5 text-primary" />
+                                  <div>
+                                    <p className="text-sm font-medium text-foreground">{step.label}</p>
+                                    <p className="text-sm text-muted-foreground">{selected.brand} {selected.model}</p>
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                  <span className="font-semibold text-primary">{formatPrice(selected.price)}</span>
+                                  <X className="h-4 w-4 text-muted-foreground" />
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  }
+                  
+                  const currentStep = componentSteps[currentStepIndex];
+                  const Icon = currentStep.icon;
+                  const items = (hardware[currentStep.key] || []).sort((a, b) => a.price - b.price);
+                  
                   return (
-                    <div key={step.key} className="rounded-xl border border-border p-4">
+                    <div className="rounded-xl border border-primary bg-card p-4">
                       <div className="mb-4 flex items-center gap-2">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                          {currentStepIndex + 1}
+                        </div>
                         <Icon className="h-5 w-5 text-primary" />
-                        <h4 className="font-medium text-foreground">{step.label}</h4>
-                        {selected && (
-                          <span className="ml-auto text-sm text-primary">✓ Selecionado</span>
-                        )}
+                        <h4 className="font-medium text-foreground">Selecione o {currentStep.label}</h4>
+                        <span className="ml-auto text-sm text-muted-foreground">
+                          Passo {currentStepIndex + 1} de {componentSteps.length}
+                        </span>
                       </div>
 
                       {items.length === 0 ? (
                         <p className="text-sm text-muted-foreground">
-                          Nenhum {step.label.toLowerCase()} cadastrado. Adicione na aba Hardware.
+                          Nenhum {currentStep.label.toLowerCase()} cadastrado. Adicione na aba Hardware.
                         </p>
                       ) : (
-                        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                          {items.map(item => (
-                            <HardwareCard
+                        <div className="space-y-2 max-h-96 overflow-y-auto pr-2">
+                          {items.map((item, idx) => (
+                            <div
                               key={item.id}
-                              hardware={item}
-                              selected={selected?.id === item.id}
-                              onSelect={() => selectComponent(step.key, selected?.id === item.id ? undefined : item)}
-                              showSelect
-                            />
+                              onClick={() => selectComponent(currentStep.key, item)}
+                              className="flex cursor-pointer items-center justify-between rounded-lg border border-border bg-background p-4 transition-all hover:border-primary hover:bg-primary/5"
+                            >
+                              <div className="flex items-center gap-4">
+                                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-secondary text-xs text-muted-foreground">
+                                  {idx + 1}
+                                </span>
+                                <div>
+                                  <p className="font-medium text-foreground">{item.name}</p>
+                                  <p className="text-sm text-muted-foreground">{item.brand} {item.model}</p>
+                                </div>
+                              </div>
+                              <span className="text-lg font-bold text-primary">{formatPrice(item.price)}</span>
+                            </div>
                           ))}
+                        </div>
+                      )}
+                      
+                      {/* Show already selected components */}
+                      {currentStepIndex > 0 && (
+                        <div className="mt-4 border-t border-border pt-4">
+                          <p className="mb-2 text-xs font-medium text-muted-foreground">Já selecionados:</p>
+                          <div className="flex flex-wrap gap-2">
+                            {componentSteps.slice(0, currentStepIndex).map(step => {
+                              const StepIcon = step.icon;
+                              const selected = productFormData.components[step.key as keyof ProductComponents];
+                              if (!selected) return null;
+                              
+                              return (
+                                <div
+                                  key={step.key}
+                                  onClick={() => selectComponent(step.key, undefined)}
+                                  className="flex cursor-pointer items-center gap-2 rounded-lg bg-secondary px-3 py-2 text-sm transition-colors hover:bg-destructive/20"
+                                >
+                                  <StepIcon className="h-4 w-4 text-primary" />
+                                  <span className="text-foreground">{selected.brand} {selected.model}</span>
+                                  <span className="text-primary">{formatPrice(selected.price)}</span>
+                                  <X className="h-3 w-3 text-muted-foreground" />
+                                </div>
+                              );
+                            })}
+                          </div>
                         </div>
                       )}
                     </div>
                   );
-                })}
+                })()}
               </div>
 
               {/* Total Price */}
