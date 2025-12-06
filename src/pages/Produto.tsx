@@ -5,7 +5,7 @@ import { Footer } from "@/components/Footer";
 import { Sidebar } from "@/components/Sidebar";
 import { MediaCarousel } from "@/components/MediaCarousel";
 import { HardwareCard } from "@/components/HardwareCard";
-import { api, type Product } from "@/lib/api";
+import { api, type Product, type HardwareItem } from "@/lib/api";
 import { ArrowLeft, Shield, Headphones, Zap, MessageCircle } from "lucide-react";
 
 const componentLabels: Record<string, string> = {
@@ -18,9 +18,12 @@ const componentLabels: Record<string, string> = {
   case: "Gabinete",
 };
 
+const componentCategories = ['processor', 'motherboard', 'memory', 'storage', 'gpu', 'psu', 'case'];
+
 export default function Produto() {
   const { id } = useParams<{ id: string }>();
   const [product, setProduct] = useState<Product | null>(null);
+  const [hardwareDetails, setHardwareDetails] = useState<Record<string, HardwareItem>>({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -28,6 +31,32 @@ export default function Produto() {
       if (id) {
         const data = await api.getProduct(id);
         setProduct(data);
+        
+        // If we have component IDs (strings), fetch the full hardware details
+        if (data?.components) {
+          const allHardware = await Promise.all(
+            componentCategories.map(cat => api.getHardware(cat))
+          );
+          
+          // Create a map of all hardware by ID
+          const hardwareMap: Record<string, HardwareItem> = {};
+          allHardware.flat().forEach(hw => {
+            hardwareMap[hw.id] = hw;
+          });
+          
+          // Map component IDs to full hardware objects
+          const details: Record<string, HardwareItem> = {};
+          for (const [key, value] of Object.entries(data.components)) {
+            // value could be a string (ID) or an object (legacy full hardware)
+            if (typeof value === 'string' && hardwareMap[value]) {
+              details[key] = hardwareMap[value];
+            } else if (typeof value === 'object' && value !== null && 'id' in value) {
+              // Legacy: full hardware object was saved
+              details[key] = value as HardwareItem;
+            }
+          }
+          setHardwareDetails(details);
+        }
       }
       setLoading(false);
     }
@@ -73,8 +102,7 @@ export default function Produto() {
     );
   }
 
-  const components = product.components || {};
-  const hasComponents = Object.keys(components).length > 0;
+  const hasComponents = Object.keys(hardwareDetails).length > 0;
 
   return (
     <div className="min-h-screen bg-background">
@@ -160,7 +188,7 @@ export default function Produto() {
             <section className="mt-16">
               <h2 className="mb-8 text-3xl font-bold text-foreground">Componentes</h2>
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                {Object.entries(components).map(([key, hw]) => {
+                {Object.entries(hardwareDetails).map(([key, hw]) => {
                   if (!hw) return null;
                   return (
                     <HardwareCard key={key} hardware={hw} />
