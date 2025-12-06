@@ -4,9 +4,8 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Sidebar } from "@/components/Sidebar";
 import { MediaCarousel } from "@/components/MediaCarousel";
-import { HardwareCard } from "@/components/HardwareCard";
 import { api, type Product, type HardwareItem } from "@/lib/api";
-import { ArrowLeft, Shield, Headphones, Zap, MessageCircle } from "lucide-react";
+import { ArrowLeft, Shield, Headphones, Zap, MessageCircle, Cpu, CircuitBoard, MemoryStick, HardDrive, Monitor, Box } from "lucide-react";
 
 const componentLabels: Record<string, string> = {
   processor: "Processador",
@@ -16,6 +15,16 @@ const componentLabels: Record<string, string> = {
   gpu: "Placa de Vídeo",
   psu: "Fonte",
   case: "Gabinete",
+};
+
+const componentIcons: Record<string, React.ElementType> = {
+  processor: Cpu,
+  motherboard: CircuitBoard,
+  memory: MemoryStick,
+  storage: HardDrive,
+  gpu: Monitor,
+  psu: Zap,
+  case: Box,
 };
 
 const componentCategories = ['processor', 'motherboard', 'memory', 'storage', 'gpu', 'psu', 'case'];
@@ -161,6 +170,26 @@ export default function Produto() {
                 <span className="text-lg text-muted-foreground">à vista</span>
               </div>
 
+              {/* Components as simple text */}
+              {hasComponents && (
+                <div className="space-y-2 border-t border-border pt-4">
+                  <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Configuração</h3>
+                  <ul className="space-y-1">
+                    {Object.entries(hardwareDetails).map(([key, hw]) => {
+                      if (!hw) return null;
+                      const Icon = componentIcons[key] || Cpu;
+                      return (
+                        <li key={key} className="flex items-center gap-2 text-foreground">
+                          <Icon className="h-4 w-4 text-primary" />
+                          <span className="font-medium">{componentLabels[key]}:</span>
+                          <span className="text-muted-foreground">{hw.brand} {hw.model}</span>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              )}
+
               {/* CTA Buttons */}
               <div className="flex flex-col gap-4 pt-4 sm:flex-row">
                 <a
@@ -182,21 +211,6 @@ export default function Produto() {
               </div>
             </div>
           </div>
-
-          {/* Components Section */}
-          {hasComponents && (
-            <section className="mt-16">
-              <h2 className="mb-8 text-3xl font-bold text-foreground">Componentes</h2>
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                {Object.entries(hardwareDetails).map(([key, hw]) => {
-                  if (!hw) return null;
-                  return (
-                    <HardwareCard key={key} hardware={hw} />
-                  );
-                })}
-              </div>
-            </section>
-          )}
 
           {/* Extra Specs */}
           {product.specs && Object.keys(product.specs).length > 0 && (
