@@ -34,22 +34,26 @@ const baseCategoryConfig = [
 export default function Index() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
-
-  // Merge base categories with custom categories
-  const customCategories = getCustomCategories();
-  const categoryConfig = [
-    ...baseCategoryConfig,
-    ...customCategories.map(c => ({ key: c.key, label: c.label, icon: getIconFromKey(c.icon) }))
-  ];
+  const [categoryConfig, setCategoryConfig] = useState(baseCategoryConfig);
 
   useEffect(() => {
-    async function fetchProducts() {
-      const data = await api.getProducts();
+    async function fetchData() {
+      const [data, customCategories] = await Promise.all([
+        api.getProducts(),
+        getCustomCategories()
+      ]);
       // Sort by price (cheapest to most expensive)
       setProducts(data.sort((a, b) => (a.totalPrice || 0) - (b.totalPrice || 0)));
+      
+      // Merge base categories with custom categories
+      setCategoryConfig([
+        ...baseCategoryConfig,
+        ...customCategories.map(c => ({ key: c.key, label: c.label, icon: getIconFromKey(c.icon) }))
+      ]);
+      
       setLoading(false);
     }
-    fetchProducts();
+    fetchData();
   }, []);
 
   // Group products by category

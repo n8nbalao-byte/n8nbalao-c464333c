@@ -32,12 +32,13 @@ export default function Loja() {
 
   useEffect(() => {
     async function fetchProducts() {
-      const data = await api.getProducts();
+      const [data, customCategories] = await Promise.all([
+        api.getProducts(),
+        getCustomCategories()
+      ]);
       setProducts(data);
-      setLoading(false);
       
       // Build complete category list from custom categories AND product data
-      const customCategories = getCustomCategories();
       const baseKeys = baseProductTypes.map(c => c.key);
       const customKeys = customCategories.map(c => c.key);
       
@@ -57,6 +58,8 @@ export default function Loja() {
         ...customCategories.map(c => ({ key: c.key, label: c.label, icon: getIconFromKey(c.icon) })),
         ...uniqueProductCats
       ]);
+      
+      setLoading(false);
     }
     fetchProducts();
   }, []);

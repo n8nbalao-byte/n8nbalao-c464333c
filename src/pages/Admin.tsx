@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Sidebar } from "@/components/Sidebar";
-import { api, type Product, type HardwareItem, type MediaItem, type ProductComponents, type CompanyData, type ProductCategory, type HardwareCategory, getCustomCategories, addCustomCategory, removeCustomCategory, saveCustomCategories } from "@/lib/api";
+import { api, type Product, type HardwareItem, type MediaItem, type ProductComponents, type CompanyData, type ProductCategory, type HardwareCategory, getCustomCategories, addCustomCategory, removeCustomCategory } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Pencil, Trash2, Save, X, Upload, Play, Image, Cpu, CircuitBoard, MemoryStick, HardDrive, Monitor, Zap, Box, Package, Download, Droplets, Building2, Laptop, Bot, Code, Wrench, Key, Tv, Armchair, Tag, Gamepad2, Headphones, Keyboard, Mouse, Printer, Wifi, Camera, Speaker, Smartphone, Watch, ShoppingBag, Gift, Star, Heart, Award, Crown, Shield, Rocket, Sparkles, Flame, Leaf, Sun, Moon, Cloud, Umbrella, Anchor, Compass, Map, Globe, Flag, Bookmark, Briefcase, Clock, Calendar, Bell, Mail, MessageSquare, Phone, Video, Music, Film, BookOpen, FileText, Folder, Database, Server, Terminal, Settings, Hammer, PenTool, Scissors, Paintbrush, Palette, LucideIcon, Gamepad, MonitorPlay, Disc, Disc3, Radio, Cable, Usb, Power, Bluetooth, Router, Airplay, Cast, ScreenShare, PcCase, Component, Microchip, Binary, Glasses, Eye, Target, Crosshair, Swords, Trophy, Medal, Dumbbell, Joystick, Search } from "lucide-react";
 import * as XLSX from "xlsx";
@@ -307,7 +307,11 @@ export default function Admin() {
 
   // Load custom categories on mount
   useEffect(() => {
-    setCustomCategoriesList(getCustomCategories());
+    async function loadCategories() {
+      const categories = await getCustomCategories();
+      setCustomCategoriesList(categories);
+    }
+    loadCategories();
   }, []);
 
   useEffect(() => {
@@ -570,9 +574,10 @@ export default function Admin() {
     });
   }
 
-  function openProductEditor(product?: Product) {
+  async function openProductEditor(product?: Product) {
     // Refresh custom categories before opening editor
-    setCustomCategoriesList(getCustomCategories());
+    const categories = await getCustomCategories();
+    setCustomCategoriesList(categories);
     
     if (product) {
       setEditingProductId(product.id);
@@ -1822,11 +1827,12 @@ export default function Admin() {
                         {isCustomType && !isSelected && (
                           <button
                             type="button"
-                            onClick={(e) => {
+                            onClick={async (e) => {
                               e.stopPropagation();
                               if (confirm(`Excluir tipo "${type.label}"?`)) {
-                                removeCustomCategory(type.key);
-                                setCustomCategoriesList(getCustomCategories());
+                                await removeCustomCategory(type.key);
+                                const updatedCategories = await getCustomCategories();
+                                setCustomCategoriesList(updatedCategories);
                                 toast({ title: "Tipo removido" });
                               }
                             }}
@@ -1895,10 +1901,11 @@ export default function Admin() {
                   <div className="flex gap-2">
                     <button
                       type="button"
-                      onClick={() => {
+                      onClick={async () => {
                         if (inlineNewCategoryKey && inlineNewCategoryLabel) {
-                          addCustomCategory(inlineNewCategoryKey, inlineNewCategoryLabel, inlineNewCategoryIcon);
-                          setCustomCategoriesList(getCustomCategories());
+                          await addCustomCategory(inlineNewCategoryKey, inlineNewCategoryLabel, inlineNewCategoryIcon);
+                          const updatedCategories = await getCustomCategories();
+                          setCustomCategoriesList(updatedCategories);
                           setProductFormData(prev => ({ ...prev, productType: inlineNewCategoryKey as ProductCategory }));
                           setInlineNewCategoryKey("");
                           setInlineNewCategoryLabel("");
