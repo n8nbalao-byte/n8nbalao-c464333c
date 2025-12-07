@@ -961,14 +961,17 @@ export default function Admin() {
     licenca: [
       "https://images.unsplash.com/photo-1633265486064-086b219458ec?w=800&h=600&fit=crop",
       "https://images.unsplash.com/photo-1563986768609-322da13575f3?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1618044619888-009e412ff12a?w=800&h=600&fit=crop",
     ],
     monitor: [
       "https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?w=800&h=600&fit=crop",
       "https://images.unsplash.com/photo-1585792180666-f7347c490ee2?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1551645120-d70bfe84c826?w=800&h=600&fit=crop",
     ],
     cadeira_gamer: [
       "https://images.unsplash.com/photo-1598550476439-6847785fcea6?w=800&h=600&fit=crop",
       "https://images.unsplash.com/photo-1580480055273-228ff5388ef8?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1541558869434-2840d308329a?w=800&h=600&fit=crop",
     ],
   };
 
