@@ -48,6 +48,7 @@ interface SelectedProduct {
   title: string;
   price: number;
   category: string;
+  uniqueKey: string; // Unique key for each instance (allows duplicates)
 }
 
 function formatPrice(price: number): string {
@@ -138,27 +139,15 @@ export default function MonteVoceMesmo() {
     const motherboardValue = selectedHardware['motherboard'];
     const motherboard = Array.isArray(motherboardValue) ? motherboardValue[0] : motherboardValue;
 
-    console.log('Filtering for category:', category);
-    console.log('Processor socket:', processor?.socket);
-    console.log('Motherboard memoryType:', motherboard?.memoryType);
-
     return items.filter(item => {
-      // Motherboard must match processor socket
-      if (category === 'motherboard' && processor?.socket) {
-        // If motherboard has socket defined, it must match processor
-        // If motherboard has no socket defined, exclude it (safer approach)
-        if (!item.socket || item.socket !== processor.socket) {
-          console.log('Filtered out motherboard:', item.brand, item.model, 'socket:', item.socket);
-          return false;
-        }
+      // Motherboard must match processor socket (only if both have socket defined)
+      if (category === 'motherboard' && processor?.socket && item.socket) {
+        if (item.socket !== processor.socket) return false;
       }
 
-      // Memory must match motherboard memory type
-      if (category === 'memory' && motherboard?.memoryType) {
-        if (!item.memoryType || item.memoryType !== motherboard.memoryType) {
-          console.log('Filtered out memory:', item.brand, item.model, 'memoryType:', item.memoryType);
-          return false;
-        }
+      // Memory must match motherboard memory type (only if both have memoryType defined)
+      if (category === 'memory' && motherboard?.memoryType && item.memoryType) {
+        if (item.memoryType !== motherboard.memoryType) return false;
       }
 
       return true;
@@ -286,26 +275,35 @@ export default function MonteVoceMesmo() {
   }
 
   function addProduct(product: Product) {
-    const productCategory = product.categories?.[0] || product.productType || '';
-    const allowsMultiple = multipleAllowedCategories.includes(productCategory);
-    
-    if (!allowsMultiple && selectedProducts.some(p => p.id === product.id)) {
-      toast({ title: "Atenção", description: "Este produto já foi adicionado", variant: "destructive" });
-      return;
-    }
-
     setSelectedProducts(prev => [...prev, {
       id: product.id,
       title: product.title,
       price: product.totalPrice,
-      category: product.categories?.[0] || product.productType || 'outro'
+      category: product.categories?.[0] || product.productType || 'outro',
+      uniqueKey: `${product.id}-${Date.now()}-${Math.random()}`
     }]);
 
     toast({ title: "Adicionado!", description: product.title });
   }
 
-  function removeProduct(productId: string) {
-    setSelectedProducts(prev => prev.filter(p => p.id !== productId));
+  function removeOneProduct(productId: string) {
+    setSelectedProducts(prev => {
+      const idx = prev.findIndex(p => p.id === productId);
+      if (idx >= 0) {
+        const newArray = [...prev];
+        newArray.splice(idx, 1);
+        return newArray;
+      }
+      return prev;
+    });
+  }
+
+  function getProductCount(productId: string): number {
+    return selectedProducts.filter(p => p.id === productId).length;
+  }
+
+  function removeProduct(uniqueKey: string) {
+    setSelectedProducts(prev => prev.filter(p => p.uniqueKey !== uniqueKey));
   }
 
   function generateQuote() {
@@ -909,7 +907,8 @@ export default function MonteVoceMesmo() {
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 max-h-[500px] overflow-y-auto">
                   {filteredProducts.map((product) => {
-                    const isSelected = selectedProducts.some(p => p.id === product.id);
+                    const count = getProductCount(product.id);
+                    const isSelected = count > 0;
                     return (
                       <div
                         key={product.id}
@@ -926,24 +925,31 @@ export default function MonteVoceMesmo() {
                           )}
                           <p className="text-lg font-bold text-primary mt-2">{formatPrice(product.totalPrice)}</p>
                         </div>
-                        <Button
-                          variant={isSelected ? "outline" : "default"}
-                          size="sm"
-                          className="w-full"
-                          onClick={() => isSelected ? removeProduct(product.id) : addProduct(product)}
-                        >
-                          {isSelected ? (
-                            <>
-                              <X className="mr-1 h-4 w-4" />
-                              Remover
-                            </>
-                          ) : (
-                            <>
-                              <Plus className="mr-1 h-4 w-4" />
-                              Adicionar
-                            </>
-                          )}
-                        </Button>
+                        
+                        {/* Quantity controls */}
+                        <div className="flex items-center justify-between pt-3 border-t border-border">
+                          <span className="text-xs text-muted-foreground">Qtd: {count}</span>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => removeOneProduct(product.id)}
+                              disabled={count === 0}
+                              className="h-8 w-8 p-0"
+                            >
+                              <Minus className="h-4 w-4" />
+                            </Button>
+                            <span className="font-bold w-6 text-center">{count}</span>
+                            <Button
+                              variant="default"
+                              size="sm"
+                              onClick={() => addProduct(product)}
+                              className="h-8 w-8 p-0"
+                            >
+                              <Plus className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
                       </div>
                     );
                   })}
@@ -958,7 +964,7 @@ export default function MonteVoceMesmo() {
               <h3 className="text-lg font-semibold mb-4">Itens Extras Selecionados</h3>
               <div className="space-y-2">
                 {selectedProducts.map((item) => (
-                  <div key={item.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                  <div key={item.uniqueKey} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
                     <div>
                       <span className="text-xs bg-secondary px-2 py-0.5 rounded-full mr-2">
                         {getCategoryLabel(item.category)}
@@ -967,7 +973,7 @@ export default function MonteVoceMesmo() {
                     </div>
                     <div className="flex items-center gap-3">
                       <span className="font-bold text-primary">{formatPrice(item.price)}</span>
-                      <Button variant="ghost" size="sm" onClick={() => removeProduct(item.id)}>
+                      <Button variant="ghost" size="sm" onClick={() => removeProduct(item.uniqueKey)}>
                         <X className="h-4 w-4" />
                       </Button>
                     </div>
