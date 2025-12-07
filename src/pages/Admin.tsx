@@ -2,9 +2,9 @@ import { useState, useEffect } from "react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Sidebar } from "@/components/Sidebar";
-import { api, type Product, type HardwareItem, type MediaItem, type ProductComponents, type CompanyData, type ProductCategory, type HardwareCategory } from "@/lib/api";
+import { api, type Product, type HardwareItem, type MediaItem, type ProductComponents, type CompanyData, type ProductCategory, type HardwareCategory, getCustomCategories, addCustomCategory, removeCustomCategory } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Pencil, Trash2, Save, X, Upload, Play, Image, Cpu, CircuitBoard, MemoryStick, HardDrive, Monitor, Zap, Box, Package, Download, Droplets, Building2, Laptop, Bot, Code, Wrench } from "lucide-react";
+import { Plus, Pencil, Trash2, Save, X, Upload, Play, Image, Cpu, CircuitBoard, MemoryStick, HardDrive, Monitor, Zap, Box, Package, Download, Droplets, Building2, Laptop, Bot, Code, Wrench, Key, Tv, Armchair, Tag } from "lucide-react";
 import * as XLSX from "xlsx";
 import { HardwareCard } from "@/components/HardwareCard";
 
@@ -12,7 +12,7 @@ import { HardwareCard } from "@/components/HardwareCard";
 const ADMIN_USER = "n8nbalao";
 const ADMIN_PASS = "Balao2025";
 
-type AdminTab = 'products' | 'hardware' | 'company';
+type AdminTab = 'products' | 'hardware' | 'company' | 'categories';
 
 interface ProductFormData {
   title: string;
@@ -119,13 +119,16 @@ const hardwareCategories: { key: HardwareCategory; label: string; icon: React.El
 ];
 
 // Product types for simple products (not PC assembly)
-const productTypes: { key: ProductCategory; label: string; icon: React.ElementType }[] = [
+const baseProductTypes: { key: ProductCategory; label: string; icon: React.ElementType }[] = [
   { key: 'pc', label: 'PC Montado', icon: Monitor },
   { key: 'kit', label: 'Kit', icon: Package },
   { key: 'notebook', label: 'Notebook', icon: Laptop },
   { key: 'automacao', label: 'Automação', icon: Bot },
   { key: 'software', label: 'Software', icon: Code },
   { key: 'acessorio', label: 'Acessório', icon: Wrench },
+  { key: 'licenca', label: 'Licença', icon: Key },
+  { key: 'monitor', label: 'Monitor', icon: Tv },
+  { key: 'cadeira_gamer', label: 'Cadeira Gamer', icon: Armchair },
 ];
 
 export default function Admin() {
@@ -166,6 +169,22 @@ export default function Admin() {
     logo: ''
   });
   const [savingCompany, setSavingCompany] = useState(false);
+
+  // Custom categories state
+  const [customCategoriesList, setCustomCategoriesList] = useState<{ key: string; label: string }[]>([]);
+  const [newCategoryKey, setNewCategoryKey] = useState("");
+  const [newCategoryLabel, setNewCategoryLabel] = useState("");
+
+  // Merge base categories with custom categories
+  const productTypes = [
+    ...baseProductTypes,
+    ...customCategoriesList.map(c => ({ key: c.key as ProductCategory, label: c.label, icon: Tag }))
+  ];
+
+  // Load custom categories on mount
+  useEffect(() => {
+    setCustomCategoriesList(getCustomCategories());
+  }, []);
 
   useEffect(() => {
     const saved = sessionStorage.getItem("admin_auth");
@@ -751,7 +770,7 @@ export default function Admin() {
   };
 
   // Test product images by category (placeholder images from picsum.photos)
-  const testProductImages: Record<ProductCategory, string[]> = {
+  const testProductImages: Partial<Record<ProductCategory, string[]>> = {
     pc: [],
     kit: [],
     notebook: [
@@ -802,10 +821,22 @@ export default function Admin() {
       "https://images.unsplash.com/photo-1545454675-3531b543be5d?w=800&h=600&fit=crop",
       "https://images.unsplash.com/photo-1625794084867-8ddd239946b1?w=800&h=600&fit=crop",
     ],
+    licenca: [
+      "https://images.unsplash.com/photo-1633265486064-086b219458ec?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1563986768609-322da13575f3?w=800&h=600&fit=crop",
+    ],
+    monitor: [
+      "https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1585792180666-f7347c490ee2?w=800&h=600&fit=crop",
+    ],
+    cadeira_gamer: [
+      "https://images.unsplash.com/photo-1598550476439-6847785fcea6?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1580480055273-228ff5388ef8?w=800&h=600&fit=crop",
+    ],
   };
 
   // Test data by product category
-  const testProductData: Record<ProductCategory, Array<{ title: string; subtitle: string; totalPrice: number; downloadUrl?: string }>> = {
+  const testProductData: Partial<Record<ProductCategory, Array<{ title: string; subtitle: string; totalPrice: number; downloadUrl?: string }>>> = {
     pc: [],
     kit: [],
     notebook: [
@@ -856,6 +887,21 @@ export default function Admin() {
       { title: "Caixa de Som 2.1", subtitle: "50W RMS, subwoofer", totalPrice: 299 },
       { title: "Kit Teclado + Mouse Wireless", subtitle: "Silencioso, pilhas inclusas", totalPrice: 149 },
     ],
+    licenca: [
+      { title: "Windows 11 Pro", subtitle: "Licença vitalícia original", totalPrice: 299 },
+      { title: "Office 2021 Professional", subtitle: "Licença vitalícia", totalPrice: 449 },
+      { title: "Antivírus Kaspersky 1 Ano", subtitle: "Proteção completa", totalPrice: 129 },
+    ],
+    monitor: [
+      { title: "Monitor Gamer 27\" 144Hz", subtitle: "Full HD, 1ms, IPS", totalPrice: 1499 },
+      { title: "Monitor 4K 32\"", subtitle: "HDR, 60Hz, USB-C", totalPrice: 2499 },
+      { title: "Monitor Curvo 34\" Ultrawide", subtitle: "QHD, 100Hz", totalPrice: 2999 },
+    ],
+    cadeira_gamer: [
+      { title: "Cadeira Gamer Premium", subtitle: "Reclinável 180°, apoio lombar", totalPrice: 1299 },
+      { title: "Cadeira Gamer RGB", subtitle: "LED integrado, braços 4D", totalPrice: 1799 },
+      { title: "Cadeira Escritório Ergonômica", subtitle: "Tela mesh, encosto cabeça", totalPrice: 899 },
+    ],
   };
 
   // Add test hardware data for specific category
@@ -897,7 +943,7 @@ export default function Admin() {
     let successCount = 0;
     for (let i = 0; i < categoryData.length; i++) {
       const product = categoryData[i];
-      const imageUrl = categoryImages[i % categoryImages.length];
+      const imageUrl = categoryImages ? categoryImages[i % categoryImages.length] : undefined;
       
       const media: MediaItem[] = imageUrl ? [{ type: 'image', url: imageUrl }] : [];
       
@@ -1162,6 +1208,17 @@ export default function Admin() {
               <Building2 className="h-5 w-5" />
               Dados da Empresa
             </button>
+            <button
+              onClick={() => setActiveTab('categories')}
+              className={`inline-flex items-center gap-2 rounded-lg px-6 py-3 font-medium transition-colors ${
+                activeTab === 'categories'
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-secondary text-foreground hover:bg-secondary/80"
+              }`}
+            >
+              <Tag className="h-5 w-5" />
+              Categorias
+            </button>
           </div>
 
           {/* Products Tab */}
@@ -1410,6 +1467,114 @@ export default function Admin() {
                   </div>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Categories Tab */}
+          {activeTab === 'categories' && (
+            <div className="max-w-2xl">
+              <div className="rounded-xl border border-border bg-card p-6">
+                <h2 className="text-xl font-bold text-foreground mb-6">Gerenciar Categorias</h2>
+                <p className="text-sm text-muted-foreground mb-6">
+                  Adicione novas categorias personalizadas para seus produtos. As categorias padrão não podem ser removidas.
+                </p>
+
+                {/* Add new category */}
+                <div className="mb-8 p-4 rounded-lg bg-secondary/50 border border-border">
+                  <h3 className="font-semibold text-foreground mb-4">Nova Categoria</h3>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div>
+                      <label className="block text-sm font-medium text-foreground mb-2">Chave (identificador)</label>
+                      <input
+                        type="text"
+                        value={newCategoryKey}
+                        onChange={(e) => setNewCategoryKey(e.target.value.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, ''))}
+                        className="w-full rounded-lg border border-border bg-background px-4 py-3 text-foreground focus:border-primary focus:outline-none"
+                        placeholder="ex: perifericos"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-foreground mb-2">Nome de Exibição</label>
+                      <input
+                        type="text"
+                        value={newCategoryLabel}
+                        onChange={(e) => setNewCategoryLabel(e.target.value)}
+                        className="w-full rounded-lg border border-border bg-background px-4 py-3 text-foreground focus:border-primary focus:outline-none"
+                        placeholder="ex: Periféricos"
+                      />
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => {
+                      if (newCategoryKey && newCategoryLabel) {
+                        addCustomCategory(newCategoryKey, newCategoryLabel);
+                        setCustomCategoriesList(getCustomCategories());
+                        setNewCategoryKey("");
+                        setNewCategoryLabel("");
+                        toast({ title: "Sucesso", description: "Categoria criada!" });
+                      } else {
+                        toast({ title: "Erro", description: "Preencha todos os campos", variant: "destructive" });
+                      }
+                    }}
+                    className="mt-4 inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 font-medium text-primary-foreground hover:bg-primary/90"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Adicionar Categoria
+                  </button>
+                </div>
+
+                {/* Default categories */}
+                <div className="mb-6">
+                  <h3 className="font-semibold text-foreground mb-3">Categorias Padrão</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {baseProductTypes.map((cat) => {
+                      const Icon = cat.icon;
+                      return (
+                        <div
+                          key={cat.key}
+                          className="inline-flex items-center gap-2 rounded-lg bg-secondary px-4 py-2 text-sm font-medium text-foreground"
+                        >
+                          <Icon className="h-4 w-4" />
+                          {cat.label}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Custom categories */}
+                {customCategoriesList.length > 0 && (
+                  <div>
+                    <h3 className="font-semibold text-foreground mb-3">Categorias Personalizadas</h3>
+                    <div className="space-y-2">
+                      {customCategoriesList.map((cat) => (
+                        <div
+                          key={cat.key}
+                          className="flex items-center justify-between rounded-lg bg-secondary/50 border border-border px-4 py-3"
+                        >
+                          <div className="flex items-center gap-3">
+                            <Tag className="h-4 w-4 text-primary" />
+                            <span className="font-medium text-foreground">{cat.label}</span>
+                            <span className="text-sm text-muted-foreground">({cat.key})</span>
+                          </div>
+                          <button
+                            onClick={() => {
+                              if (confirm(`Remover categoria "${cat.label}"?`)) {
+                                removeCustomCategory(cat.key);
+                                setCustomCategoriesList(getCustomCategories());
+                                toast({ title: "Categoria removida" });
+                              }
+                            }}
+                            className="text-destructive hover:text-destructive/80"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           )}
 

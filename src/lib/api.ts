@@ -1,7 +1,34 @@
 // API Configuration - connects to your PHP backend on Hostinger
 const API_BASE_URL = 'https://www.n8nbalao.com/api';
 
-export type ProductCategory = 'pc' | 'kit' | 'notebook' | 'automacao' | 'software' | 'acessorio';
+export type ProductCategory = 'pc' | 'kit' | 'notebook' | 'automacao' | 'software' | 'acessorio' | 'licenca' | 'monitor' | 'cadeira_gamer';
+
+// Custom categories stored in localStorage (can be extended by admin)
+export function getCustomCategories(): { key: string; label: string }[] {
+  try {
+    const stored = localStorage.getItem('custom_categories');
+    return stored ? JSON.parse(stored) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function saveCustomCategories(categories: { key: string; label: string }[]): void {
+  localStorage.setItem('custom_categories', JSON.stringify(categories));
+}
+
+export function addCustomCategory(key: string, label: string): void {
+  const categories = getCustomCategories();
+  if (!categories.find(c => c.key === key)) {
+    categories.push({ key, label });
+    saveCustomCategories(categories);
+  }
+}
+
+export function removeCustomCategory(key: string): void {
+  const categories = getCustomCategories().filter(c => c.key !== key);
+  saveCustomCategories(categories);
+}
 
 export interface Product {
   id: string;
