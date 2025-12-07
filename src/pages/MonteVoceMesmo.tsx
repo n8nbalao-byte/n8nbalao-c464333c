@@ -636,17 +636,27 @@ export default function MonteVoceMesmo() {
 
             {/* Current Step */}
             <Card className="p-6 mb-6">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h2 className="text-xl font-bold">
-                    {currentStepData.label}
-                    {currentStepData.required && <span className="text-destructive ml-1">*</span>}
-                  </h2>
-                  {currentStepData.allowMultiple && (
-                    <p className="text-sm text-muted-foreground">Você pode selecionar vários itens</p>
-                  )}
+              <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
+                <div className="flex items-center gap-3">
+                  <div>
+                    <h2 className="text-xl font-bold">
+                      {currentStepData.label}
+                      {currentStepData.required && <span className="text-destructive ml-1">*</span>}
+                    </h2>
+                    {currentStepData.allowMultiple && (
+                      <p className="text-sm text-muted-foreground">Você pode selecionar vários itens</p>
+                    )}
+                  </div>
+                  <span className="text-sm text-muted-foreground">({hardware.length} itens)</span>
                 </div>
                 <div className="flex gap-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => setIsGridExpanded(!isGridExpanded)}
+                  >
+                    {isGridExpanded ? 'Compactar' : 'Expandir Tudo'}
+                  </Button>
                   {currentStepData.allowMultiple && (
                     <Button 
                       variant="default" 
@@ -675,7 +685,7 @@ export default function MonteVoceMesmo() {
                   <p>Nenhum componente disponível</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[400px] overflow-y-auto">
+                <div className={`grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-2 ${!isGridExpanded ? 'max-h-[70vh] overflow-y-auto' : ''}`}>
                   {hardware.map((item) => {
                     const itemCount = getItemCount(currentStepData.key, item.id);
                     const isSelected = itemCount > 0;
@@ -684,27 +694,20 @@ export default function MonteVoceMesmo() {
                       <HoverCard key={item.id} openDelay={200} closeDelay={100}>
                         <HoverCardTrigger asChild>
                           <div
-                            className={`p-4 rounded-lg border cursor-pointer transition-all hover:shadow-md ${
+                            className={`p-2 rounded-lg border cursor-pointer transition-all hover:shadow-md ${
                               isSelected 
-                                ? 'border-green-500 bg-green-500/10 ring-2 ring-green-500' 
+                                ? 'border-green-500 bg-green-500/10 ring-1 ring-green-500' 
                                 : 'border-border hover:border-primary/50'
                             }`}
                           >
-                            <div className="flex items-center justify-between gap-2">
-                              <div className="flex-1 min-w-0">
-                                <p className="font-semibold text-sm truncate">{item.brand} {item.model}</p>
-                                <p className="text-xs text-muted-foreground truncate">{item.name}</p>
-                              </div>
-                              <div className="text-right flex-shrink-0">
-                                <p className="font-bold text-primary">{formatPrice(item.price)}</p>
-                              </div>
-                            </div>
+                            <p className="font-medium text-xs line-clamp-2 mb-1">{item.brand} {item.model}</p>
+                            <p className="text-sm font-bold text-primary">{formatPrice(item.price)}</p>
                             
                             {/* Add/Remove buttons for multiple selection */}
                             {currentStepData.allowMultiple ? (
-                              <div className="flex items-center justify-between mt-3 pt-3 border-t border-border">
-                                <span className="text-xs text-muted-foreground">Quantidade: {itemCount}</span>
-                                <div className="flex items-center gap-2">
+                              <div className="flex items-center justify-between pt-2 mt-2 border-t border-border">
+                                <span className="text-[10px] text-muted-foreground">{itemCount}x</span>
+                                <div className="flex items-center gap-1">
                                   <Button
                                     variant="outline"
                                     size="sm"
@@ -713,11 +716,11 @@ export default function MonteVoceMesmo() {
                                       removeOneHardwareItem(currentStepData.key, item.id);
                                     }}
                                     disabled={itemCount === 0}
-                                    className="h-8 w-8 p-0"
+                                    className="h-6 w-6 p-0"
                                   >
-                                    <Minus className="h-4 w-4" />
+                                    <Minus className="h-3 w-3" />
                                   </Button>
-                                  <span className="font-bold w-6 text-center">{itemCount}</span>
+                                  <span className="font-bold w-4 text-center text-xs">{itemCount}</span>
                                   <Button
                                     variant="default"
                                     size="sm"
@@ -725,17 +728,17 @@ export default function MonteVoceMesmo() {
                                       e.stopPropagation();
                                       selectHardware(item);
                                     }}
-                                    className="h-8 w-8 p-0"
+                                    className="h-6 w-6 p-0"
                                   >
-                                    <Plus className="h-4 w-4" />
+                                    <Plus className="h-3 w-3" />
                                   </Button>
                                 </div>
                               </div>
                             ) : (
-                              <div className="mt-3 pt-3 border-t border-border flex justify-end">
+                              <div className="pt-2 mt-2 border-t border-border flex justify-end">
                                 {isSelected ? (
-                                  <span className="flex items-center gap-1 text-green-500 text-sm">
-                                    <Check className="h-4 w-4" /> Selecionado
+                                  <span className="flex items-center gap-1 text-green-500 text-[10px]">
+                                    <Check className="h-3 w-3" /> OK
                                   </span>
                                 ) : (
                                   <Button
@@ -745,8 +748,9 @@ export default function MonteVoceMesmo() {
                                       e.stopPropagation();
                                       selectHardware(item);
                                     }}
+                                    className="h-6 px-2 text-xs"
                                   >
-                                    <Plus className="h-4 w-4 mr-1" /> Selecionar
+                                    <Plus className="h-3 w-3 mr-1" /> Add
                                   </Button>
                                 )}
                               </div>
