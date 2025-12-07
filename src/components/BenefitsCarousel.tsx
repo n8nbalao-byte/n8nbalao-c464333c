@@ -1,59 +1,62 @@
 import { useState } from "react";
-import { Clock, Zap, Brain, Mic, Image, Shield, BarChart3, Plug } from "lucide-react";
 
 const benefits = [
   {
-    icon: Clock,
-    title: "Atendimento 24/7",
-    short: "Nunca mais perca um cliente. Seu bot responde a qualquer hora, em qualquer dia.",
-    detail: "Com nosso bot, você nunca fecha! Atenda clientes de madrugada, finais de semana e feriados sem custo adicional. Enquanto você dorme, seu negócio continua vendendo."
+    icon: "fas fa-comments",
+    title: "SEMPRE ONLINE 24/7",
+    front: "Nunca mais perca um cliente. Seu bot responde a qualquer hora, todos os dias.",
+    back: "Enquanto você dorme, seu negócio continua ativo, atendendo, vendendo e conquistando clientes — até de madrugada, finais de semana e feriados, sem custo adicional."
   },
   {
-    icon: Zap,
-    title: "Resposta Imediata",
-    short: "Atendimento instantâneo sem filas de espera, mesmo com alto volume.",
-    detail: "Resposta em menos de 2 segundos! Seus clientes não esperam e você não perde vendas. Atenda milhares de pessoas simultaneamente."
+    icon: "fas fa-bolt",
+    title: "PROSPECÇÃO DE LEADS",
+    front: "Busca clientes no Google Maps e envia mensagens automáticas no WhatsApp.",
+    back: "O bot encontra empresas pela palavra-chave escolhida, avalia, classifica, personaliza a mensagem e envia automaticamente sua apresentação para cada contato."
   },
   {
-    icon: Brain,
-    title: "IA Avançada",
-    short: "Inteligência artificial treinada para entender perguntas complexas.",
-    detail: "IA que entende contexto e lembra conversas. Atendimento humano, mas automatizado! Processamento de linguagem natural avançado."
+    icon: "fas fa-brain",
+    title: "IA AVANÇADA",
+    front: "Inteligência artificial treinada para interpretar perguntas complexas e entender contextos variados.",
+    back: "Usamos as melhores IA do mercado: ChatGPT, Gemini, Claude, ElevenLabs, Grok, Copilot, DeepSeek."
   },
   {
-    icon: Mic,
-    title: "Áudio Humanizado",
-    short: "Respostas em áudio com voz natural e entonação humana.",
-    detail: "Respostas em áudio natural. Perfeito para clientes que preferem ouvir! Vozes profissionais e naturais."
+    icon: "fas fa-microphone",
+    title: "ÁUDIO HUMANIZADO",
+    front: "Respostas em áudio natural com entonação humana. Clone sua própria voz!",
+    back: "Com ElevenLabs, o bot pode usar a sua voz, criando um atendimento totalmente personalizado e único."
   },
   {
-    icon: Image,
-    title: "Análise de Imagens",
-    short: "Reconhece e interpreta imagens enviadas pelos clientes.",
-    detail: "Analisa fotos e comprovantes automaticamente. Atendimento mais rápido e eficiente! Reconhecimento de Pix integrado."
+    icon: "fas fa-image",
+    title: "ANALISA COMPROVANTE PIX",
+    front: "Reconhece e interpreta automaticamente imagens e PDFs de comprovantes de pagamento.",
+    back: "Atendimento muito mais rápido, preciso e inteligente. Valida pagamentos automaticamente!"
   },
   {
-    icon: Shield,
-    title: "Seguro e Confiável",
-    short: "Criptografia de ponta a ponta e proteção total dos dados.",
-    detail: "Criptografia bancária e 100% LGPD. Seus dados totalmente protegidos! Segurança de nível enterprise."
+    icon: "fas fa-video",
+    title: "ANALISA VÍDEOS",
+    front: "Entende o conteúdo de vídeos enviados pelo cliente.",
+    back: "O bot identifica objetos, transcreve falas, interpreta pedidos e mantém o fluxo do atendimento normalmente."
   },
   {
-    icon: BarChart3,
-    title: "Análise de Desempenho",
-    short: "Relatórios detalhados sobre conversas e taxa de conversão.",
-    detail: "Acompanhe métricas em tempo real. Dados que ajudam você a vender mais! Dashboard completo."
+    icon: "fas fa-chart-line",
+    title: "ENVIA NOTIFICAÇÃO",
+    front: "Cria relatórios detalhados sobre a conversa e envia para o Gerente ou Supervisor.",
+    back: "Após finalizar o atendimento, o bot gera um relatório completo e envia para o gerente, supervisor ou grupo da equipe."
   },
   {
-    icon: Plug,
-    title: "Integração Completa",
-    short: "Conecte com suas ferramentas de gestão e CRM.",
-    detail: "Integre com CRM, e-commerce e muito mais. Tudo sincronizado automaticamente! Mais de 500 integrações."
+    icon: "fas fa-phone-alt",
+    title: "CHAMADA DE VOZ",
+    front: "O cliente liga e conversa com seu agente usando voz natural.",
+    back: "Inclusive a sua própria voz, clonada com ElevenLabs. Atendimento telefônico 100% automatizado!"
   },
 ];
 
 export function BenefitsCarousel() {
-  const [activeIndex, setActiveIndex] = useState<number | null>(null);
+  const [flippedCards, setFlippedCards] = useState<Record<number, boolean>>({});
+
+  const toggleCard = (index: number) => {
+    setFlippedCards(prev => ({ ...prev, [index]: !prev[index] }));
+  };
 
   return (
     <section id="benefits" className="py-20 bg-card/30">
@@ -67,55 +70,55 @@ export function BenefitsCarousel() {
           </p>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
           {benefits.map((benefit, index) => (
             <div
               key={benefit.title}
-              onMouseEnter={() => setActiveIndex(index)}
-              onMouseLeave={() => setActiveIndex(null)}
-              className={`
-                relative rounded-xl border border-border/50 bg-background/50 backdrop-blur-sm p-6 
-                transition-all duration-500 cursor-pointer overflow-hidden
-                ${activeIndex === index ? 'border-primary/50 shadow-glow scale-105 z-10' : 'hover:border-primary/30'}
-              `}
+              className="flip-card h-72 cursor-pointer perspective-1000"
+              onClick={() => toggleCard(index)}
             >
-              <div className="mb-4 inline-flex rounded-lg bg-primary/20 p-3">
-                <benefit.icon className="h-6 w-6 text-primary" />
-              </div>
-              
-              <h3 className="mb-2 text-lg font-semibold text-foreground">{benefit.title}</h3>
-              
-              <p className={`text-sm transition-all duration-300 ${
-                activeIndex === index ? 'text-foreground' : 'text-muted-foreground'
-              }`}>
-                {activeIndex === index ? benefit.detail : benefit.short}
-              </p>
+              <div
+                className={`flip-card-inner relative w-full h-full transition-transform duration-700 transform-style-3d ${
+                  flippedCards[index] ? "rotate-y-180" : ""
+                }`}
+              >
+                {/* Front */}
+                <div className="flip-card-front absolute w-full h-full backface-hidden rounded-xl border border-border/50 bg-background/80 backdrop-blur-sm p-6 flex flex-col items-center justify-center text-center">
+                  <div className="mb-4 w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center">
+                    <i className={`${benefit.icon} text-2xl text-primary`}></i>
+                  </div>
+                  <h3 className="text-lg font-bold text-foreground mb-3">{benefit.title}</h3>
+                  <p className="text-sm text-muted-foreground">{benefit.front}</p>
+                  <div className="mt-4 text-xs text-primary/60">Clique para ver mais</div>
+                </div>
 
-              {/* Glow effect on hover */}
-              {activeIndex === index && (
-                <div className="absolute inset-0 -z-10 bg-gradient-to-r from-primary/10 via-transparent to-primary/10 animate-pulse" />
-              )}
+                {/* Back */}
+                <div className="flip-card-back absolute w-full h-full backface-hidden rounded-xl border border-primary/50 bg-primary/10 backdrop-blur-sm p-6 flex flex-col items-center justify-center text-center rotate-y-180">
+                  <h3 className="text-lg font-bold text-primary mb-4">{benefit.title}</h3>
+                  <p className="text-sm text-foreground leading-relaxed">{benefit.back}</p>
+                </div>
+              </div>
             </div>
           ))}
         </div>
 
         {/* Stats */}
         <div className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
-          <div>
-            <div className="text-4xl font-bold text-primary">40%</div>
-            <div className="text-sm text-muted-foreground mt-1">Aumento em conversões</div>
+          <div className="p-6 rounded-xl bg-background/50 backdrop-blur-sm border border-border/50">
+            <div className="text-4xl font-bold text-primary">+150%</div>
+            <div className="text-sm text-muted-foreground mt-2">Aumento em conversões</div>
           </div>
-          <div>
-            <div className="text-4xl font-bold text-primary">60%</div>
-            <div className="text-sm text-muted-foreground mt-1">Redução em custos</div>
+          <div className="p-6 rounded-xl bg-background/50 backdrop-blur-sm border border-border/50">
+            <div className="text-4xl font-bold text-primary">-50%</div>
+            <div className="text-sm text-muted-foreground mt-2">Redução em custos</div>
           </div>
-          <div>
-            <div className="text-4xl font-bold text-primary">98%</div>
-            <div className="text-sm text-muted-foreground mt-1">Taxa de satisfação</div>
+          <div className="p-6 rounded-xl bg-background/50 backdrop-blur-sm border border-border/50">
+            <div className="text-4xl font-bold text-primary">+98%</div>
+            <div className="text-sm text-muted-foreground mt-2">Taxa de satisfação</div>
           </div>
-          <div>
+          <div className="p-6 rounded-xl bg-background/50 backdrop-blur-sm border border-border/50">
             <div className="text-4xl font-bold text-primary">24/7</div>
-            <div className="text-sm text-muted-foreground mt-1">Disponibilidade</div>
+            <div className="text-sm text-muted-foreground mt-2">Sempre online</div>
           </div>
         </div>
       </div>
