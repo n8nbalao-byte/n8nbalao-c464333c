@@ -10,7 +10,8 @@ import { TestimonialsCarousel } from "@/components/TestimonialsCarousel";
 import { IntegrationsCarousel } from "@/components/IntegrationsCarousel";
 import { ProductCard } from "@/components/ProductCard";
 import { api, type Product, getCustomCategories } from "@/lib/api";
-import { MessageCircle, Download, Monitor, Package, Laptop, Bot, Code, Wrench, Key, Tv, Armchair, Tag } from "lucide-react";
+import { getIconFromKey } from "@/lib/icons";
+import { MessageCircle, Download, Monitor, Package, Laptop, Bot, Code, Wrench, Key, Tv, Armchair } from "lucide-react";
 
 const stats = [
   { value: "+1.988", label: "Clientes Ativos" },
@@ -38,7 +39,7 @@ export default function Index() {
   const customCategories = getCustomCategories();
   const categoryConfig = [
     ...baseCategoryConfig,
-    ...customCategories.map(c => ({ key: c.key, label: c.label, icon: Tag }))
+    ...customCategories.map(c => ({ key: c.key, label: c.label, icon: getIconFromKey(c.icon) }))
   ];
 
   useEffect(() => {

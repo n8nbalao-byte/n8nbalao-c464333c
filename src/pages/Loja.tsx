@@ -4,7 +4,8 @@ import { Footer } from "@/components/Footer";
 import { StarryBackground } from "@/components/StarryBackground";
 import { ProductCard } from "@/components/ProductCard";
 import { api, type Product, getCustomCategories } from "@/lib/api";
-import { Search, ArrowUpDown, Monitor, Package, Laptop, Bot, Wrench, Code, Key, Tv, Armchair, Tag } from "lucide-react";
+import { getIconFromKey } from "@/lib/icons";
+import { Search, ArrowUpDown, Monitor, Package, Laptop, Bot, Wrench, Code, Key, Tv, Armchair } from "lucide-react";
 
 type ProductType = 'all' | 'pc' | 'kit' | 'notebook' | 'automacao' | 'software' | 'acessorio' | 'licenca' | 'monitor' | 'cadeira_gamer' | string;
 
@@ -32,7 +33,7 @@ export default function Loja() {
   const customCategories = getCustomCategories();
   const productTypes = [
     ...baseProductTypes,
-    ...customCategories.map(c => ({ key: c.key, label: c.label, icon: Tag }))
+    ...customCategories.map(c => ({ key: c.key, label: c.label, icon: getIconFromKey(c.icon) }))
   ];
 
   useEffect(() => {
