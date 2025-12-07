@@ -3,12 +3,12 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { StarryBackground } from "@/components/StarryBackground";
 import { ProductCard } from "@/components/ProductCard";
-import { api, type Product } from "@/lib/api";
-import { Search, ArrowUpDown, Monitor, Package, Laptop, Bot, Wrench, Code } from "lucide-react";
+import { api, type Product, getCustomCategories } from "@/lib/api";
+import { Search, ArrowUpDown, Monitor, Package, Laptop, Bot, Wrench, Code, Key, Tv, Armchair, Tag } from "lucide-react";
 
-type ProductType = 'all' | 'pc' | 'kit' | 'notebook' | 'automacao' | 'software' | 'acessorio';
+type ProductType = 'all' | 'pc' | 'kit' | 'notebook' | 'automacao' | 'software' | 'acessorio' | 'licenca' | 'monitor' | 'cadeira_gamer' | string;
 
-const productTypes: { key: ProductType; label: string; icon: React.ElementType }[] = [
+const baseProductTypes: { key: ProductType; label: string; icon: React.ElementType }[] = [
   { key: 'all', label: 'Todos', icon: Package },
   { key: 'pc', label: 'PCs', icon: Monitor },
   { key: 'kit', label: 'Kits', icon: Package },
@@ -16,6 +16,9 @@ const productTypes: { key: ProductType; label: string; icon: React.ElementType }
   { key: 'automacao', label: 'Automações', icon: Bot },
   { key: 'software', label: 'Softwares', icon: Code },
   { key: 'acessorio', label: 'Acessórios', icon: Wrench },
+  { key: 'licenca', label: 'Licenças', icon: Key },
+  { key: 'monitor', label: 'Monitores', icon: Tv },
+  { key: 'cadeira_gamer', label: 'Cadeiras Gamer', icon: Armchair },
 ];
 
 export default function Loja() {
@@ -24,6 +27,13 @@ export default function Loja() {
   const [search, setSearch] = useState("");
   const [selectedType, setSelectedType] = useState<ProductType>("all");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
+
+  // Merge base categories with custom categories
+  const customCategories = getCustomCategories();
+  const productTypes = [
+    ...baseProductTypes,
+    ...customCategories.map(c => ({ key: c.key, label: c.label, icon: Tag }))
+  ];
 
   useEffect(() => {
     async function fetchProducts() {
