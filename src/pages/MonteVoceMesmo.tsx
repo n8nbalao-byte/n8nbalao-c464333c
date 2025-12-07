@@ -374,9 +374,65 @@ export default function MonteVoceMesmo() {
   }
 
   function handleBuy() {
+    // Build quote message for WhatsApp
+    let message = `*ORÇAMENTO - ${companyData.name || 'Loja'}*\n`;
+    message += `Data: ${formatDate(emissionDate)}\n`;
+    message += `Validade: ${formatDate(validityDate)}\n\n`;
+    
+    // Hardware components
+    const hasHardware = Object.values(selectedHardware).some(v => v);
+    if (hasHardware) {
+      message += `*MONTAGEM DE PC*\n`;
+      hardwareSteps.forEach(step => {
+        const value = selectedHardware[step.key];
+        if (value) {
+          if (Array.isArray(value)) {
+            const grouped = value.reduce((acc, item) => {
+              acc[item.id] = acc[item.id] || { item, count: 0 };
+              acc[item.id].count++;
+              return acc;
+            }, {} as Record<string, { item: HardwareItem; count: number }>);
+            
+            Object.values(grouped).forEach(({ item, count }) => {
+              const itemTotal = item.price * count;
+              message += `• ${step.label}: ${item.brand} ${item.model}${count > 1 ? ` (x${count})` : ''} - ${formatPrice(itemTotal)}\n`;
+            });
+          } else {
+            message += `• ${step.label}: ${value.brand} ${value.model} - ${formatPrice(value.price)}\n`;
+          }
+        }
+      });
+      message += `\n`;
+    }
+    
+    // Extra products
+    if (selectedProducts.length > 0) {
+      message += `*ITENS ADICIONAIS*\n`;
+      const groupedProducts = selectedProducts.reduce((acc, product) => {
+        acc[product.id] = acc[product.id] || { product, count: 0 };
+        acc[product.id].count++;
+        return acc;
+      }, {} as Record<string, { product: SelectedProduct; count: number }>);
+      
+      Object.values(groupedProducts).forEach(({ product, count }) => {
+        const itemTotal = product.price * count;
+        message += `• ${product.title}${count > 1 ? ` (x${count})` : ''} - ${formatPrice(itemTotal)}\n`;
+      });
+      message += `\n`;
+    }
+    
+    message += `*TOTAL: ${formatPrice(calculateTotal())}*\n\n`;
+    message += `Gostaria de finalizar este pedido!`;
+    
+    // Get phone from company data, remove non-numeric chars
+    const phone = companyData.phone?.replace(/\D/g, '') || '';
+    const whatsappUrl = `https://wa.me/55${phone}?text=${encodeURIComponent(message)}`;
+    
+    window.open(whatsappUrl, '_blank');
+    
     toast({ 
-      title: "Pedido Enviado!", 
-      description: "Em breve entraremos em contato para finalizar sua compra.",
+      title: "Redirecionando para WhatsApp!", 
+      description: "Finalize seu pedido pelo WhatsApp.",
     });
   }
 
