@@ -80,7 +80,7 @@ export default function MonteVoceMesmo() {
   const [searchTerm, setSearchTerm] = useState('');
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'card' | 'list'>('card');
-  const [allCategories, setAllCategories] = useState([...defaultCategories, ...getCustomCategories()]);
+  const [allCategories, setAllCategories] = useState(defaultCategories);
   const [companyData, setCompanyData] = useState<CompanyData>({
     name: '',
     address: '',
@@ -95,23 +95,26 @@ export default function MonteVoceMesmo() {
 
   // Reload categories when products are loaded - include custom categories AND categories from products
   useEffect(() => {
-    if (phase === 'extras' && products.length > 0) {
-      const customCats = getCustomCategories();
-      const defaultKeys = defaultCategories.map(c => c.key);
-      const customKeys = customCats.map(c => c.key);
-      
-      // Extract unique categories from products that aren't in defaults or custom
-      const productCategories = products
-        .map(p => p.categories?.[0] || p.productType || '')
-        .filter(cat => cat && !defaultKeys.includes(cat) && !customKeys.includes(cat));
-      
-      const uniqueProductCats = [...new Set(productCategories)].map(key => ({
-        key,
-        label: key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, ' ')
-      }));
-      
-      setAllCategories([...defaultCategories, ...customCats, ...uniqueProductCats]);
+    async function loadCategories() {
+      if (phase === 'extras' && products.length > 0) {
+        const customCats = await getCustomCategories();
+        const defaultKeys = defaultCategories.map(c => c.key);
+        const customKeys = customCats.map(c => c.key);
+        
+        // Extract unique categories from products that aren't in defaults or custom
+        const productCategories = products
+          .map(p => p.categories?.[0] || p.productType || '')
+          .filter(cat => cat && !defaultKeys.includes(cat) && !customKeys.includes(cat));
+        
+        const uniqueProductCats = [...new Set(productCategories)].map(key => ({
+          key,
+          label: key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, ' ')
+        }));
+        
+        setAllCategories([...defaultCategories, ...customCats, ...uniqueProductCats]);
+      }
     }
+    loadCategories();
   }, [phase, products]);
 
   useEffect(() => {

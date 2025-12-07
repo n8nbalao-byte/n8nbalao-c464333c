@@ -3,37 +3,49 @@ const API_BASE_URL = 'https://www.n8nbalao.com/api';
 
 export type ProductCategory = 'pc' | 'kit' | 'notebook' | 'automacao' | 'software' | 'acessorio' | 'licenca' | 'monitor' | 'cadeira_gamer';
 
-// Custom categories stored in localStorage (can be extended by admin)
+// Custom categories stored in database
 export interface CustomCategory {
   key: string;
   label: string;
   icon?: string; // Icon key from availableIcons
+  type?: 'product_type' | 'product_category';
 }
 
-export function getCustomCategories(): CustomCategory[] {
+// Fetch custom categories from database
+export async function getCustomCategories(): Promise<CustomCategory[]> {
   try {
-    const stored = localStorage.getItem('custom_categories');
-    return stored ? JSON.parse(stored) : [];
+    const response = await fetch(`${API_BASE_URL}/categories.php?type=product_type`);
+    if (!response.ok) return [];
+    return await response.json();
   } catch {
     return [];
   }
 }
 
-export function saveCustomCategories(categories: CustomCategory[]): void {
-  localStorage.setItem('custom_categories', JSON.stringify(categories));
-}
-
-export function addCustomCategory(key: string, label: string, icon?: string): void {
-  const categories = getCustomCategories();
-  if (!categories.find(c => c.key === key)) {
-    categories.push({ key, label, icon });
-    saveCustomCategories(categories);
+// Save category to database
+export async function addCustomCategory(key: string, label: string, icon?: string): Promise<boolean> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/categories.php`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key, label, icon, type: 'product_type' }),
+    });
+    return response.ok;
+  } catch {
+    return false;
   }
 }
 
-export function removeCustomCategory(key: string): void {
-  const categories = getCustomCategories().filter(c => c.key !== key);
-  saveCustomCategories(categories);
+// Remove category from database
+export async function removeCustomCategory(key: string): Promise<boolean> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/categories.php?key=${key}`, {
+      method: 'DELETE',
+    });
+    return response.ok;
+  } catch {
+    return false;
+  }
 }
 
 export interface Product {
