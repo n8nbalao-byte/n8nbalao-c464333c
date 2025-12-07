@@ -775,55 +775,77 @@ export default function MonteVoceMesmo() {
                     const isSelected = itemCount > 0;
                     
                     return (
-                      <div
-                        key={item.id}
-                        onClick={() => !currentStepData.allowMultiple && selectHardware(item)}
-                        className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-all hover:shadow-md ${
-                          isSelected 
-                            ? 'border-green-500 bg-green-500/10' 
-                            : 'border-border hover:border-primary/50'
-                        }`}
-                      >
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium text-sm">{item.brand} {item.model}</p>
-                          <p className="text-xs text-muted-foreground truncate">{item.name}</p>
-                        </div>
-                        <div className="flex items-center gap-4">
-                          <p className="font-bold text-primary">{formatPrice(item.price)}</p>
-                          {currentStepData.allowMultiple ? (
-                            <div className="flex items-center gap-1">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  removeOneHardwareItem(currentStepData.key, item.id);
-                                }}
-                                disabled={itemCount === 0}
-                                className="h-7 w-7 p-0"
-                              >
-                                <Minus className="h-3 w-3" />
-                              </Button>
-                              <span className="font-bold w-6 text-center text-sm">{itemCount}</span>
-                              <Button
-                                variant="default"
-                                size="sm"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  selectHardware(item);
-                                }}
-                                className="h-7 w-7 p-0"
-                              >
-                                <Plus className="h-3 w-3" />
-                              </Button>
+                      <HoverCard key={item.id} openDelay={200} closeDelay={100}>
+                        <HoverCardTrigger asChild>
+                          <div
+                            onClick={() => !currentStepData.allowMultiple && selectHardware(item)}
+                            className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-all hover:shadow-md ${
+                              isSelected 
+                                ? 'border-green-500 bg-green-500/10' 
+                                : 'border-border hover:border-primary/50'
+                            }`}
+                          >
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium text-sm">{item.brand} {item.model}</p>
+                              <p className="text-xs text-muted-foreground truncate">{item.name}</p>
                             </div>
-                          ) : isSelected ? (
-                            <span className="flex items-center gap-1 text-green-500 text-sm">
-                              <Check className="h-4 w-4" />
-                            </span>
-                          ) : null}
-                        </div>
-                      </div>
+                            <div className="flex items-center gap-4">
+                              <p className="font-bold text-primary">{formatPrice(item.price)}</p>
+                              {currentStepData.allowMultiple ? (
+                                <div className="flex items-center gap-1">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      removeOneHardwareItem(currentStepData.key, item.id);
+                                    }}
+                                    disabled={itemCount === 0}
+                                    className="h-7 w-7 p-0"
+                                  >
+                                    <Minus className="h-3 w-3" />
+                                  </Button>
+                                  <span className="font-bold w-6 text-center text-sm">{itemCount}</span>
+                                  <Button
+                                    variant="default"
+                                    size="sm"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      selectHardware(item);
+                                    }}
+                                    className="h-7 w-7 p-0"
+                                  >
+                                    <Plus className="h-3 w-3" />
+                                  </Button>
+                                </div>
+                              ) : isSelected ? (
+                                <span className="flex items-center gap-1 text-green-500 text-sm">
+                                  <Check className="h-4 w-4" />
+                                </span>
+                              ) : null}
+                            </div>
+                          </div>
+                        </HoverCardTrigger>
+                        <HoverCardContent side="right" className="w-64 p-3">
+                          {item.image ? (
+                            <img 
+                              src={item.image} 
+                              alt={`${item.brand} ${item.model}`}
+                              className="w-full h-40 object-contain rounded-lg bg-muted mb-2"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).style.display = 'none';
+                              }}
+                            />
+                          ) : (
+                            <div className="w-full h-40 bg-muted rounded-lg flex items-center justify-center mb-2">
+                              <Package className="h-12 w-12 text-muted-foreground" />
+                            </div>
+                          )}
+                          <p className="font-semibold text-sm">{item.brand} {item.model}</p>
+                          <p className="text-xs text-muted-foreground">{item.name}</p>
+                          <p className="font-bold text-primary mt-1">{formatPrice(item.price)}</p>
+                        </HoverCardContent>
+                      </HoverCard>
                     );
                   })}
                 </div>
@@ -1052,52 +1074,77 @@ export default function MonteVoceMesmo() {
                   {filteredProducts.map((product) => {
                     const count = getProductCount(product.id);
                     const isSelected = count > 0;
+                    const productImage = product.media?.[0]?.url;
                     
                     return (
-                      <div
-                        key={product.id}
-                        className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-all hover:shadow-md ${
-                          isSelected 
-                            ? 'border-green-500 bg-green-500/10' 
-                            : 'border-border hover:border-primary/50'
-                        }`}
-                      >
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium text-sm">{product.title}</p>
-                          {product.subtitle && (
-                            <p className="text-xs text-muted-foreground truncate">{product.subtitle}</p>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-4">
-                          <p className="font-bold text-primary">{formatPrice(product.totalPrice)}</p>
-                          <div className="flex items-center gap-1">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                removeOneProduct(product.id);
-                              }}
-                              disabled={count === 0}
-                              className="h-7 w-7 p-0"
-                            >
-                              <Minus className="h-3 w-3" />
-                            </Button>
-                            <span className="font-bold w-6 text-center text-sm">{count}</span>
-                            <Button
-                              variant="default"
-                              size="sm"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                addProduct(product);
-                              }}
-                              className="h-7 w-7 p-0"
-                            >
-                              <Plus className="h-3 w-3" />
-                            </Button>
+                      <HoverCard key={product.id} openDelay={200} closeDelay={100}>
+                        <HoverCardTrigger asChild>
+                          <div
+                            className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-all hover:shadow-md ${
+                              isSelected 
+                                ? 'border-green-500 bg-green-500/10' 
+                                : 'border-border hover:border-primary/50'
+                            }`}
+                          >
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium text-sm">{product.title}</p>
+                              {product.subtitle && (
+                                <p className="text-xs text-muted-foreground truncate">{product.subtitle}</p>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-4">
+                              <p className="font-bold text-primary">{formatPrice(product.totalPrice)}</p>
+                              <div className="flex items-center gap-1">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    removeOneProduct(product.id);
+                                  }}
+                                  disabled={count === 0}
+                                  className="h-7 w-7 p-0"
+                                >
+                                  <Minus className="h-3 w-3" />
+                                </Button>
+                                <span className="font-bold w-6 text-center text-sm">{count}</span>
+                                <Button
+                                  variant="default"
+                                  size="sm"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    addProduct(product);
+                                  }}
+                                  className="h-7 w-7 p-0"
+                                >
+                                  <Plus className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            </div>
                           </div>
-                        </div>
-                      </div>
+                        </HoverCardTrigger>
+                        <HoverCardContent side="left" className="w-64 p-3">
+                          {productImage ? (
+                            <img 
+                              src={productImage} 
+                              alt={product.title}
+                              className="w-full h-40 object-contain rounded-lg bg-muted mb-2"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).style.display = 'none';
+                              }}
+                            />
+                          ) : (
+                            <div className="w-full h-40 bg-muted rounded-lg flex items-center justify-center mb-2">
+                              <Package className="h-12 w-12 text-muted-foreground" />
+                            </div>
+                          )}
+                          <p className="font-semibold text-sm">{product.title}</p>
+                          {product.subtitle && (
+                            <p className="text-xs text-muted-foreground">{product.subtitle}</p>
+                          )}
+                          <p className="font-bold text-primary mt-1">{formatPrice(product.totalPrice)}</p>
+                        </HoverCardContent>
+                      </HoverCard>
                     );
                   })}
                 </div>
