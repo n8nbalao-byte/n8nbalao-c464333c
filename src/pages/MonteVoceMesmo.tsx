@@ -2,41 +2,33 @@ import { useState, useEffect, useRef } from "react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { StarryBackground } from "@/components/StarryBackground";
-
 import { api, type Product, type HardwareItem, type CompanyData, type HardwareCategory, getCustomCategories } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
-import { Check, Printer, ShoppingCart, ArrowLeft, Plus, X, Search, Package, ChevronRight, Cpu, Minus, LayoutGrid, List } from "lucide-react";
+import { Check, Printer, ShoppingCart, ArrowLeft, Plus, X, Search, Package, ChevronRight, Cpu, Minus, CircuitBoard, MemoryStick, HardDrive, Monitor, Zap, Box, Droplets, Wrench } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 
-// Hardware steps for PC assembly
-const hardwareSteps: { key: HardwareCategory; label: string; required: boolean; allowMultiple: boolean }[] = [
-  { key: 'processor', label: 'Processador', required: true, allowMultiple: false },
-  { key: 'motherboard', label: 'Placa Mãe', required: true, allowMultiple: false },
-  { key: 'memory', label: 'Memória RAM', required: true, allowMultiple: true },
-  { key: 'storage', label: 'Armazenamento', required: true, allowMultiple: true },
-  { key: 'gpu', label: 'Placa de Vídeo', required: false, allowMultiple: false },
-  { key: 'cooler', label: 'Cooler', required: false, allowMultiple: false },
-  { key: 'psu', label: 'Fonte', required: true, allowMultiple: false },
-  { key: 'case', label: 'Gabinete', required: true, allowMultiple: false },
+// Hardware steps with icons for PC assembly
+const hardwareSteps: { key: HardwareCategory; label: string; required: boolean; allowMultiple: boolean; icon: React.ElementType }[] = [
+  { key: 'processor', label: 'Processador', required: true, allowMultiple: false, icon: Cpu },
+  { key: 'motherboard', label: 'Placa Mãe', required: true, allowMultiple: false, icon: CircuitBoard },
+  { key: 'memory', label: 'Memória RAM', required: true, allowMultiple: true, icon: MemoryStick },
+  { key: 'storage', label: 'Armazenamento', required: true, allowMultiple: true, icon: HardDrive },
+  { key: 'gpu', label: 'Placa de Vídeo', required: false, allowMultiple: false, icon: Monitor },
+  { key: 'cooler', label: 'Cooler', required: false, allowMultiple: false, icon: Droplets },
+  { key: 'psu', label: 'Fonte', required: true, allowMultiple: false, icon: Zap },
+  { key: 'case', label: 'Gabinete', required: true, allowMultiple: false, icon: Box },
 ];
 
-// Categories that allow multiple selections in extras phase
-const multipleAllowedCategories = ['monitor'];
-
-// Product categories for additional items
-const defaultCategories = [
-  { key: 'pc', label: 'PCs' },
-  { key: 'kit', label: 'Kits' },
-  { key: 'notebook', label: 'Notebooks' },
+// Extra product categories
+const defaultExtraCategories = [
+  { key: 'monitor', label: 'Monitor' },
+  { key: 'software', label: 'Sistema Operacional' },
   { key: 'acessorio', label: 'Acessórios' },
-  { key: 'software', label: 'Softwares' },
-  { key: 'automacao', label: 'Automações' },
   { key: 'licenca', label: 'Licenças' },
-  { key: 'monitor', label: 'Monitores' },
-  { key: 'cadeira_gamer', label: 'Cadeiras Gamer' },
+  { key: 'cadeira_gamer', label: 'Cadeira Gamer' },
 ];
 
 interface SelectedHardware {
@@ -48,7 +40,7 @@ interface SelectedProduct {
   title: string;
   price: number;
   category: string;
-  uniqueKey: string; // Unique key for each instance (allows duplicates)
+  uniqueKey: string;
 }
 
 function formatPrice(price: number): string {
@@ -66,45 +58,41 @@ function formatDate(date: Date): string {
   }).format(date);
 }
 
-type Phase = 'hardware' | 'extras' | 'quote';
+type Phase = 'build' | 'quote';
 
 export default function MonteVoceMesmo() {
   const { toast } = useToast();
-  const [phase, setPhase] = useState<Phase>('hardware');
-  const [currentStep, setCurrentStep] = useState(0);
+  const [phase, setPhase] = useState<Phase>('build');
   const [hardware, setHardware] = useState<HardwareItem[]>([]);
   const [selectedHardware, setSelectedHardware] = useState<SelectedHardware>({});
   const [products, setProducts] = useState<Product[]>([]);
   const [selectedProducts, setSelectedProducts] = useState<SelectedProduct[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [activeCategory, setActiveCategory] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<'card' | 'list'>('card');
-  const [allCategories, setAllCategories] = useState(defaultCategories);
+  const [extraCategories, setExtraCategories] = useState(defaultExtraCategories);
   const [companyData, setCompanyData] = useState<CompanyData>({
-    name: '',
-    address: '',
-    city: '',
-    phone: '',
-    email: '',
-    cnpj: '',
-    seller: '',
-    logo: ''
+    name: '', address: '', city: '', phone: '', email: '', cnpj: '', seller: '', logo: ''
   });
   const quoteRef = useRef<HTMLDivElement>(null);
 
-  // Reload categories when products are loaded - include custom categories AND categories from products
+  // Sheet states
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [activeStep, setActiveStep] = useState<typeof hardwareSteps[0] | null>(null);
+  const [activeExtraCategory, setActiveExtraCategory] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  // Load categories from products
   useEffect(() => {
     async function loadCategories() {
-      if (phase === 'extras' && products.length > 0) {
+      if (products.length > 0) {
         const customCats = await getCustomCategories();
-        const defaultKeys = defaultCategories.map(c => c.key);
+        const excludedCategories = ['games', 'console', 'controle', 'controles', 'pc', 'kit', 'notebook'];
+        const defaultKeys = defaultExtraCategories.map(c => c.key);
         const customKeys = customCats.map(c => c.key);
         
-        // Categories to exclude
-        const excludedCategories = ['games', 'console', 'controle', 'controles'];
-        
-        // Extract unique categories from products that aren't in defaults or custom
         const productCategories = products
           .map(p => p.categories?.[0] || p.productType || '')
           .filter(cat => cat && !defaultKeys.includes(cat) && !customKeys.includes(cat) && !excludedCategories.includes(cat.toLowerCase()));
@@ -114,50 +102,47 @@ export default function MonteVoceMesmo() {
           label: key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, ' ')
         }));
         
-        setAllCategories([...defaultCategories, ...customCats, ...uniqueProductCats]);
+        setExtraCategories([...defaultExtraCategories, ...customCats, ...uniqueProductCats]);
       }
     }
     loadCategories();
-  }, [phase, products]);
-
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  useEffect(() => {
-    if (phase === 'hardware') {
-      loadHardwareForStep();
-    }
-  }, [currentStep, phase, selectedHardware]);
+  }, [products]);
 
   async function fetchData() {
-    setLoading(true);
     try {
-      const company = await api.getCompany();
+      const [company, productsData] = await Promise.all([
+        api.getCompany(),
+        api.getProducts()
+      ]);
       setCompanyData(company);
+      setProducts(productsData.sort((a, b) => a.totalPrice - b.totalPrice));
     } catch (error) {
       toast({ title: "Erro", description: "Falha ao carregar dados", variant: "destructive" });
     }
-    setLoading(false);
-    loadHardwareForStep();
   }
 
-  async function loadHardwareForStep() {
-    if (currentStep >= hardwareSteps.length) return;
-    
-    const step = hardwareSteps[currentStep];
+  async function openHardwareSheet(step: typeof hardwareSteps[0]) {
+    setActiveStep(step);
+    setActiveExtraCategory(null);
+    setSearchTerm('');
+    setSheetOpen(true);
     setLoading(true);
+
     try {
       let items = await api.getHardware(step.key);
-      
-      // Apply compatibility filtering
       items = filterCompatibleHardware(items, step.key);
-      
       setHardware(items.sort((a, b) => a.price - b.price));
     } catch (error) {
       toast({ title: "Erro", description: "Falha ao carregar componentes", variant: "destructive" });
     }
     setLoading(false);
+  }
+
+  function openExtraSheet(categoryKey: string) {
+    setActiveExtraCategory(categoryKey);
+    setActiveStep(null);
+    setSearchTerm('');
+    setSheetOpen(true);
   }
 
   function filterCompatibleHardware(items: HardwareItem[], category: HardwareCategory): HardwareItem[] {
@@ -167,40 +152,30 @@ export default function MonteVoceMesmo() {
     const motherboard = Array.isArray(motherboardValue) ? motherboardValue[0] : motherboardValue;
 
     return items.filter(item => {
-      // Motherboard must match processor socket (only if both have socket defined)
       if (category === 'motherboard' && processor?.socket && item.socket) {
         if (item.socket !== processor.socket) return false;
       }
-
-      // Memory must match motherboard memory type (only if both have memoryType defined)
       if (category === 'memory' && motherboard?.memoryType && item.memoryType) {
         if (item.memoryType !== motherboard.memoryType) return false;
       }
-
       return true;
     });
   }
 
   function selectHardware(item: HardwareItem) {
-    const step = hardwareSteps[currentStep];
+    if (!activeStep) return;
     
-    if (step.allowMultiple) {
-      // For multiple selection, always add (allow duplicates)
+    if (activeStep.allowMultiple) {
       setSelectedHardware(prev => {
-        const current = prev[step.key];
+        const current = prev[activeStep.key];
         const currentArray = Array.isArray(current) ? current : current ? [current] : [];
-        return { ...prev, [step.key]: [...currentArray, item] };
+        return { ...prev, [activeStep.key]: [...currentArray, item] };
       });
       toast({ title: "Adicionado!", description: `${item.brand} ${item.model}` });
     } else {
-      // Single selection
-      setSelectedHardware(prev => ({ ...prev, [step.key]: item }));
+      setSelectedHardware(prev => ({ ...prev, [activeStep.key]: item }));
       toast({ title: "Selecionado!", description: `${item.brand} ${item.model}` });
-      
-      // Auto advance to next step only for single selection
-      if (currentStep < hardwareSteps.length - 1) {
-        setTimeout(() => setCurrentStep(prev => prev + 1), 300);
-      }
+      setSheetOpen(false);
     }
   }
 
@@ -208,7 +183,6 @@ export default function MonteVoceMesmo() {
     setSelectedHardware(prev => {
       const current = prev[stepKey];
       if (Array.isArray(current)) {
-        // Remove only the first occurrence
         const idx = current.findIndex(h => h.id === itemId);
         if (idx >= 0) {
           const newArray = [...current];
@@ -228,77 +202,8 @@ export default function MonteVoceMesmo() {
     return current?.id === itemId ? 1 : 0;
   }
 
-  function removeHardwareItem(stepKey: string, itemId: string) {
-    setSelectedHardware(prev => {
-      const current = prev[stepKey];
-      if (Array.isArray(current)) {
-        const newArray = current.filter(h => h.id !== itemId);
-        return { ...prev, [stepKey]: newArray.length > 0 ? newArray : null };
-      }
-      return { ...prev, [stepKey]: null };
-    });
-  }
-
-  function skipStep() {
-    const step = hardwareSteps[currentStep];
-    if (step.required) {
-      toast({ title: "Obrigatório", description: "Este componente é obrigatório", variant: "destructive" });
-      return;
-    }
-    setSelectedHardware(prev => ({ ...prev, [step.key]: null }));
-    if (currentStep < hardwareSteps.length - 1) {
-      setCurrentStep(prev => prev + 1);
-    }
-  }
-
-  function calculateHardwareTotal(): number {
-    return Object.values(selectedHardware).reduce((sum, item) => {
-      if (Array.isArray(item)) {
-        return sum + item.reduce((s, h) => s + h.price, 0);
-      }
-      return sum + (item?.price || 0);
-    }, 0);
-  }
-
-  function calculateProductsTotal(): number {
-    return selectedProducts.reduce((sum, item) => sum + item.price, 0);
-  }
-
-  function calculateTotal(): number {
-    return calculateHardwareTotal() + calculateProductsTotal();
-  }
-
-  function finishHardwareSelection() {
-    // Check required components
-    const missing = hardwareSteps.filter(step => {
-      const value = selectedHardware[step.key];
-      if (!step.required) return false;
-      if (Array.isArray(value)) return value.length === 0;
-      return !value;
-    });
-    if (missing.length > 0) {
-      toast({ 
-        title: "Componentes obrigatórios faltando", 
-        description: missing.map(s => s.label).join(', '),
-        variant: "destructive" 
-      });
-      return;
-    }
-    
-    // Load products for extras phase
-    loadProducts();
-    setPhase('extras');
-  }
-
-  async function loadProducts() {
-    setLoading(true);
-    try {
-      const productsData = await api.getProducts();
-      setProducts(productsData.sort((a, b) => a.totalPrice - b.totalPrice));
-    } catch (error) {
-      toast({ title: "Erro", description: "Falha ao carregar produtos", variant: "destructive" });
-    }
-    setLoading(false);
+  function clearHardwareSelection(stepKey: string) {
+    setSelectedHardware(prev => ({ ...prev, [stepKey]: null }));
   }
 
   function addProduct(product: Product) {
@@ -309,7 +214,6 @@ export default function MonteVoceMesmo() {
       category: product.categories?.[0] || product.productType || 'outro',
       uniqueKey: `${product.id}-${Date.now()}-${Math.random()}`
     }]);
-
     toast({ title: "Adicionado!", description: product.title });
   }
 
@@ -333,7 +237,64 @@ export default function MonteVoceMesmo() {
     setSelectedProducts(prev => prev.filter(p => p.uniqueKey !== uniqueKey));
   }
 
+  function calculateHardwareTotal(): number {
+    return Object.values(selectedHardware).reduce((sum, item) => {
+      if (Array.isArray(item)) {
+        return sum + item.reduce((s, h) => s + h.price, 0);
+      }
+      return sum + (item?.price || 0);
+    }, 0);
+  }
+
+  function calculateProductsTotal(): number {
+    return selectedProducts.reduce((sum, item) => sum + item.price, 0);
+  }
+
+  function calculateTotal(): number {
+    return calculateHardwareTotal() + calculateProductsTotal();
+  }
+
+  function getSelectionSummary(stepKey: string): string {
+    const selection = selectedHardware[stepKey];
+    if (!selection) return 'Selecione os componentes';
+    if (Array.isArray(selection)) {
+      if (selection.length === 0) return 'Selecione os componentes';
+      if (selection.length === 1) return `${selection[0].brand} ${selection[0].model}`;
+      return `${selection.length} itens selecionados`;
+    }
+    return `${selection.brand} ${selection.model}`;
+  }
+
+  function getExtraCategorySummary(categoryKey: string): string {
+    const items = selectedProducts.filter(p => p.category === categoryKey);
+    if (items.length === 0) return 'Selecione os componentes';
+    if (items.length === 1) return items[0].title;
+    return `${items.length} itens selecionados`;
+  }
+
+  function getCategoryLabel(key: string): string {
+    const step = hardwareSteps.find(s => s.key === key);
+    if (step) return step.label;
+    const cat = extraCategories.find(c => c.key === key);
+    return cat?.label || key;
+  }
+
   function generateQuote() {
+    const missing = hardwareSteps.filter(step => {
+      const value = selectedHardware[step.key];
+      if (!step.required) return false;
+      if (Array.isArray(value)) return value.length === 0;
+      return !value;
+    });
+    
+    if (missing.length > 0) {
+      toast({ 
+        title: "Componentes obrigatórios faltando", 
+        description: missing.map(s => s.label).join(', '),
+        variant: "destructive" 
+      });
+      return;
+    }
     setPhase('quote');
   }
 
@@ -380,12 +341,10 @@ export default function MonteVoceMesmo() {
   }
 
   function handleBuy() {
-    // Build quote message for WhatsApp
     let message = `*ORÇAMENTO - ${companyData.name || 'Loja'}*\n`;
     message += `Data: ${formatDate(emissionDate)}\n`;
     message += `Validade: ${formatDate(validityDate)}\n\n`;
     
-    // Hardware components
     const hasHardware = Object.values(selectedHardware).some(v => v);
     if (hasHardware) {
       message += `*MONTAGEM DE PC*\n`;
@@ -398,85 +357,53 @@ export default function MonteVoceMesmo() {
               acc[item.id].count++;
               return acc;
             }, {} as Record<string, { item: HardwareItem; count: number }>);
-            
             Object.values(grouped).forEach(({ item, count }) => {
-              const itemTotal = item.price * count;
-              message += `• ${step.label}: ${item.brand} ${item.model}${count > 1 ? ` (x${count})` : ''} - ${formatPrice(itemTotal)}\n`;
+              message += `• ${step.label}: ${count > 1 ? `${count}x ` : ''}${item.brand} ${item.model} - ${formatPrice(item.price * count)}\n`;
             });
           } else {
             message += `• ${step.label}: ${value.brand} ${value.model} - ${formatPrice(value.price)}\n`;
           }
         }
       });
-      message += `\n`;
+      message += `Subtotal PC: ${formatPrice(calculateHardwareTotal())}\n\n`;
     }
-    
-    // Extra products
+
     if (selectedProducts.length > 0) {
-      message += `*ITENS ADICIONAIS*\n`;
-      const groupedProducts = selectedProducts.reduce((acc, product) => {
-        acc[product.id] = acc[product.id] || { product, count: 0 };
-        acc[product.id].count++;
-        return acc;
-      }, {} as Record<string, { product: SelectedProduct; count: number }>);
-      
-      Object.values(groupedProducts).forEach(({ product, count }) => {
-        const itemTotal = product.price * count;
-        message += `• ${product.title}${count > 1 ? ` (x${count})` : ''} - ${formatPrice(itemTotal)}\n`;
+      message += `*ITENS EXTRAS*\n`;
+      selectedProducts.forEach(item => {
+        message += `• ${item.title} - ${formatPrice(item.price)}\n`;
       });
-      message += `\n`;
+      message += `Subtotal Extras: ${formatPrice(calculateProductsTotal())}\n\n`;
     }
-    
-    message += `*TOTAL: ${formatPrice(calculateTotal())}*\n\n`;
-    message += `Gostaria de finalizar este pedido!`;
-    
-    // Get phone from company data, remove non-numeric chars
+
+    message += `*TOTAL: ${formatPrice(calculateTotal())}*`;
+
     const phone = companyData.phone?.replace(/\D/g, '') || '';
     const whatsappUrl = `https://wa.me/55${phone}?text=${encodeURIComponent(message)}`;
-    
     window.open(whatsappUrl, '_blank');
-    
-    toast({ 
-      title: "Redirecionando para WhatsApp!", 
-      description: "Finalize seu pedido pelo WhatsApp.",
-    });
   }
 
-  function getCategoryLabel(key: string): string {
-    const found = allCategories.find(c => c.key === key);
-    return found?.label || key;
-  }
+  // Filtered hardware for sheet
+  const filteredHardware = hardware.filter(item =>
+    !searchTerm || 
+    item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    item.brand.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    item.model.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
-  const filteredProducts = products
-    .filter(product => {
-      const matchesSearch = !searchTerm || 
-        product.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        product.subtitle?.toLowerCase().includes(searchTerm.toLowerCase());
-      
-      const productCategory = product.categories?.[0] || product.productType || '';
-      const matchesCategory = !activeCategory || productCategory === activeCategory;
-      
-      return matchesSearch && matchesCategory;
-    })
-    .sort((a, b) => (a.totalPrice || 0) - (b.totalPrice || 0));
+  // Filtered products for sheet
+  const filteredProducts = products.filter(product => {
+    const productCategory = product.categories?.[0] || product.productType || '';
+    const matchesCategory = productCategory === activeExtraCategory;
+    const matchesSearch = !searchTerm || 
+      product.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      product.subtitle?.toLowerCase().includes(searchTerm.toLowerCase());
+    return matchesCategory && matchesSearch;
+  });
 
   const emissionDate = new Date();
   const validityDate = new Date(emissionDate);
   validityDate.setDate(validityDate.getDate() + 7);
-
-  if (loading && phase === 'hardware' && hardware.length === 0) {
-    return (
-      <div className="min-h-screen flex flex-col bg-background">
-        <Header />
-        <main className="flex-1 container py-8">
-          <div className="flex items-center justify-center h-64">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-          </div>
-        </main>
-        <Footer />
-      </div>
-    );
-  }
 
   // PHASE: Quote Display
   if (phase === 'quote') {
@@ -486,7 +413,7 @@ export default function MonteVoceMesmo() {
         <main className="flex-1 container py-8">
           <div className="max-w-4xl mx-auto">
             <div className="flex justify-between items-center mb-6">
-              <Button variant="outline" onClick={() => setPhase('extras')}>
+              <Button variant="outline" onClick={() => setPhase('build')}>
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Voltar
               </Button>
@@ -504,7 +431,6 @@ export default function MonteVoceMesmo() {
 
             <Card className="p-8 bg-white text-gray-800" ref={quoteRef}>
               <div className="quote-container">
-                {/* Header */}
                 <div className="header text-center border-b-4 border-primary pb-6 mb-8">
                   {companyData.logo && (
                     <img src={companyData.logo} alt="Logo" className="h-16 mx-auto mb-4 object-contain" />
@@ -517,11 +443,7 @@ export default function MonteVoceMesmo() {
                       <p>{companyData.address}{companyData.address && companyData.city && ' - '}{companyData.city}</p>
                     )}
                     {(companyData.phone || companyData.email) && (
-                      <p>
-                        {companyData.phone && `Tel: ${companyData.phone}`}
-                        {companyData.phone && companyData.email && ' | '}
-                        {companyData.email && `Email: ${companyData.email}`}
-                      </p>
+                      <p>{companyData.phone && `Tel: ${companyData.phone}`}{companyData.phone && companyData.email && ' | '}{companyData.email && `Email: ${companyData.email}`}</p>
                     )}
                     {companyData.cnpj && <p>CNPJ: {companyData.cnpj}</p>}
                     {companyData.seller && <p>Vendedor: {companyData.seller}</p>}
@@ -533,7 +455,6 @@ export default function MonteVoceMesmo() {
                   Data de Emissão: {formatDate(emissionDate)}
                 </div>
 
-                {/* Hardware Components */}
                 {Object.values(selectedHardware).some(v => v) && (
                   <>
                     <h3 className="section-title text-lg font-bold border-b-2 border-border pb-2 mb-4">
@@ -552,7 +473,6 @@ export default function MonteVoceMesmo() {
                           const item = selectedHardware[step.key];
                           if (!item) return null;
                           
-                          // Handle array (multiple items)
                           if (Array.isArray(item)) {
                             return item.map((h, idx) => (
                               <tr key={`${step.key}-${idx}`} className="border-b border-border">
@@ -563,7 +483,6 @@ export default function MonteVoceMesmo() {
                             ));
                           }
                           
-                          // Single item
                           return (
                             <tr key={step.key} className="border-b border-border">
                               <td className="p-3 font-medium">{step.label}</td>
@@ -581,7 +500,6 @@ export default function MonteVoceMesmo() {
                   </>
                 )}
 
-                {/* Additional Products */}
                 {selectedProducts.length > 0 && (
                   <>
                     <h3 className="section-title text-lg font-bold border-b-2 border-border pb-2 mb-4">
@@ -597,7 +515,7 @@ export default function MonteVoceMesmo() {
                       </thead>
                       <tbody>
                         {selectedProducts.map((item) => (
-                          <tr key={item.id} className="border-b border-border">
+                          <tr key={item.uniqueKey} className="border-b border-border">
                             <td className="p-3 font-medium">{getCategoryLabel(item.category)}</td>
                             <td className="p-3">{item.title}</td>
                             <td className="p-3 text-right">{formatPrice(item.price)}</td>
@@ -612,7 +530,6 @@ export default function MonteVoceMesmo() {
                   </>
                 )}
 
-                {/* Total */}
                 <table className="components-table w-full border-collapse mb-6">
                   <tbody>
                     <tr className="total-row bg-primary/20 font-bold text-lg">
@@ -622,7 +539,6 @@ export default function MonteVoceMesmo() {
                   </tbody>
                 </table>
 
-                {/* Validity */}
                 <div className="validity bg-yellow-50 border border-yellow-200 p-4 rounded-lg text-center mb-8">
                   <p>
                     <strong className="text-yellow-700">⚠️ Validade:</strong>{" "}
@@ -630,7 +546,6 @@ export default function MonteVoceMesmo() {
                   </p>
                 </div>
 
-                {/* Footer */}
                 <div className="footer text-center pt-6 border-t border-border">
                   <p className="thank-you text-lg font-bold text-primary mb-2">
                     Obrigado pela preferência!
@@ -648,629 +563,332 @@ export default function MonteVoceMesmo() {
     );
   }
 
-  // PHASE: Hardware Selection
-  if (phase === 'hardware') {
-    const currentStepData = hardwareSteps[currentStep];
-    const selectedCount = Object.values(selectedHardware).filter(v => v).length;
-
-    return (
-      <div className="min-h-screen flex flex-col relative">
-        <StarryBackground />
-        <Header />
-        <main className="flex-1 container py-8">
-          <div className="max-w-5xl mx-auto">
-            {/* Title */}
-            <div className="text-center mb-6">
-              <h1 className="text-3xl font-bold text-foreground mb-2">Monte Seu PC</h1>
-              <p className="text-muted-foreground">Selecione os componentes para montar seu computador</p>
-            </div>
-
-            {/* Progress Bar */}
-            <div className="mb-6">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-muted-foreground">Passo {currentStep + 1} de {hardwareSteps.length}</span>
-                <span className="text-sm font-medium">{selectedCount} componentes selecionados</span>
-              </div>
-              <div className="h-2 bg-muted rounded-full overflow-hidden">
-                <div 
-                  className="h-full bg-primary transition-all duration-300"
-                  style={{ width: `${((currentStep + 1) / hardwareSteps.length) * 100}%` }}
-                />
-              </div>
-            </div>
-
-            {/* Step Navigation */}
-            <div className="flex flex-wrap gap-2 mb-6 justify-center">
-              {hardwareSteps.map((step, index) => {
-                const selection = selectedHardware[step.key];
-                const isSelected = Array.isArray(selection) ? selection.length > 0 : !!selection;
-                const count = Array.isArray(selection) ? selection.length : (selection ? 1 : 0);
-                const isCurrent = index === currentStep;
-                return (
-                  <Button
-                    key={step.key}
-                    variant={isCurrent ? "default" : isSelected ? "secondary" : "outline"}
-                    size="sm"
-                    onClick={() => setCurrentStep(index)}
-                    className={isSelected && !isCurrent ? "border-green-500" : ""}
-                  >
-                    {isSelected && <Check className="h-3 w-3 mr-1" />}
-                    {step.label}
-                    {step.allowMultiple && count > 1 && <span className="ml-1 text-xs">({count})</span>}
-                    {step.required && !isSelected && <span className="text-destructive ml-1">*</span>}
-                  </Button>
-                );
-              })}
-            </div>
-
-            {/* Current Selection Summary */}
-            {calculateHardwareTotal() > 0 && (
-              <div className="bg-background/80 backdrop-blur-sm border border-border rounded-lg p-4 mb-6">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Cpu className="h-5 w-5 text-primary" />
-                    <span className="font-medium">Total do PC:</span>
-                  </div>
-                  <span className="text-xl font-bold text-primary">{formatPrice(calculateHardwareTotal())}</span>
-                </div>
-              </div>
-            )}
-
-            {/* Current Step */}
-            <Card className="p-6 mb-6">
-              <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
-                <div className="flex items-center gap-3">
-                  <div>
-                    <h2 className="text-xl font-bold">
-                      {currentStepData.label}
-                      {currentStepData.required && <span className="text-destructive ml-1">*</span>}
-                    </h2>
-                    {currentStepData.allowMultiple && (
-                      <p className="text-sm text-muted-foreground">Você pode selecionar vários itens</p>
-                    )}
-                  </div>
-                  <span className="text-sm text-muted-foreground">({hardware.length} itens)</span>
-                </div>
-                <div className="flex gap-2">
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => setViewMode(viewMode === 'card' ? 'list' : 'card')}
-                    className="gap-1"
-                  >
-                    {viewMode === 'card' ? <List className="h-4 w-4" /> : <LayoutGrid className="h-4 w-4" />}
-                    {viewMode === 'card' ? 'Lista' : 'Cards'}
-                  </Button>
-                  {currentStepData.allowMultiple && (
-                    <Button 
-                      variant="default" 
-                      size="sm" 
-                      onClick={() => setCurrentStep(prev => Math.min(hardwareSteps.length - 1, prev + 1))}
-                      disabled={currentStep >= hardwareSteps.length - 1}
-                    >
-                      Continuar
-                    </Button>
-                  )}
-                  {!currentStepData.required && (
-                    <Button variant="ghost" size="sm" onClick={skipStep}>
-                      Pular
-                    </Button>
-                  )}
-                </div>
-              </div>
-
-              {loading ? (
-                <div className="flex items-center justify-center h-32">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                </div>
-              ) : hardware.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  <Package className="h-12 w-12 mx-auto mb-2" />
-                  <p>Nenhum componente disponível</p>
-                </div>
-              ) : viewMode === 'card' ? (
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-2 max-h-[70vh] overflow-y-auto">
-                  {hardware.map((item) => {
-                    const itemCount = getItemCount(currentStepData.key, item.id);
-                    const isSelected = itemCount > 0;
-                    
-                    return (
-                      <HoverCard key={item.id} openDelay={200} closeDelay={100}>
-                        <HoverCardTrigger asChild>
-                          <div
-                            onClick={() => !currentStepData.allowMultiple && selectHardware(item)}
-                            className={`p-2 rounded-lg border cursor-pointer transition-all hover:shadow-md ${
-                              isSelected 
-                                ? 'border-green-500 bg-green-500/10 ring-1 ring-green-500' 
-                                : 'border-border hover:border-primary/50'
-                            }`}
-                          >
-                            <p className="font-medium text-xs line-clamp-2 mb-1">{item.brand} {item.model}</p>
-                            <p className="text-sm font-bold text-primary">{formatPrice(item.price)}</p>
-                            
-                            {currentStepData.allowMultiple ? (
-                              <div className="flex items-center justify-between pt-2 mt-2 border-t border-border">
-                                <span className="text-[10px] text-muted-foreground">{itemCount}x</span>
-                                <div className="flex items-center gap-1">
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      removeOneHardwareItem(currentStepData.key, item.id);
-                                    }}
-                                    disabled={itemCount === 0}
-                                    className="h-6 w-6 p-0"
-                                  >
-                                    <Minus className="h-3 w-3" />
-                                  </Button>
-                                  <span className="font-bold w-4 text-center text-xs">{itemCount}</span>
-                                  <Button
-                                    variant="default"
-                                    size="sm"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      selectHardware(item);
-                                    }}
-                                    className="h-6 w-6 p-0"
-                                  >
-                                    <Plus className="h-3 w-3" />
-                                  </Button>
-                                </div>
-                              </div>
-                            ) : isSelected ? (
-                              <div className="pt-2 mt-2 border-t border-border flex justify-center">
-                                <span className="flex items-center gap-1 text-green-500 text-[10px]">
-                                  <Check className="h-3 w-3" /> Selecionado
-                                </span>
-                              </div>
-                            ) : null}
-                          </div>
-                        </HoverCardTrigger>
-                        <HoverCardContent side="right" className="w-64 p-3">
-                          {item.image ? (
-                            <img 
-                              src={item.image} 
-                              alt={`${item.brand} ${item.model}`}
-                              className="w-full h-40 object-contain rounded-lg bg-muted mb-2"
-                              onError={(e) => {
-                                (e.target as HTMLImageElement).style.display = 'none';
-                              }}
-                            />
-                          ) : (
-                            <div className="w-full h-40 bg-muted rounded-lg flex items-center justify-center mb-2">
-                              <Package className="h-12 w-12 text-muted-foreground" />
-                            </div>
-                          )}
-                          <p className="font-semibold text-sm">{item.brand} {item.model}</p>
-                          <p className="text-xs text-muted-foreground">{item.name}</p>
-                          <p className="font-bold text-primary mt-1">{formatPrice(item.price)}</p>
-                        </HoverCardContent>
-                      </HoverCard>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className="space-y-2 max-h-[70vh] overflow-y-auto">
-                  {hardware.map((item) => {
-                    const itemCount = getItemCount(currentStepData.key, item.id);
-                    const isSelected = itemCount > 0;
-                    
-                    return (
-                      <HoverCard key={item.id} openDelay={200} closeDelay={100}>
-                        <HoverCardTrigger asChild>
-                          <div
-                            onClick={() => !currentStepData.allowMultiple && selectHardware(item)}
-                            className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-all hover:shadow-md ${
-                              isSelected 
-                                ? 'border-green-500 bg-green-500/10' 
-                                : 'border-border hover:border-primary/50'
-                            }`}
-                          >
-                            <div className="flex-1 min-w-0">
-                              <p className="font-medium text-sm">{item.brand} {item.model}</p>
-                              <p className="text-xs text-muted-foreground truncate">{item.name}</p>
-                            </div>
-                            <div className="flex items-center gap-4">
-                              <p className="font-bold text-primary">{formatPrice(item.price)}</p>
-                              {currentStepData.allowMultiple ? (
-                                <div className="flex items-center gap-1">
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      removeOneHardwareItem(currentStepData.key, item.id);
-                                    }}
-                                    disabled={itemCount === 0}
-                                    className="h-7 w-7 p-0"
-                                  >
-                                    <Minus className="h-3 w-3" />
-                                  </Button>
-                                  <span className="font-bold w-6 text-center text-sm">{itemCount}</span>
-                                  <Button
-                                    variant="default"
-                                    size="sm"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      selectHardware(item);
-                                    }}
-                                    className="h-7 w-7 p-0"
-                                  >
-                                    <Plus className="h-3 w-3" />
-                                  </Button>
-                                </div>
-                              ) : isSelected ? (
-                                <span className="flex items-center gap-1 text-green-500 text-sm">
-                                  <Check className="h-4 w-4" />
-                                </span>
-                              ) : null}
-                            </div>
-                          </div>
-                        </HoverCardTrigger>
-                        <HoverCardContent side="right" className="w-64 p-3">
-                          {item.image ? (
-                            <img 
-                              src={item.image} 
-                              alt={`${item.brand} ${item.model}`}
-                              className="w-full h-40 object-contain rounded-lg bg-muted mb-2"
-                              onError={(e) => {
-                                (e.target as HTMLImageElement).style.display = 'none';
-                              }}
-                            />
-                          ) : (
-                            <div className="w-full h-40 bg-muted rounded-lg flex items-center justify-center mb-2">
-                              <Package className="h-12 w-12 text-muted-foreground" />
-                            </div>
-                          )}
-                          <p className="font-semibold text-sm">{item.brand} {item.model}</p>
-                          <p className="text-xs text-muted-foreground">{item.name}</p>
-                          <p className="font-bold text-primary mt-1">{formatPrice(item.price)}</p>
-                        </HoverCardContent>
-                      </HoverCard>
-                    );
-                  })}
-                </div>
-              )}
-            </Card>
-
-            {/* Navigation Buttons */}
-            <div className="flex justify-between">
-              <Button
-                variant="outline"
-                onClick={() => setCurrentStep(prev => Math.max(0, prev - 1))}
-                disabled={currentStep === 0}
-              >
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Anterior
-              </Button>
-              
-              {currentStep === hardwareSteps.length - 1 ? (
-                <Button onClick={finishHardwareSelection} className="bg-green-600 hover:bg-green-700">
-                  Continuar para Extras
-                  <ChevronRight className="h-4 w-4 ml-2" />
-                </Button>
-              ) : (
-                <Button
-                  onClick={() => setCurrentStep(prev => Math.min(hardwareSteps.length - 1, prev + 1))}
-                >
-                  Próximo
-                  <ChevronRight className="h-4 w-4 ml-2" />
-                </Button>
-              )}
-            </div>
-          </div>
-        </main>
-        <Footer />
-      </div>
-    );
-  }
-
-  // PHASE: Extras (Additional Products)
+  // PHASE: Build - StudioPC style
   return (
     <div className="min-h-screen flex flex-col relative">
       <StarryBackground />
       <Header />
+      
       <main className="flex-1 container py-8">
-        <div className="max-w-6xl mx-auto">
-          {/* Title */}
-          <div className="text-center mb-6">
-            <h1 className="text-3xl font-bold text-foreground mb-2">Adicionar Itens Extras</h1>
-            <p className="text-muted-foreground">Selecione a categoria e escolha produtos adicionais para seu orçamento</p>
-          </div>
-
-          {/* Summary Bar */}
-          <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm border border-border rounded-lg p-4 mb-6 shadow-lg">
-            <div className="flex items-center justify-between flex-wrap gap-4">
-              <div className="space-y-1">
-                <div className="flex items-center gap-2 text-sm">
-                  <Cpu className="h-4 w-4" />
-                  <span>PC Montado:</span>
-                  <span className="font-bold">{formatPrice(calculateHardwareTotal())}</span>
-                </div>
-                {selectedProducts.length > 0 && (
-                  <div className="flex items-center gap-2 text-sm">
-                    <Package className="h-4 w-4" />
-                    <span>{selectedProducts.length} extra(s):</span>
-                    <span className="font-bold">{formatPrice(calculateProductsTotal())}</span>
-                  </div>
-                )}
-              </div>
-              <div className="flex items-center gap-4">
-                <div className="text-right">
-                  <p className="text-xs text-muted-foreground">Total Geral</p>
-                  <p className="text-xl font-bold text-primary">{formatPrice(calculateTotal())}</p>
-                </div>
-                <Button onClick={generateQuote} className="bg-green-600 hover:bg-green-700">
-                  Gerar Orçamento
-                </Button>
+        <div className="max-w-4xl mx-auto">
+          {/* Hero Section */}
+          <div className="text-center mb-8">
+            <div className="flex justify-center mb-4">
+              <div className="p-4 rounded-full bg-primary/20 border-2 border-primary">
+                <Wrench className="h-12 w-12 text-primary" />
               </div>
             </div>
+            <h1 className="text-4xl font-bold text-foreground mb-2">MONTE SEU PC</h1>
+            <p className="text-muted-foreground">Escolha cada componente e monte o computador perfeito para você!</p>
           </div>
 
-          {/* Back Button */}
-          <Button variant="outline" onClick={() => setPhase('hardware')} className="mb-4">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Voltar para Hardware
-          </Button>
+          {/* Component List - StudioPC Style */}
+          <div className="space-y-3 mb-8">
+            {/* Hardware Components */}
+            {hardwareSteps.map((step) => {
+              const selection = selectedHardware[step.key];
+              const isSelected = Array.isArray(selection) ? selection.length > 0 : !!selection;
+              const Icon = step.icon;
+              
+              return (
+                <div
+                  key={step.key}
+                  className={`flex items-center gap-4 p-4 rounded-xl border-2 transition-all ${
+                    isSelected 
+                      ? 'border-green-500 bg-green-500/10' 
+                      : 'border-border bg-card/50 hover:border-primary/50'
+                  }`}
+                >
+                  {/* Icon Column */}
+                  <div className={`flex flex-col items-center justify-center w-24 p-3 rounded-lg ${
+                    isSelected ? 'bg-green-500/20' : 'bg-muted'
+                  }`}>
+                    <Icon className={`h-6 w-6 mb-1 ${isSelected ? 'text-green-500' : 'text-muted-foreground'}`} />
+                    <span className="text-xs font-medium text-center">{step.label}</span>
+                    {step.required && !isSelected && (
+                      <span className="text-[10px] text-destructive">*Obrigatório</span>
+                    )}
+                  </div>
+                  
+                  {/* Selection Info */}
+                  <div className="flex-1 min-w-0">
+                    <p className={`font-medium truncate ${isSelected ? 'text-foreground' : 'text-muted-foreground'}`}>
+                      {getSelectionSummary(step.key)}
+                    </p>
+                    {isSelected && (
+                      <p className="text-sm text-primary font-bold">
+                        {Array.isArray(selection) 
+                          ? formatPrice(selection.reduce((s, h) => s + h.price, 0))
+                          : formatPrice(selection?.price || 0)
+                        }
+                      </p>
+                    )}
+                  </div>
+                  
+                  {/* Actions */}
+                  <div className="flex items-center gap-2">
+                    {isSelected && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => clearHardwareSelection(step.key)}
+                        className="text-destructive hover:text-destructive"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    )}
+                    <Button
+                      variant={isSelected ? "secondary" : "default"}
+                      onClick={() => openHardwareSheet(step)}
+                    >
+                      {isSelected ? 'Alterar' : 'Selecionar'}
+                    </Button>
+                  </div>
+                </div>
+              );
+            })}
 
-          {/* Category Selection */}
-          <div className="mb-6">
-            <h3 className="text-lg font-semibold mb-3">Selecione uma Categoria</h3>
-            <div className="flex flex-wrap gap-2">
-              {allCategories.map(cat => {
-                const count = products.filter(p => 
-                  (p.categories?.[0] || p.productType) === cat.key
-                ).length;
-                if (count === 0) return null;
+            {/* Divider */}
+            <div className="py-4">
+              <div className="border-t border-border" />
+              <p className="text-center text-sm text-muted-foreground -mt-3 bg-background px-4 inline-block relative left-1/2 -translate-x-1/2">
+                Itens Opcionais
+              </p>
+            </div>
+
+            {/* Extra Products */}
+            {extraCategories.map((cat) => {
+              const catProducts = products.filter(p => 
+                (p.categories?.[0] || p.productType) === cat.key
+              );
+              if (catProducts.length === 0) return null;
+              
+              const selectedInCat = selectedProducts.filter(p => p.category === cat.key);
+              const isSelected = selectedInCat.length > 0;
+              
+              return (
+                <div
+                  key={cat.key}
+                  className={`flex items-center gap-4 p-4 rounded-xl border-2 transition-all ${
+                    isSelected 
+                      ? 'border-green-500 bg-green-500/10' 
+                      : 'border-border bg-card/50 hover:border-primary/50'
+                  }`}
+                >
+                  {/* Icon Column */}
+                  <div className={`flex flex-col items-center justify-center w-24 p-3 rounded-lg ${
+                    isSelected ? 'bg-green-500/20' : 'bg-muted'
+                  }`}>
+                    <Package className={`h-6 w-6 mb-1 ${isSelected ? 'text-green-500' : 'text-muted-foreground'}`} />
+                    <span className="text-xs font-medium text-center">{cat.label}</span>
+                  </div>
+                  
+                  {/* Selection Info */}
+                  <div className="flex-1 min-w-0">
+                    <p className={`font-medium truncate ${isSelected ? 'text-foreground' : 'text-muted-foreground'}`}>
+                      {getExtraCategorySummary(cat.key)}
+                    </p>
+                    {isSelected && (
+                      <p className="text-sm text-primary font-bold">
+                        {formatPrice(selectedInCat.reduce((s, p) => s + p.price, 0))}
+                      </p>
+                    )}
+                  </div>
+                  
+                  {/* Actions */}
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant={isSelected ? "secondary" : "outline"}
+                      onClick={() => openExtraSheet(cat.key)}
+                    >
+                      {isSelected ? 'Alterar' : 'Selecionar'}
+                    </Button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Price Summary - Sticky Bottom */}
+          <div className="sticky bottom-4 bg-card/95 backdrop-blur-sm border-2 border-primary rounded-xl p-4 shadow-lg">
+            <div className="flex items-center justify-between flex-wrap gap-4">
+              <div>
+                <p className="text-sm text-muted-foreground">Valor Atual</p>
+                <p className="text-3xl font-bold text-primary">{formatPrice(calculateTotal())}</p>
+              </div>
+              <Button 
+                size="lg" 
+                onClick={generateQuote}
+                className="bg-green-600 hover:bg-green-700"
+              >
+                <ShoppingCart className="mr-2 h-5 w-5" />
+                Gerar Orçamento
+              </Button>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      <Footer />
+
+      {/* Selection Sheet */}
+      <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+        <SheetContent side="right" className="w-full sm:max-w-lg overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>
+              {activeStep ? activeStep.label : getCategoryLabel(activeExtraCategory || '')}
+            </SheetTitle>
+          </SheetHeader>
+
+          {/* Search */}
+          <div className="relative my-4">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+
+          {/* Content */}
+          {loading ? (
+            <div className="flex items-center justify-center h-64">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            </div>
+          ) : activeStep ? (
+            /* Hardware Items */
+            <div className="space-y-2">
+              {filteredHardware.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Package className="h-12 w-12 mx-auto mb-2" />
+                  <p>Nenhum componente encontrado</p>
+                </div>
+              ) : filteredHardware.map((item) => {
+                const count = getItemCount(activeStep.key, item.id);
+                const isSelected = count > 0;
+                
                 return (
-                  <Button
-                    key={cat.key}
-                    variant={activeCategory === cat.key ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setActiveCategory(activeCategory === cat.key ? null : cat.key)}
+                  <div
+                    key={item.id}
+                    className={`p-4 rounded-lg border-2 transition-all ${
+                      isSelected 
+                        ? 'border-green-500 bg-green-500/10' 
+                        : 'border-border hover:border-primary/50'
+                    }`}
                   >
-                    {cat.label} ({count})
-                  </Button>
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium">{item.brand} {item.model}</p>
+                        <p className="text-sm text-muted-foreground truncate">{item.name}</p>
+                        <p className="text-lg font-bold text-primary mt-1">{formatPrice(item.price)}</p>
+                      </div>
+                      
+                      {activeStep.allowMultiple ? (
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => removeOneHardwareItem(activeStep.key, item.id)}
+                            disabled={count === 0}
+                          >
+                            <Minus className="h-4 w-4" />
+                          </Button>
+                          <span className="font-bold w-8 text-center">{count}</span>
+                          <Button
+                            variant="default"
+                            size="icon"
+                            onClick={() => selectHardware(item)}
+                          >
+                            <Plus className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <Button
+                          variant={isSelected ? "secondary" : "default"}
+                          onClick={() => selectHardware(item)}
+                        >
+                          {isSelected ? <Check className="h-4 w-4 mr-1" /> : null}
+                          {isSelected ? 'Selecionado' : 'Selecionar'}
+                        </Button>
+                      )}
+                    </div>
+                  </div>
                 );
               })}
+              
+              {activeStep.allowMultiple && (
+                <Button 
+                  className="w-full mt-4" 
+                  onClick={() => setSheetOpen(false)}
+                >
+                  Confirmar Seleção
+                </Button>
+              )}
             </div>
-          </div>
-
-          {/* Products List (only shown when category is selected) */}
-          {activeCategory && (
-            <Card className="p-6">
-              <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
-                <div className="flex items-center gap-3">
-                  <h3 className="text-lg font-semibold">{getCategoryLabel(activeCategory)}</h3>
-                  <span className="text-sm text-muted-foreground">({filteredProducts.length} itens)</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => setViewMode(viewMode === 'card' ? 'list' : 'card')}
-                    className="gap-1"
-                  >
-                    {viewMode === 'card' ? <List className="h-4 w-4" /> : <LayoutGrid className="h-4 w-4" />}
-                    {viewMode === 'card' ? 'Lista' : 'Cards'}
-                  </Button>
-                  <div className="relative max-w-xs">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      placeholder="Buscar..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-10"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {loading ? (
-                <div className="flex items-center justify-center h-32">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                </div>
-              ) : filteredProducts.length === 0 ? (
+          ) : activeExtraCategory ? (
+            /* Product Items */
+            <div className="space-y-2">
+              {filteredProducts.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
                   <Package className="h-12 w-12 mx-auto mb-2" />
                   <p>Nenhum produto encontrado</p>
                 </div>
-              ) : viewMode === 'card' ? (
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-2 max-h-[70vh] overflow-y-auto">
-                  {filteredProducts.map((product) => {
-                    const count = getProductCount(product.id);
-                    const isSelected = count > 0;
-                    const productImage = product.media?.[0]?.url;
-                    return (
-                      <HoverCard key={product.id}>
-                        <HoverCardTrigger asChild>
-                          <div
-                            className={`p-2 rounded-lg border transition-all cursor-pointer ${
-                              isSelected 
-                                ? 'border-green-500 bg-green-500/10' 
-                                : 'border-border hover:border-primary/50'
-                            }`}
-                          >
-                            <p className="font-medium text-xs line-clamp-2 mb-1">{product.title}</p>
-                            <p className="text-sm font-bold text-primary">{formatPrice(product.totalPrice)}</p>
-                            
-                            <div className="flex items-center justify-between pt-2 mt-2 border-t border-border">
-                              <span className="text-[10px] text-muted-foreground">{count}x</span>
-                              <div className="flex items-center gap-1">
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    removeOneProduct(product.id);
-                                  }}
-                                  disabled={count === 0}
-                                  className="h-6 w-6 p-0"
-                                >
-                                  <Minus className="h-3 w-3" />
-                                </Button>
-                                <span className="font-bold w-4 text-center text-xs">{count}</span>
-                                <Button
-                                  variant="default"
-                                  size="sm"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    addProduct(product);
-                                  }}
-                                  className="h-6 w-6 p-0"
-                                >
-                                  <Plus className="h-3 w-3" />
-                                </Button>
-                              </div>
-                            </div>
-                          </div>
-                        </HoverCardTrigger>
-                        <HoverCardContent side="right" className="w-64 p-3">
-                          {productImage ? (
-                            <img 
-                              src={productImage} 
-                              alt={product.title}
-                              className="w-full h-40 object-contain rounded-lg bg-muted mb-2"
-                              onError={(e) => {
-                                (e.target as HTMLImageElement).style.display = 'none';
-                              }}
-                            />
-                          ) : (
-                            <div className="w-full h-40 bg-muted rounded-lg flex items-center justify-center mb-2">
-                              <Package className="h-12 w-12 text-muted-foreground" />
-                            </div>
-                          )}
-                          <p className="font-semibold text-sm">{product.title}</p>
-                          {product.subtitle && (
-                            <p className="text-xs text-muted-foreground">{product.subtitle}</p>
-                          )}
-                          <p className="font-bold text-primary mt-1">{formatPrice(product.totalPrice)}</p>
-                        </HoverCardContent>
-                      </HoverCard>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className="space-y-2 max-h-[70vh] overflow-y-auto">
-                  {filteredProducts.map((product) => {
-                    const count = getProductCount(product.id);
-                    const isSelected = count > 0;
-                    const productImage = product.media?.[0]?.url;
-                    
-                    return (
-                      <HoverCard key={product.id} openDelay={200} closeDelay={100}>
-                        <HoverCardTrigger asChild>
-                          <div
-                            className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-all hover:shadow-md ${
-                              isSelected 
-                                ? 'border-green-500 bg-green-500/10' 
-                                : 'border-border hover:border-primary/50'
-                            }`}
-                          >
-                            <div className="flex-1 min-w-0">
-                              <p className="font-medium text-sm">{product.title}</p>
-                              {product.subtitle && (
-                                <p className="text-xs text-muted-foreground truncate">{product.subtitle}</p>
-                              )}
-                            </div>
-                            <div className="flex items-center gap-4">
-                              <p className="font-bold text-primary">{formatPrice(product.totalPrice)}</p>
-                              <div className="flex items-center gap-1">
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    removeOneProduct(product.id);
-                                  }}
-                                  disabled={count === 0}
-                                  className="h-7 w-7 p-0"
-                                >
-                                  <Minus className="h-3 w-3" />
-                                </Button>
-                                <span className="font-bold w-6 text-center text-sm">{count}</span>
-                                <Button
-                                  variant="default"
-                                  size="sm"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    addProduct(product);
-                                  }}
-                                  className="h-7 w-7 p-0"
-                                >
-                                  <Plus className="h-3 w-3" />
-                                </Button>
-                              </div>
-                            </div>
-                          </div>
-                        </HoverCardTrigger>
-                        <HoverCardContent side="left" className="w-64 p-3">
-                          {productImage ? (
-                            <img 
-                              src={productImage} 
-                              alt={product.title}
-                              className="w-full h-40 object-contain rounded-lg bg-muted mb-2"
-                              onError={(e) => {
-                                (e.target as HTMLImageElement).style.display = 'none';
-                              }}
-                            />
-                          ) : (
-                            <div className="w-full h-40 bg-muted rounded-lg flex items-center justify-center mb-2">
-                              <Package className="h-12 w-12 text-muted-foreground" />
-                            </div>
-                          )}
-                          <p className="font-semibold text-sm">{product.title}</p>
-                          {product.subtitle && (
-                            <p className="text-xs text-muted-foreground">{product.subtitle}</p>
-                          )}
-                          <p className="font-bold text-primary mt-1">{formatPrice(product.totalPrice)}</p>
-                        </HoverCardContent>
-                      </HoverCard>
-                    );
-                  })}
-                </div>
-              )}
-            </Card>
-          )}
-
-          {/* Selected Products List */}
-          {selectedProducts.length > 0 && (
-            <Card className="p-6 mt-6">
-              <h3 className="text-lg font-semibold mb-4">Itens Extras Selecionados</h3>
-              <div className="space-y-2">
-                {selectedProducts.map((item) => (
-                  <div key={item.uniqueKey} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                    <div>
-                      <span className="text-xs bg-secondary px-2 py-0.5 rounded-full mr-2">
-                        {getCategoryLabel(item.category)}
-                      </span>
-                      <span className="font-medium">{item.title}</span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <span className="font-bold text-primary">{formatPrice(item.price)}</span>
-                      <Button variant="ghost" size="sm" onClick={() => removeProduct(item.uniqueKey)}>
-                        <X className="h-4 w-4" />
-                      </Button>
+              ) : filteredProducts.map((product) => {
+                const count = getProductCount(product.id);
+                const isSelected = count > 0;
+                
+                return (
+                  <div
+                    key={product.id}
+                    className={`p-4 rounded-lg border-2 transition-all ${
+                      isSelected 
+                        ? 'border-green-500 bg-green-500/10' 
+                        : 'border-border hover:border-primary/50'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium">{product.title}</p>
+                        {product.subtitle && (
+                          <p className="text-sm text-muted-foreground truncate">{product.subtitle}</p>
+                        )}
+                        <p className="text-lg font-bold text-primary mt-1">{formatPrice(product.totalPrice)}</p>
+                      </div>
+                      
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={() => removeOneProduct(product.id)}
+                          disabled={count === 0}
+                        >
+                          <Minus className="h-4 w-4" />
+                        </Button>
+                        <span className="font-bold w-8 text-center">{count}</span>
+                        <Button
+                          variant="default"
+                          size="icon"
+                          onClick={() => addProduct(product)}
+                        >
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
                   </div>
-                ))}
-              </div>
-            </Card>
-          )}
-
-          {!activeCategory && selectedProducts.length === 0 && (
-            <div className="mt-8 p-6 bg-muted/30 rounded-lg border border-border text-center">
-              <Package className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <h3 className="text-lg font-semibold mb-2">Selecione uma categoria</h3>
-              <p className="text-muted-foreground">
-                Escolha uma categoria acima para adicionar produtos extras ao seu orçamento.
-              </p>
+                );
+              })}
+              
+              <Button 
+                className="w-full mt-4" 
+                onClick={() => setSheetOpen(false)}
+              >
+                Confirmar Seleção
+              </Button>
             </div>
-          )}
-        </div>
-      </main>
-      <Footer />
+          ) : null}
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
