@@ -1622,52 +1622,8 @@ export default function Admin() {
               <div className="rounded-xl border border-border bg-card p-6">
                 <h2 className="text-xl font-bold text-foreground mb-6">Gerenciar Categorias</h2>
                 <p className="text-sm text-muted-foreground mb-6">
-                  Adicione novas categorias personalizadas para seus produtos. As categorias padrão não podem ser removidas.
+                  Visualize e gerencie as categorias dos seus produtos. Novas categorias podem ser criadas no cadastro de produtos.
                 </p>
-
-                {/* Add new category */}
-                <div className="mb-8 p-4 rounded-lg bg-secondary/50 border border-border">
-                  <h3 className="font-semibold text-foreground mb-4">Nova Categoria</h3>
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <div>
-                      <label className="block text-sm font-medium text-foreground mb-2">Chave (identificador)</label>
-                      <input
-                        type="text"
-                        value={newCategoryKey}
-                        onChange={(e) => setNewCategoryKey(e.target.value.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, ''))}
-                        className="w-full rounded-lg border border-border bg-background px-4 py-3 text-foreground focus:border-primary focus:outline-none"
-                        placeholder="ex: perifericos"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-foreground mb-2">Nome de Exibição</label>
-                      <input
-                        type="text"
-                        value={newCategoryLabel}
-                        onChange={(e) => setNewCategoryLabel(e.target.value)}
-                        className="w-full rounded-lg border border-border bg-background px-4 py-3 text-foreground focus:border-primary focus:outline-none"
-                        placeholder="ex: Periféricos"
-                      />
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => {
-                      if (newCategoryKey && newCategoryLabel) {
-                        addCustomCategory(newCategoryKey, newCategoryLabel);
-                        setCustomCategoriesList(getCustomCategories());
-                        setNewCategoryKey("");
-                        setNewCategoryLabel("");
-                        toast({ title: "Sucesso", description: "Categoria criada!" });
-                      } else {
-                        toast({ title: "Erro", description: "Preencha todos os campos", variant: "destructive" });
-                      }
-                    }}
-                    className="mt-4 inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 font-medium text-primary-foreground hover:bg-primary/90"
-                  >
-                    <Plus className="h-4 w-4" />
-                    Adicionar Categoria
-                  </button>
-                </div>
 
                 {/* Default categories */}
                 <div className="mb-6">
