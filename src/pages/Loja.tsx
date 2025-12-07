@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
-import { Sidebar } from "@/components/Sidebar";
+import { StarryBackground } from "@/components/StarryBackground";
 import { ProductCard } from "@/components/ProductCard";
 import { api, type Product } from "@/lib/api";
 import { Search, ArrowUpDown } from "lucide-react";
@@ -42,9 +42,9 @@ export default function Loja() {
     });
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-transparent relative">
+      <StarryBackground />
       <Header />
-      <Sidebar />
 
       <main className="py-12">
         <div className="container">

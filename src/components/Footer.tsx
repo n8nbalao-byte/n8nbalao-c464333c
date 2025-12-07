@@ -1,19 +1,14 @@
 import { Link } from "react-router-dom";
+import logo from "@/assets/logo-white.svg";
 
 export function Footer() {
   return (
-    <footer className="border-t border-border bg-card py-12">
+    <footer className="border-t border-border bg-card/50 py-12">
       <div className="container">
         <div className="grid gap-8 md:grid-cols-4">
           <div>
             <Link to="/" className="flex items-center gap-2">
-              <svg width="32" height="32" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="8" cy="20" r="4" fill="hsl(var(--primary))" />
-                <circle cx="20" cy="20" r="4" fill="hsl(var(--primary))" />
-                <circle cx="32" cy="20" r="4" fill="hsl(var(--primary))" />
-                <path d="M8 20h8M20 20h8" stroke="hsl(var(--primary))" strokeWidth="2" />
-              </svg>
-              <span className="text-lg font-bold text-primary">n8nBalão</span>
+              <img src={logo} alt="n8nBalão" className="h-6" />
             </Link>
             <p className="mt-4 text-sm text-muted-foreground">
               Automatize seu atendimento com nosso chatbot inteligente para WhatsApp.
