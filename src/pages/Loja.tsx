@@ -3,17 +3,19 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { StarryBackground } from "@/components/StarryBackground";
 import { ProductCard } from "@/components/ProductCard";
-import { api, type Product, getCustomCategories } from "@/lib/api";
+import { HardwareCard } from "@/components/HardwareCard";
+import { api, type Product, type HardwareItem, getCustomCategories } from "@/lib/api";
 import { getIconFromKey } from "@/lib/icons";
-import { Search, ArrowUpDown, Monitor, Package, Laptop, Bot, Wrench, Code, Key, Tv, Armchair } from "lucide-react";
+import { Search, ArrowUpDown, Monitor, Package, Laptop, Bot, Wrench, Code, Key, Tv, Armchair, Cpu, ChevronLeft } from "lucide-react";
 
-type ProductType = 'all' | 'pc' | 'kit' | 'notebook' | 'automacao' | 'software' | 'acessorio' | 'licenca' | 'monitor' | 'cadeira_gamer' | string;
+type ProductType = 'all' | 'pc' | 'kit' | 'notebook' | 'automacao' | 'software' | 'acessorio' | 'licenca' | 'monitor' | 'cadeira_gamer' | 'hardware' | string;
 
 const baseProductTypes: { key: ProductType; label: string; icon: React.ElementType }[] = [
   { key: 'all', label: 'Todos', icon: Package },
   { key: 'pc', label: 'PCs', icon: Monitor },
   { key: 'kit', label: 'Kits', icon: Package },
   { key: 'notebook', label: 'Notebooks', icon: Laptop },
+  { key: 'hardware', label: 'Hardware', icon: Cpu },
   { key: 'automacao', label: 'Automações', icon: Bot },
   { key: 'software', label: 'Softwares', icon: Code },
   { key: 'acessorio', label: 'Acessórios', icon: Wrench },
@@ -22,21 +24,36 @@ const baseProductTypes: { key: ProductType; label: string; icon: React.ElementTy
   { key: 'cadeira_gamer', label: 'Cadeiras Gamer', icon: Armchair },
 ];
 
+const hardwareCategories = [
+  { key: 'processor', label: 'Processadores', icon: Cpu },
+  { key: 'motherboard', label: 'Placas-mãe', icon: Cpu },
+  { key: 'memory', label: 'Memórias', icon: Cpu },
+  { key: 'storage', label: 'Armazenamento', icon: Cpu },
+  { key: 'gpu', label: 'Placas de Vídeo', icon: Cpu },
+  { key: 'cooler', label: 'Coolers', icon: Cpu },
+  { key: 'psu', label: 'Fontes', icon: Cpu },
+  { key: 'case', label: 'Gabinetes', icon: Cpu },
+];
+
 export default function Loja() {
   const [products, setProducts] = useState<Product[]>([]);
+  const [hardware, setHardware] = useState<HardwareItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [selectedType, setSelectedType] = useState<ProductType>("all");
+  const [selectedHardwareCategory, setSelectedHardwareCategory] = useState<string | null>(null);
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [productTypes, setProductTypes] = useState(baseProductTypes);
 
   useEffect(() => {
-    async function fetchProducts() {
-      const [data, customCategories] = await Promise.all([
+    async function fetchData() {
+      const [productsData, hardwareData, customCategories] = await Promise.all([
         api.getProducts(),
+        api.getHardware(),
         getCustomCategories()
       ]);
-      setProducts(data);
+      setProducts(productsData);
+      setHardware(hardwareData);
       
       // Build complete category list from custom categories AND product data
       const baseKeys = baseProductTypes.map(c => c.key);
@@ -46,7 +63,7 @@ export default function Loja() {
       const excludedCategories = ['games', 'console', 'controle', 'controles'];
       
       // Extract unique categories from products (excluding unwanted ones)
-      const productCategoryKeys = data
+      const productCategoryKeys = productsData
         .map(p => p.categories?.[0] || p.productType || '')
         .filter(cat => cat && !baseKeys.includes(cat) && !customKeys.includes(cat) && !excludedCategories.includes(cat.toLowerCase()));
       
@@ -64,7 +81,7 @@ export default function Loja() {
       
       setLoading(false);
     }
-    fetchProducts();
+    fetchData();
   }, []);
 
   const filteredProducts = products
@@ -86,6 +103,37 @@ export default function Loja() {
       }
       return (b.totalPrice || 0) - (a.totalPrice || 0);
     });
+
+  const filteredHardware = hardware
+    .filter((item) => {
+      const matchesSearch =
+        item.name.toLowerCase().includes(search.toLowerCase()) ||
+        item.brand?.toLowerCase().includes(search.toLowerCase()) ||
+        item.model?.toLowerCase().includes(search.toLowerCase());
+      
+      const matchesCategory = !selectedHardwareCategory || item.category === selectedHardwareCategory;
+      
+      return matchesSearch && matchesCategory;
+    })
+    .sort((a, b) => {
+      if (sortOrder === "asc") {
+        return (a.price || 0) - (b.price || 0);
+      }
+      return (b.price || 0) - (a.price || 0);
+    });
+
+  const handleTypeSelect = (type: ProductType) => {
+    setSelectedType(type);
+    if (type !== 'hardware') {
+      setSelectedHardwareCategory(null);
+    }
+  };
+
+  const handleHardwareCategorySelect = (category: string) => {
+    setSelectedHardwareCategory(category);
+  };
+
+  const isHardwareMode = selectedType === 'hardware';
 
   return (
     <div className="min-h-screen bg-transparent relative">
@@ -109,7 +157,7 @@ export default function Loja() {
               return (
                 <button
                   key={type.key}
-                  onClick={() => setSelectedType(type.key)}
+                  onClick={() => handleTypeSelect(type.key)}
                   className={`inline-flex items-center gap-2 rounded-lg px-5 py-3 font-medium transition-colors ${
                     selectedType === type.key
                       ? "bg-primary text-primary-foreground shadow-glow"
@@ -123,6 +171,42 @@ export default function Loja() {
             })}
           </div>
 
+          {/* Hardware Subcategories */}
+          {isHardwareMode && (
+            <div className="mb-6">
+              <div className="flex flex-wrap gap-2">
+                {selectedHardwareCategory && (
+                  <button
+                    onClick={() => setSelectedHardwareCategory(null)}
+                    className="inline-flex items-center gap-2 rounded-lg px-4 py-2 font-medium bg-muted text-muted-foreground hover:bg-muted/80 transition-colors"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                    Voltar
+                  </button>
+                )}
+                {hardwareCategories.map((cat) => {
+                  const count = hardware.filter(h => h.category === cat.key).length;
+                  return (
+                    <button
+                      key={cat.key}
+                      onClick={() => handleHardwareCategorySelect(cat.key)}
+                      className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 font-medium transition-colors ${
+                        selectedHardwareCategory === cat.key
+                          ? "bg-accent text-accent-foreground"
+                          : "bg-card border border-border text-foreground hover:bg-card/80"
+                      }`}
+                    >
+                      {cat.label}
+                      <span className="text-xs bg-primary/20 text-primary px-2 py-0.5 rounded-full">
+                        {count}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {/* Filters */}
           <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             {/* Search */}
@@ -130,7 +214,7 @@ export default function Loja() {
               <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
               <input
                 type="text"
-                placeholder="Buscar produtos..."
+                placeholder={isHardwareMode ? "Buscar hardware..." : "Buscar produtos..."}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="w-full rounded-lg border border-border bg-card py-2 pl-10 pr-4 text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
@@ -151,25 +235,51 @@ export default function Loja() {
             </div>
           </div>
 
-          {/* Products Grid */}
+          {/* Content Grid */}
           {loading ? (
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {[1, 2, 3, 4, 5, 6].map((i) => (
                 <div key={i} className="h-80 animate-pulse rounded-xl bg-card" />
               ))}
             </div>
-          ) : filteredProducts.length > 0 ? (
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {filteredProducts.map((product) => (
-                <ProductCard key={product.id} product={product} />
-              ))}
-            </div>
+          ) : isHardwareMode ? (
+            // Hardware Grid
+            selectedHardwareCategory ? (
+              filteredHardware.length > 0 ? (
+                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                  {filteredHardware.map((item) => (
+                    <HardwareCard key={item.id} hardware={item} />
+                  ))}
+                </div>
+              ) : (
+                <div className="py-20 text-center">
+                  <p className="text-xl text-muted-foreground">
+                    Nenhum hardware encontrado nesta categoria.
+                  </p>
+                </div>
+              )
+            ) : (
+              <div className="py-20 text-center">
+                <p className="text-xl text-muted-foreground">
+                  Selecione uma subcategoria de hardware acima.
+                </p>
+              </div>
+            )
           ) : (
-            <div className="py-20 text-center">
-              <p className="text-xl text-muted-foreground">
-                Nenhum produto encontrado.
-              </p>
-            </div>
+            // Products Grid
+            filteredProducts.length > 0 ? (
+              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                {filteredProducts.map((product) => (
+                  <ProductCard key={product.id} product={product} />
+                ))}
+              </div>
+            ) : (
+              <div className="py-20 text-center">
+                <p className="text-xl text-muted-foreground">
+                  Nenhum produto encontrado.
+                </p>
+              </div>
+            )
           )}
         </div>
       </main>
