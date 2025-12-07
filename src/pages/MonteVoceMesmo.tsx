@@ -5,7 +5,7 @@ import { StarryBackground } from "@/components/StarryBackground";
 
 import { api, type Product, type HardwareItem, type CompanyData, type HardwareCategory, getCustomCategories } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
-import { Check, Printer, ShoppingCart, ArrowLeft, Plus, X, Search, Package, ChevronRight, Cpu, Minus } from "lucide-react";
+import { Check, Printer, ShoppingCart, ArrowLeft, Plus, X, Search, Package, ChevronRight, Cpu, Minus, LayoutGrid, List } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -79,7 +79,7 @@ export default function MonteVoceMesmo() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
-  const [isGridExpanded, setIsGridExpanded] = useState(false);
+  const [viewMode, setViewMode] = useState<'card' | 'list'>('card');
   const [companyData, setCompanyData] = useState<CompanyData>({
     name: '',
     address: '',
@@ -653,9 +653,11 @@ export default function MonteVoceMesmo() {
                   <Button 
                     variant="outline" 
                     size="sm"
-                    onClick={() => setIsGridExpanded(!isGridExpanded)}
+                    onClick={() => setViewMode(viewMode === 'card' ? 'list' : 'card')}
+                    className="gap-1"
                   >
-                    {isGridExpanded ? 'Compactar' : 'Expandir Tudo'}
+                    {viewMode === 'card' ? <List className="h-4 w-4" /> : <LayoutGrid className="h-4 w-4" />}
+                    {viewMode === 'card' ? 'Lista' : 'Cards'}
                   </Button>
                   {currentStepData.allowMultiple && (
                     <Button 
@@ -684,8 +686,8 @@ export default function MonteVoceMesmo() {
                   <Package className="h-12 w-12 mx-auto mb-2" />
                   <p>Nenhum componente disponível</p>
                 </div>
-              ) : (
-                <div className={`grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-2 ${!isGridExpanded ? 'max-h-[70vh] overflow-y-auto' : ''}`}>
+              ) : viewMode === 'card' ? (
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-2 max-h-[70vh] overflow-y-auto">
                   {hardware.map((item) => {
                     const itemCount = getItemCount(currentStepData.key, item.id);
                     const isSelected = itemCount > 0;
@@ -704,7 +706,6 @@ export default function MonteVoceMesmo() {
                             <p className="font-medium text-xs line-clamp-2 mb-1">{item.brand} {item.model}</p>
                             <p className="text-sm font-bold text-primary">{formatPrice(item.price)}</p>
                             
-                            {/* Add/Remove buttons for multiple selection only */}
                             {currentStepData.allowMultiple ? (
                               <div className="flex items-center justify-between pt-2 mt-2 border-t border-border">
                                 <span className="text-[10px] text-muted-foreground">{itemCount}x</span>
@@ -764,6 +765,65 @@ export default function MonteVoceMesmo() {
                           <p className="font-bold text-primary mt-1">{formatPrice(item.price)}</p>
                         </HoverCardContent>
                       </HoverCard>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="space-y-2 max-h-[70vh] overflow-y-auto">
+                  {hardware.map((item) => {
+                    const itemCount = getItemCount(currentStepData.key, item.id);
+                    const isSelected = itemCount > 0;
+                    
+                    return (
+                      <div
+                        key={item.id}
+                        onClick={() => !currentStepData.allowMultiple && selectHardware(item)}
+                        className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-all hover:shadow-md ${
+                          isSelected 
+                            ? 'border-green-500 bg-green-500/10' 
+                            : 'border-border hover:border-primary/50'
+                        }`}
+                      >
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-sm">{item.brand} {item.model}</p>
+                          <p className="text-xs text-muted-foreground truncate">{item.name}</p>
+                        </div>
+                        <div className="flex items-center gap-4">
+                          <p className="font-bold text-primary">{formatPrice(item.price)}</p>
+                          {currentStepData.allowMultiple ? (
+                            <div className="flex items-center gap-1">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  removeOneHardwareItem(currentStepData.key, item.id);
+                                }}
+                                disabled={itemCount === 0}
+                                className="h-7 w-7 p-0"
+                              >
+                                <Minus className="h-3 w-3" />
+                              </Button>
+                              <span className="font-bold w-6 text-center text-sm">{itemCount}</span>
+                              <Button
+                                variant="default"
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  selectHardware(item);
+                                }}
+                                className="h-7 w-7 p-0"
+                              >
+                                <Plus className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          ) : isSelected ? (
+                            <span className="flex items-center gap-1 text-green-500 text-sm">
+                              <Check className="h-4 w-4" />
+                            </span>
+                          ) : null}
+                        </div>
+                      </div>
                     );
                   })}
                 </div>
@@ -885,9 +945,11 @@ export default function MonteVoceMesmo() {
                   <Button 
                     variant="outline" 
                     size="sm"
-                    onClick={() => setIsGridExpanded(!isGridExpanded)}
+                    onClick={() => setViewMode(viewMode === 'card' ? 'list' : 'card')}
+                    className="gap-1"
                   >
-                    {isGridExpanded ? 'Compactar' : 'Expandir Tudo'}
+                    {viewMode === 'card' ? <List className="h-4 w-4" /> : <LayoutGrid className="h-4 w-4" />}
+                    {viewMode === 'card' ? 'Lista' : 'Cards'}
                   </Button>
                   <div className="relative max-w-xs">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -910,8 +972,8 @@ export default function MonteVoceMesmo() {
                   <Package className="h-12 w-12 mx-auto mb-2" />
                   <p>Nenhum produto encontrado</p>
                 </div>
-              ) : (
-                <div className={`grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-2 ${!isGridExpanded ? 'max-h-[70vh] overflow-y-auto' : ''}`}>
+              ) : viewMode === 'card' ? (
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-2 max-h-[70vh] overflow-y-auto">
                   {filteredProducts.map((product) => {
                     const count = getProductCount(product.id);
                     const isSelected = count > 0;
@@ -929,7 +991,6 @@ export default function MonteVoceMesmo() {
                             <p className="font-medium text-xs line-clamp-2 mb-1">{product.title}</p>
                             <p className="text-sm font-bold text-primary">{formatPrice(product.totalPrice)}</p>
                             
-                            {/* Quantity controls */}
                             <div className="flex items-center justify-between pt-2 mt-2 border-t border-border">
                               <span className="text-[10px] text-muted-foreground">{count}x</span>
                               <div className="flex items-center gap-1">
@@ -983,6 +1044,60 @@ export default function MonteVoceMesmo() {
                           <p className="font-bold text-primary mt-1">{formatPrice(product.totalPrice)}</p>
                         </HoverCardContent>
                       </HoverCard>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="space-y-2 max-h-[70vh] overflow-y-auto">
+                  {filteredProducts.map((product) => {
+                    const count = getProductCount(product.id);
+                    const isSelected = count > 0;
+                    
+                    return (
+                      <div
+                        key={product.id}
+                        className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-all hover:shadow-md ${
+                          isSelected 
+                            ? 'border-green-500 bg-green-500/10' 
+                            : 'border-border hover:border-primary/50'
+                        }`}
+                      >
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-sm">{product.title}</p>
+                          {product.subtitle && (
+                            <p className="text-xs text-muted-foreground truncate">{product.subtitle}</p>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-4">
+                          <p className="font-bold text-primary">{formatPrice(product.totalPrice)}</p>
+                          <div className="flex items-center gap-1">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                removeOneProduct(product.id);
+                              }}
+                              disabled={count === 0}
+                              className="h-7 w-7 p-0"
+                            >
+                              <Minus className="h-3 w-3" />
+                            </Button>
+                            <span className="font-bold w-6 text-center text-sm">{count}</span>
+                            <Button
+                              variant="default"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                addProduct(product);
+                              }}
+                              className="h-7 w-7 p-0"
+                            >
+                              <Plus className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
                     );
                   })}
                 </div>
