@@ -15,7 +15,7 @@ import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/comp
 const ADMIN_USER = "n8nbalao";
 const ADMIN_PASS = "Balao2025";
 
-type AdminTab = 'products' | 'hardware' | 'company';
+type AdminTab = 'products' | 'hardware' | 'company' | 'categories';
 
 interface ExtraProduct {
   id: string;
@@ -1454,6 +1454,17 @@ export default function Admin() {
               <Building2 className="h-5 w-5" />
               Dados da Empresa
             </button>
+            <button
+              onClick={() => setActiveTab('categories')}
+              className={`inline-flex items-center gap-2 rounded-lg px-6 py-3 font-medium transition-colors ${
+                activeTab === 'categories'
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-secondary text-foreground hover:bg-secondary/80"
+              }`}
+            >
+              <Tag className="h-5 w-5" />
+              Categorias
+            </button>
           </div>
 
           {/* Products Tab */}
@@ -1771,6 +1782,140 @@ export default function Admin() {
                   </div>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Categories Tab */}
+          {activeTab === 'categories' && (
+            <div className="max-w-4xl">
+              <div className="rounded-xl border border-border bg-card p-6">
+                <h2 className="text-xl font-bold text-foreground mb-2">Gerenciar Categorias de Produtos</h2>
+                <p className="text-sm text-muted-foreground mb-6">
+                  Gerencie os tipos de produtos disponíveis no sistema. As categorias base não podem ser removidas.
+                </p>
+
+                {/* Add new category */}
+                <div className="mb-8 p-4 rounded-xl border border-dashed border-border bg-secondary/30">
+                  <h3 className="font-semibold text-foreground mb-4">Adicionar Nova Categoria</h3>
+                  <div className="grid gap-4 md:grid-cols-3 mb-4">
+                    <input
+                      type="text"
+                      value={newCategoryKey}
+                      onChange={(e) => setNewCategoryKey(e.target.value.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, ''))}
+                      className="rounded-lg border border-border bg-background px-4 py-2 text-foreground"
+                      placeholder="chave (ex: periferico)"
+                    />
+                    <input
+                      type="text"
+                      value={newCategoryLabel}
+                      onChange={(e) => setNewCategoryLabel(e.target.value)}
+                      className="rounded-lg border border-border bg-background px-4 py-2 text-foreground"
+                      placeholder="Nome (ex: Periférico)"
+                    />
+                    <div className="flex gap-2">
+                      <select
+                        value={newCategoryIcon}
+                        onChange={(e) => setNewCategoryIcon(e.target.value)}
+                        className="flex-1 rounded-lg border border-border bg-background px-4 py-2 text-foreground"
+                      >
+                        {availableIcons.map((icon) => (
+                          <option key={icon.key} value={icon.key}>{icon.key}</option>
+                        ))}
+                      </select>
+                      <button
+                        onClick={async () => {
+                          if (newCategoryKey && newCategoryLabel) {
+                            const success = await addCustomCategory(newCategoryKey, newCategoryLabel, newCategoryIcon);
+                            if (success) {
+                              const updatedCategories = await getCustomCategories();
+                              setCustomCategoriesList(updatedCategories);
+                              setNewCategoryKey("");
+                              setNewCategoryLabel("");
+                              setNewCategoryIcon("tag");
+                              toast({ title: "Categoria criada!", description: `${newCategoryLabel} adicionada` });
+                            }
+                          }
+                        }}
+                        disabled={!newCategoryKey || !newCategoryLabel}
+                        className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 font-medium text-primary-foreground disabled:opacity-50"
+                      >
+                        <Plus className="h-4 w-4" />
+                        Adicionar
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Categories list */}
+                <div>
+                  <h3 className="font-semibold text-foreground mb-4">Categorias Base (não removíveis)</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mb-8">
+                    {baseProductTypes.map((type) => {
+                      const Icon = type.icon;
+                      return (
+                        <div
+                          key={type.key}
+                          className="flex items-center gap-3 p-3 rounded-lg border border-border bg-secondary/50"
+                        >
+                          <div className="h-10 w-10 rounded-lg bg-primary/20 flex items-center justify-center">
+                            <Icon className="h-5 w-5 text-primary" />
+                          </div>
+                          <div className="flex-1">
+                            <p className="font-medium text-foreground">{type.label}</p>
+                            <p className="text-xs text-muted-foreground">{type.key}</p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {customCategoriesList.length > 0 && (
+                    <>
+                      <h3 className="font-semibold text-foreground mb-4">Categorias Personalizadas</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {customCategoriesList.map((cat) => {
+                          const Icon = getIconFromKey(cat.icon || 'tag');
+                          return (
+                            <div
+                              key={cat.key}
+                              className="flex items-center gap-3 p-3 rounded-lg border border-border bg-card group hover:border-primary/50 transition-colors"
+                            >
+                              <div className="h-10 w-10 rounded-lg bg-primary/20 flex items-center justify-center">
+                                <Icon className="h-5 w-5 text-primary" />
+                              </div>
+                              <div className="flex-1">
+                                <p className="font-medium text-foreground">{cat.label}</p>
+                                <p className="text-xs text-muted-foreground">{cat.key}</p>
+                              </div>
+                              <button
+                                onClick={async () => {
+                                  if (confirm(`Excluir a categoria "${cat.label}"?`)) {
+                                    await removeCustomCategory(cat.key);
+                                    const updatedCategories = await getCustomCategories();
+                                    setCustomCategoriesList(updatedCategories);
+                                    toast({ title: "Categoria removida" });
+                                  }
+                                }}
+                                className="h-8 w-8 rounded-lg bg-destructive/20 text-destructive flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive/30"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </>
+                  )}
+
+                  {customCategoriesList.length === 0 && (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Tag className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                      <p>Nenhuma categoria personalizada criada ainda.</p>
+                      <p className="text-sm">Use o formulário acima para adicionar novas categorias.</p>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           )}
 
