@@ -920,7 +920,7 @@ export default function MonteVoceMesmo() {
                   <p>Nenhum produto encontrado</p>
                 </div>
               ) : (
-                <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 ${!isGridExpanded ? 'max-h-[600px] overflow-y-auto' : ''}`}>
+                <div className={`grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-2 ${!isGridExpanded ? 'max-h-[70vh] overflow-y-auto' : ''}`}>
                   {filteredProducts.map((product) => {
                     const count = getProductCount(product.id);
                     const isSelected = count > 0;
@@ -929,24 +929,19 @@ export default function MonteVoceMesmo() {
                       <HoverCard key={product.id}>
                         <HoverCardTrigger asChild>
                           <div
-                            className={`p-4 rounded-lg border transition-all cursor-pointer ${
+                            className={`p-2 rounded-lg border transition-all cursor-pointer ${
                               isSelected 
                                 ? 'border-green-500 bg-green-500/10' 
                                 : 'border-border hover:border-primary/50'
                             }`}
                           >
-                            <div className="flex-1 mb-3">
-                              <p className="font-semibold text-sm line-clamp-2">{product.title}</p>
-                              {product.subtitle && (
-                                <p className="text-xs text-muted-foreground line-clamp-1">{product.subtitle}</p>
-                              )}
-                              <p className="text-lg font-bold text-primary mt-2">{formatPrice(product.totalPrice)}</p>
-                            </div>
+                            <p className="font-medium text-xs line-clamp-2 mb-1">{product.title}</p>
+                            <p className="text-sm font-bold text-primary">{formatPrice(product.totalPrice)}</p>
                             
                             {/* Quantity controls */}
-                            <div className="flex items-center justify-between pt-3 border-t border-border">
-                              <span className="text-xs text-muted-foreground">Qtd: {count}</span>
-                              <div className="flex items-center gap-2">
+                            <div className="flex items-center justify-between pt-2 mt-2 border-t border-border">
+                              <span className="text-[10px] text-muted-foreground">{count}x</span>
+                              <div className="flex items-center gap-1">
                                 <Button
                                   variant="outline"
                                   size="sm"
@@ -955,11 +950,11 @@ export default function MonteVoceMesmo() {
                                     removeOneProduct(product.id);
                                   }}
                                   disabled={count === 0}
-                                  className="h-8 w-8 p-0"
+                                  className="h-6 w-6 p-0"
                                 >
-                                  <Minus className="h-4 w-4" />
+                                  <Minus className="h-3 w-3" />
                                 </Button>
-                                <span className="font-bold w-6 text-center">{count}</span>
+                                <span className="font-bold w-4 text-center text-xs">{count}</span>
                                 <Button
                                   variant="default"
                                   size="sm"
@@ -967,9 +962,9 @@ export default function MonteVoceMesmo() {
                                     e.stopPropagation();
                                     addProduct(product);
                                   }}
-                                  className="h-8 w-8 p-0"
+                                  className="h-6 w-6 p-0"
                                 >
-                                  <Plus className="h-4 w-4" />
+                                  <Plus className="h-3 w-3" />
                                 </Button>
                               </div>
                             </div>
