@@ -3,7 +3,7 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { api, type HardwareItem, type CompanyData } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
-import { Cpu, CircuitBoard, MemoryStick, HardDrive, Monitor, Zap, Box, Droplets, Check, Printer, ShoppingCart, ArrowLeft, ArrowRight, AlertTriangle } from "lucide-react";
+import { Cpu, CircuitBoard, MemoryStick, HardDrive, Monitor, Zap, Box, Droplets, Check, Printer, ShoppingCart, ArrowLeft, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 
@@ -233,7 +233,14 @@ export default function MonteVoceMesmo() {
   }
 
   const currentStepData = componentSteps[currentStep];
-  const currentHardware = hardware[currentStepData?.key] || [];
+  const currentHardwareAll = hardware[currentStepData?.key] || [];
+  
+  // Filter out incompatible items - they won't appear in the list
+  const currentHardware = currentHardwareAll.filter(item => {
+    const compatibility = checkCompatibility(item, currentStepData?.key || '', selectedComponents);
+    return compatibility.compatible;
+  });
+  
   const selectedItem = selectedComponents[currentStepData?.key];
   const emissionDate = new Date();
   const validityDate = new Date(emissionDate);
@@ -438,32 +445,19 @@ export default function MonteVoceMesmo() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
             {currentHardware.map((item) => {
               const isSelected = selectedItem?.id === item.id;
-              const compatibility = checkCompatibility(item, currentStepData?.key || '', selectedComponents);
-              const isIncompatible = !compatibility.compatible;
               
               return (
                 <Card
                   key={item.id}
-                  onClick={() => {
-                    if (isIncompatible) {
-                      toast({
-                        title: "⚠️ Incompatibilidade detectada",
-                        description: compatibility.issues.join('. '),
-                        variant: "destructive",
-                      });
-                    }
-                    selectComponent(item);
-                  }}
+                  onClick={() => selectComponent(item)}
                   className={`p-4 cursor-pointer transition-all hover:shadow-lg ${
                     isSelected 
                       ? 'ring-2 ring-primary bg-primary/5' 
-                      : isIncompatible
-                        ? 'ring-1 ring-destructive/50 bg-destructive/5 opacity-70'
-                        : 'hover:ring-1 hover:ring-primary/50'
+                      : 'hover:ring-1 hover:ring-primary/50'
                   }`}
                 >
                   <div className="flex items-start gap-4">
-                    <div className="flex-shrink-0 w-16 h-16 bg-muted rounded-lg flex items-center justify-center relative">
+                    <div className="flex-shrink-0 w-16 h-16 bg-muted rounded-lg flex items-center justify-center">
                       {item.image ? (
                         <img 
                           src={item.image} 
@@ -477,11 +471,6 @@ export default function MonteVoceMesmo() {
                       ) : (
                         <currentStepData.icon className="h-8 w-8 text-muted-foreground" />
                       )}
-                      {isIncompatible && (
-                        <div className="absolute -top-1 -right-1 bg-destructive rounded-full p-0.5">
-                          <AlertTriangle className="h-3 w-3 text-destructive-foreground" />
-                        </div>
-                      )}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-2">
@@ -493,13 +482,8 @@ export default function MonteVoceMesmo() {
                           <Check className="h-5 w-5 text-primary flex-shrink-0" />
                         )}
                       </div>
-                      {isIncompatible && (
-                        <p className="text-xs text-destructive mt-1 line-clamp-2">
-                          {compatibility.issues[0]}
-                        </p>
-                      )}
                       {/* Show compatibility info */}
-                      {(item.socket || item.memoryType || item.formFactor) && !isIncompatible && (
+                      {(item.socket || item.memoryType || item.formFactor) && (
                         <div className="flex flex-wrap gap-1 mt-1">
                           {item.socket && (
                             <span className="text-xs bg-secondary px-1.5 py-0.5 rounded">{item.socket}</span>
