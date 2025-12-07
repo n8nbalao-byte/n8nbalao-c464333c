@@ -23,15 +23,17 @@ export default function Loja() {
 
   const categories = ["all", ...new Set(products.flatMap((p) => p.categories || []))];
 
-  const filteredProducts = products.filter((product) => {
-    const matchesSearch =
-      product.title.toLowerCase().includes(search.toLowerCase()) ||
-      product.subtitle?.toLowerCase().includes(search.toLowerCase());
-    const matchesCategory =
-      selectedCategory === "all" ||
-      product.categories?.includes(selectedCategory);
-    return matchesSearch && matchesCategory;
-  });
+  const filteredProducts = products
+    .filter((product) => {
+      const matchesSearch =
+        product.title.toLowerCase().includes(search.toLowerCase()) ||
+        product.subtitle?.toLowerCase().includes(search.toLowerCase());
+      const matchesCategory =
+        selectedCategory === "all" ||
+        product.categories?.includes(selectedCategory);
+      return matchesSearch && matchesCategory;
+    })
+    .sort((a, b) => (a.totalPrice || 0) - (b.totalPrice || 0));
 
   return (
     <div className="min-h-screen bg-background">
