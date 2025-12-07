@@ -13,7 +13,7 @@ const ADMIN_USER = "n8nbalao";
 const ADMIN_PASS = "Balao2025";
 
 type AdminTab = 'products' | 'hardware' | 'company';
-type HardwareCategory = 'processor' | 'motherboard' | 'memory' | 'storage' | 'gpu' | 'psu' | 'case' | 'watercooler';
+type HardwareCategory = 'processor' | 'motherboard' | 'memory' | 'storage' | 'gpu' | 'psu' | 'case' | 'watercooler' | 'kit' | 'notebook' | 'automacao';
 
 interface ProductFormData {
   title: string;
@@ -104,6 +104,9 @@ const hardwareCategories: { key: HardwareCategory; label: string; icon: React.El
   { key: 'psu', label: 'Fontes', icon: Zap },
   { key: 'case', label: 'Gabinetes', icon: Box },
   { key: 'watercooler', label: 'Watercooler', icon: Droplets },
+  { key: 'kit', label: 'Kits', icon: Package },
+  { key: 'notebook', label: 'Notebooks', icon: Monitor },
+  { key: 'automacao', label: 'Automações', icon: Zap },
 ];
 
 export default function Admin() {
@@ -252,6 +255,45 @@ export default function Admin() {
       };
       reader.readAsDataURL(file);
     });
+  }
+
+  const [videoUrlInput, setVideoUrlInput] = useState("");
+
+  function addVideoByUrl() {
+    if (!videoUrlInput.trim()) return;
+    
+    let videoUrl = videoUrlInput.trim();
+    
+    // Convert YouTube URLs to embed format
+    if (videoUrl.includes('youtube.com/watch')) {
+      const videoId = new URL(videoUrl).searchParams.get('v');
+      if (videoId) {
+        videoUrl = `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1`;
+      }
+    } else if (videoUrl.includes('youtu.be/')) {
+      const videoId = videoUrl.split('youtu.be/')[1]?.split('?')[0];
+      if (videoId) {
+        videoUrl = `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1`;
+      }
+    }
+    
+    setProductFormData(prev => ({
+      ...prev,
+      media: [...prev.media, { type: 'video', url: videoUrl }],
+    }));
+    setVideoUrlInput("");
+  }
+
+  // Hardware image upload
+  function handleHardwareImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setHardwareFormData(prev => ({ ...prev, image: reader.result as string }));
+    };
+    reader.readAsDataURL(file);
   }
 
   function removeMedia(index: number) {
@@ -1052,7 +1094,13 @@ export default function Admin() {
                   {productFormData.media.map((item, i) => (
                     <div key={i} className="relative h-24 w-24 overflow-hidden rounded-lg bg-secondary">
                       {item.type === 'video' ? (
-                        <video src={item.url} className="h-full w-full object-cover" muted />
+                        item.url.includes('youtube.com/embed') ? (
+                          <div className="h-full w-full flex items-center justify-center bg-red-600">
+                            <Play className="h-8 w-8 text-white" />
+                          </div>
+                        ) : (
+                          <video src={item.url} className="h-full w-full object-cover" muted />
+                        )
                       ) : (
                         <img src={item.url} alt={`Media ${i + 1}`} className="h-full w-full object-cover" />
                       )}
@@ -1070,7 +1118,7 @@ export default function Admin() {
                   ))}
                   <label className="flex h-24 w-24 cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-border text-muted-foreground transition-colors hover:border-primary hover:text-primary">
                     <Upload className="h-6 w-6" />
-                    <span className="mt-1 text-xs">Adicionar</span>
+                    <span className="mt-1 text-xs">Upload</span>
                     <input
                       type="file"
                       accept="image/*,video/*"
@@ -1079,6 +1127,26 @@ export default function Admin() {
                       className="hidden"
                     />
                   </label>
+                </div>
+                
+                {/* YouTube Video URL Input */}
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={videoUrlInput}
+                    onChange={(e) => setVideoUrlInput(e.target.value)}
+                    className="flex-1 rounded-lg border border-border bg-background px-4 py-2 text-foreground focus:border-primary focus:outline-none"
+                    placeholder="Cole o link do YouTube aqui..."
+                    onKeyPress={(e) => e.key === "Enter" && (e.preventDefault(), addVideoByUrl())}
+                  />
+                  <button
+                    type="button"
+                    onClick={addVideoByUrl}
+                    className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-white transition-colors hover:bg-red-700"
+                  >
+                    <Play className="h-4 w-4" />
+                    Adicionar Vídeo
+                  </button>
                 </div>
               </div>
 
@@ -1413,7 +1481,45 @@ export default function Admin() {
                 </div>
               </div>
 
-              {/* Compatibility Fields */}
+              {/* Hardware Image Upload */}
+              <div>
+                <label className="mb-2 block text-sm font-medium text-foreground">Imagem do Produto</label>
+                <div className="flex items-center gap-4">
+                  {hardwareFormData.image ? (
+                    <img
+                      src={hardwareFormData.image}
+                      alt="Preview"
+                      className="h-24 w-24 object-cover rounded-lg border border-border"
+                    />
+                  ) : (
+                    <div className="h-24 w-24 rounded-lg border-2 border-dashed border-border bg-secondary flex items-center justify-center">
+                      <Image className="h-8 w-8 text-muted-foreground" />
+                    </div>
+                  )}
+                  <div className="flex flex-col gap-2">
+                    <label className="cursor-pointer inline-flex items-center gap-2 rounded-lg bg-secondary px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-secondary/80">
+                      <Upload className="h-4 w-4" />
+                      Enviar Foto
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleHardwareImageUpload}
+                        className="hidden"
+                      />
+                    </label>
+                    {hardwareFormData.image && (
+                      <button
+                        type="button"
+                        onClick={() => setHardwareFormData(prev => ({ ...prev, image: '' }))}
+                        className="text-sm text-destructive hover:underline"
+                      >
+                        Remover imagem
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+
               {(hardwareFormData.category === 'processor' || hardwareFormData.category === 'motherboard' || hardwareFormData.category === 'watercooler') && (
                 <div className="rounded-lg border border-primary/30 bg-primary/5 p-4">
                   <h3 className="mb-4 text-sm font-semibold text-primary">🔗 Campos de Compatibilidade</h3>

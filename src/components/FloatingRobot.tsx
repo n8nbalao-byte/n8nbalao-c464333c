@@ -4,18 +4,27 @@ import robotMascot from "@/assets/robot-mascot.png";
 export function FloatingRobot() {
   const [position, setPosition] = useState({ x: 50, y: 200 });
   const [targetPosition, setTargetPosition] = useState({ x: 50, y: 200 });
+  const [floatOffset, setFloatOffset] = useState(0);
   const robotRef = useRef<HTMLDivElement>(null);
   const animationRef = useRef<number>();
 
   // Very smooth animation towards target position
   useEffect(() => {
-    const animate = () => {
+    let lastTime = performance.now();
+    
+    const animate = (currentTime: number) => {
+      const deltaTime = (currentTime - lastTime) / 1000;
+      lastTime = currentTime;
+      
+      // Update float offset for gentle bobbing
+      setFloatOffset(Math.sin(currentTime / 1500) * 6);
+      
       setPosition(prev => {
         const dx = targetPosition.x - prev.x;
         const dy = targetPosition.y - prev.y;
         
-        // Very slow easing - move only 2% towards target each frame
-        const easing = 0.02;
+        // Very slow easing - move only 1.5% towards target each frame
+        const easing = 0.015;
         
         return {
           x: prev.x + dx * easing,
@@ -47,13 +56,13 @@ export function FloatingRobot() {
       Math.pow(e.clientY - robotCenterY, 2)
     );
 
-    // If mouse is within 200px of robot, slowly move away
-    if (distance < 200) {
+    // If mouse is within 180px of robot, slowly move away
+    if (distance < 180) {
       // Calculate direction away from mouse
       const angle = Math.atan2(robotCenterY - e.clientY, robotCenterX - e.clientX);
       
-      // Small movement distance for gentle escape
-      const moveDistance = 80;
+      // Very small movement distance for ultra gentle escape
+      const moveDistance = 60;
       let newX = position.x + Math.cos(angle) * moveDistance;
       let newY = position.y + Math.sin(angle) * moveDistance;
 
@@ -74,14 +83,14 @@ export function FloatingRobot() {
     return () => window.removeEventListener("mousemove", handleMouseMove);
   }, [handleMouseMove]);
 
-  // Gentle idle floating - very subtle movement
+  // Gentle idle floating - very subtle random movement
   useEffect(() => {
     const idleInterval = setInterval(() => {
       setTargetPosition(prev => ({
-        x: prev.x + (Math.random() - 0.5) * 10,
-        y: prev.y + (Math.random() - 0.5) * 8
+        x: prev.x + (Math.random() - 0.5) * 8,
+        y: prev.y + (Math.random() - 0.5) * 6
       }));
-    }, 4000);
+    }, 5000);
 
     return () => clearInterval(idleInterval);
   }, []);
@@ -92,13 +101,17 @@ export function FloatingRobot() {
       className="fixed z-40 hidden lg:block pointer-events-none"
       style={{
         left: `${position.x}px`,
-        top: `${position.y}px`,
+        top: `${position.y + floatOffset}px`,
+        transition: "none",
       }}
     >
       <img
         src={robotMascot}
         alt="Assistente Virtual"
         className="w-36 h-auto drop-shadow-2xl"
+        style={{
+          transform: "scaleX(1)", // Always facing forward
+        }}
       />
     </div>
   );

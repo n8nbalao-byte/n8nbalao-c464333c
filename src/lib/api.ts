@@ -60,7 +60,7 @@ export interface HardwareItem {
   price: number;
   image: string;
   specs: Record<string, string>;
-  category: 'processor' | 'motherboard' | 'memory' | 'storage' | 'gpu' | 'psu' | 'case' | 'watercooler';
+  category: 'processor' | 'motherboard' | 'memory' | 'storage' | 'gpu' | 'psu' | 'case' | 'watercooler' | 'kit' | 'notebook' | 'automacao';
   createdAt: string;
   // Compatibility fields
   socket?: string;

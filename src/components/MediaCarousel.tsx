@@ -46,20 +46,33 @@ export function MediaCarousel({ media, className = "" }: MediaCarouselProps) {
 
   const currentMedia = media[currentIndex];
 
+  // Check if it's a YouTube embed URL
+  const isYouTubeEmbed = (url: string) => url.includes('youtube.com/embed');
+
   return (
     <div className={`relative overflow-hidden rounded-2xl bg-secondary ${className}`}>
       {/* Media Display */}
       <div className="relative aspect-square">
         {currentMedia.type === 'video' ? (
-          <video
-            ref={(el) => (videoRefs.current[currentIndex] = el)}
-            src={currentMedia.url}
-            className="h-full w-full object-cover"
-            autoPlay
-            muted
-            loop
-            playsInline
-          />
+          isYouTubeEmbed(currentMedia.url) ? (
+            <iframe
+              src={currentMedia.url}
+              className="h-full w-full"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+              title="YouTube video"
+            />
+          ) : (
+            <video
+              ref={(el) => (videoRefs.current[currentIndex] = el)}
+              src={currentMedia.url}
+              className="h-full w-full object-cover"
+              autoPlay
+              muted
+              loop
+              playsInline
+            />
+          )
         ) : (
           <img
             src={currentMedia.url}
@@ -102,8 +115,8 @@ export function MediaCarousel({ media, className = "" }: MediaCarouselProps) {
               }`}
             >
               {item.type === 'video' ? (
-                <div className="flex h-full w-full items-center justify-center bg-secondary">
-                  <span className="text-xs text-muted-foreground">▶</span>
+                <div className={`flex h-full w-full items-center justify-center ${item.url.includes('youtube') ? 'bg-red-600' : 'bg-secondary'}`}>
+                  <span className="text-xs text-white">▶</span>
                 </div>
               ) : (
                 <img src={item.url} alt={`Thumb ${i + 1}`} className="h-full w-full object-cover" />
