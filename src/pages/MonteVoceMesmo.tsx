@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
+import { StarryBackground } from "@/components/StarryBackground";
+import { FloatingRobot } from "@/components/FloatingRobot";
 import { api, type HardwareItem, type CompanyData } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { Cpu, CircuitBoard, MemoryStick, HardDrive, Monitor, Zap, Box, Droplets, Check, Printer, ShoppingCart, ArrowLeft, ArrowRight } from "lucide-react";
@@ -147,6 +149,13 @@ export default function MonteVoceMesmo() {
   function selectComponent(item: HardwareItem) {
     const currentKey = componentSteps[currentStep].key;
     setSelectedComponents(prev => ({ ...prev, [currentKey]: item }));
+    
+    // Auto-advance to next step after selection
+    if (currentStep < componentSteps.length - 1) {
+      setTimeout(() => {
+        setCurrentStep(currentStep + 1);
+      }, 300);
+    }
   }
 
   function goToNextStep() {
@@ -378,7 +387,9 @@ export default function MonteVoceMesmo() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <div className="min-h-screen flex flex-col relative">
+      <StarryBackground />
+      <FloatingRobot />
       <Header />
       <main className="flex-1 container py-8">
         <div className="max-w-6xl mx-auto">
