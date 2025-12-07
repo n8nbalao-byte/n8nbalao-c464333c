@@ -69,6 +69,18 @@ export interface HardwareItem {
   tdp?: number;
 }
 
+export interface CompanyData {
+  id?: number;
+  name: string;
+  address: string;
+  city: string;
+  phone: string;
+  email: string;
+  cnpj: string;
+  seller: string;
+  logo: string;
+}
+
 export const api = {
   // Fetch all products
   async getProducts(): Promise<Product[]> {
@@ -210,6 +222,41 @@ export const api = {
       return response.ok;
     } catch (error) {
       console.error('Error deleting hardware:', error);
+      return false;
+    }
+  },
+
+  // Company endpoints
+  async getCompany(): Promise<CompanyData> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/company.php`);
+      if (!response.ok) throw new Error('Failed to fetch company data');
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching company:', error);
+      return {
+        name: '',
+        address: '',
+        city: '',
+        phone: '',
+        email: '',
+        cnpj: '',
+        seller: '',
+        logo: ''
+      };
+    }
+  },
+
+  async saveCompany(data: CompanyData): Promise<boolean> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/company.php`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      return response.ok;
+    } catch (error) {
+      console.error('Error saving company:', error);
       return false;
     }
   },

@@ -2,9 +2,9 @@ import { useState, useEffect } from "react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Sidebar } from "@/components/Sidebar";
-import { api, type Product, type HardwareItem, type MediaItem, type ProductComponents } from "@/lib/api";
+import { api, type Product, type HardwareItem, type MediaItem, type ProductComponents, type CompanyData } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Pencil, Trash2, Save, X, Upload, Play, Image, Cpu, CircuitBoard, MemoryStick, HardDrive, Monitor, Zap, Box, Package, Download, Droplets } from "lucide-react";
+import { Plus, Pencil, Trash2, Save, X, Upload, Play, Image, Cpu, CircuitBoard, MemoryStick, HardDrive, Monitor, Zap, Box, Package, Download, Droplets, Building2 } from "lucide-react";
 import * as XLSX from "xlsx";
 import { HardwareCard } from "@/components/HardwareCard";
 
@@ -12,7 +12,7 @@ import { HardwareCard } from "@/components/HardwareCard";
 const ADMIN_USER = "n8nbalao";
 const ADMIN_PASS = "Balao2025";
 
-type AdminTab = 'products' | 'hardware';
+type AdminTab = 'products' | 'hardware' | 'company';
 type HardwareCategory = 'processor' | 'motherboard' | 'memory' | 'storage' | 'gpu' | 'psu' | 'case' | 'watercooler';
 
 interface ProductFormData {
@@ -132,6 +132,19 @@ export default function Admin() {
   const [newHardwareSpecKey, setNewHardwareSpecKey] = useState("");
   const [newHardwareSpecValue, setNewHardwareSpecValue] = useState("");
 
+  // Company state
+  const [companyData, setCompanyData] = useState<CompanyData>({
+    name: '',
+    address: '',
+    city: '',
+    phone: '',
+    email: '',
+    cnpj: '',
+    seller: '',
+    logo: ''
+  });
+  const [savingCompany, setSavingCompany] = useState(false);
+
   useEffect(() => {
     const saved = sessionStorage.getItem("admin_auth");
     if (saved === "true") {
@@ -143,8 +156,10 @@ export default function Admin() {
     if (isAuthenticated) {
       if (activeTab === 'products') {
         fetchProductsData();
-      } else {
+      } else if (activeTab === 'hardware') {
         fetchHardwareData();
+      } else if (activeTab === 'company') {
+        fetchCompanyData();
       }
     } else {
       setLoading(false);
@@ -174,6 +189,36 @@ export default function Admin() {
     setHardwareList(data);
     setLoading(false);
   }
+
+  async function fetchCompanyData() {
+    setLoading(true);
+    const data = await api.getCompany();
+    setCompanyData(data);
+    setLoading(false);
+  }
+
+  async function handleCompanySave() {
+    setSavingCompany(true);
+    const success = await api.saveCompany(companyData);
+    if (success) {
+      toast({ title: "Sucesso", description: "Dados da empresa salvos!" });
+    } else {
+      toast({ title: "Erro", description: "Falha ao salvar dados", variant: "destructive" });
+    }
+    setSavingCompany(false);
+  }
+
+  function handleCompanyLogoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setCompanyData(prev => ({ ...prev, logo: reader.result as string }));
+    };
+    reader.readAsDataURL(file);
+  }
+
 
   function handleLogin(e: React.FormEvent) {
     e.preventDefault();
@@ -575,13 +620,15 @@ export default function Admin() {
               <p className="mt-2 text-muted-foreground">Gerencie produtos e componentes</p>
             </div>
             <div className="flex gap-4">
-              <button
-                onClick={() => activeTab === 'products' ? openProductEditor() : openHardwareEditor()}
-                className="inline-flex items-center gap-2 rounded-lg bg-primary px-6 py-3 font-semibold text-primary-foreground shadow-glow transition-colors hover:bg-primary/90"
-              >
-                <Plus className="h-5 w-5" />
-                {activeTab === 'products' ? 'Novo PC' : 'Novo Item'}
-              </button>
+              {activeTab !== 'company' && (
+                <button
+                  onClick={() => activeTab === 'products' ? openProductEditor() : openHardwareEditor()}
+                  className="inline-flex items-center gap-2 rounded-lg bg-primary px-6 py-3 font-semibold text-primary-foreground shadow-glow transition-colors hover:bg-primary/90"
+                >
+                  <Plus className="h-5 w-5" />
+                  {activeTab === 'products' ? 'Novo PC' : 'Novo Item'}
+                </button>
+              )}
               <button
                 onClick={handleLogout}
                 className="rounded-lg border border-border px-4 py-3 text-foreground transition-colors hover:bg-secondary"
@@ -614,6 +661,17 @@ export default function Admin() {
             >
               <Cpu className="h-5 w-5" />
               Hardware
+            </button>
+            <button
+              onClick={() => setActiveTab('company')}
+              className={`inline-flex items-center gap-2 rounded-lg px-6 py-3 font-medium transition-colors ${
+                activeTab === 'company'
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-secondary text-foreground hover:bg-secondary/80"
+              }`}
+            >
+              <Building2 className="h-5 w-5" />
+              Dados da Empresa
             </button>
           </div>
 
@@ -687,6 +745,156 @@ export default function Admin() {
                 </div>
               )}
             </>
+          )}
+
+          {/* Company Tab */}
+          {activeTab === 'company' && (
+            <div className="max-w-2xl">
+              {loading ? (
+                <div className="h-64 animate-pulse rounded-xl bg-card" />
+              ) : (
+                <div className="rounded-xl border border-border bg-card p-6">
+                  <h2 className="text-xl font-bold text-foreground mb-6">Dados da Empresa</h2>
+                  <p className="text-sm text-muted-foreground mb-6">
+                    Estes dados serão exibidos nos orçamentos gerados pelos clientes.
+                  </p>
+
+                  <div className="space-y-4">
+                    {/* Logo */}
+                    <div>
+                      <label className="block text-sm font-medium text-foreground mb-2">Logo da Empresa</label>
+                      <div className="flex items-center gap-4">
+                        {companyData.logo ? (
+                          <img
+                            src={companyData.logo}
+                            alt="Logo"
+                            className="h-20 w-20 object-contain rounded-lg border border-border bg-background"
+                          />
+                        ) : (
+                          <div className="h-20 w-20 rounded-lg border border-dashed border-border bg-secondary flex items-center justify-center">
+                            <Building2 className="h-8 w-8 text-muted-foreground" />
+                          </div>
+                        )}
+                        <label className="cursor-pointer inline-flex items-center gap-2 rounded-lg bg-secondary px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-secondary/80">
+                          <Upload className="h-4 w-4" />
+                          Enviar Logo
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleCompanyLogoUpload}
+                            className="hidden"
+                          />
+                        </label>
+                        {companyData.logo && (
+                          <button
+                            onClick={() => setCompanyData(prev => ({ ...prev, logo: '' }))}
+                            className="text-sm text-destructive hover:underline"
+                          >
+                            Remover
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Name */}
+                    <div>
+                      <label className="block text-sm font-medium text-foreground mb-2">Nome da Empresa</label>
+                      <input
+                        type="text"
+                        value={companyData.name}
+                        onChange={(e) => setCompanyData(prev => ({ ...prev, name: e.target.value }))}
+                        className="w-full rounded-lg border border-border bg-background px-4 py-3 text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                        placeholder="Nome da sua empresa"
+                      />
+                    </div>
+
+                    {/* CNPJ */}
+                    <div>
+                      <label className="block text-sm font-medium text-foreground mb-2">CNPJ</label>
+                      <input
+                        type="text"
+                        value={companyData.cnpj}
+                        onChange={(e) => setCompanyData(prev => ({ ...prev, cnpj: e.target.value }))}
+                        className="w-full rounded-lg border border-border bg-background px-4 py-3 text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                        placeholder="00.000.000/0001-00"
+                      />
+                    </div>
+
+                    {/* Address */}
+                    <div>
+                      <label className="block text-sm font-medium text-foreground mb-2">Endereço</label>
+                      <input
+                        type="text"
+                        value={companyData.address}
+                        onChange={(e) => setCompanyData(prev => ({ ...prev, address: e.target.value }))}
+                        className="w-full rounded-lg border border-border bg-background px-4 py-3 text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                        placeholder="Rua, número, bairro"
+                      />
+                    </div>
+
+                    {/* City */}
+                    <div>
+                      <label className="block text-sm font-medium text-foreground mb-2">Cidade/Estado</label>
+                      <input
+                        type="text"
+                        value={companyData.city}
+                        onChange={(e) => setCompanyData(prev => ({ ...prev, city: e.target.value }))}
+                        className="w-full rounded-lg border border-border bg-background px-4 py-3 text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                        placeholder="São Paulo - SP"
+                      />
+                    </div>
+
+                    {/* Phone */}
+                    <div>
+                      <label className="block text-sm font-medium text-foreground mb-2">Telefone</label>
+                      <input
+                        type="text"
+                        value={companyData.phone}
+                        onChange={(e) => setCompanyData(prev => ({ ...prev, phone: e.target.value }))}
+                        className="w-full rounded-lg border border-border bg-background px-4 py-3 text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                        placeholder="(11) 99999-9999"
+                      />
+                    </div>
+
+                    {/* Email */}
+                    <div>
+                      <label className="block text-sm font-medium text-foreground mb-2">Email</label>
+                      <input
+                        type="email"
+                        value={companyData.email}
+                        onChange={(e) => setCompanyData(prev => ({ ...prev, email: e.target.value }))}
+                        className="w-full rounded-lg border border-border bg-background px-4 py-3 text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                        placeholder="contato@empresa.com"
+                      />
+                    </div>
+
+                    {/* Seller */}
+                    <div>
+                      <label className="block text-sm font-medium text-foreground mb-2">Vendedor</label>
+                      <input
+                        type="text"
+                        value={companyData.seller}
+                        onChange={(e) => setCompanyData(prev => ({ ...prev, seller: e.target.value }))}
+                        className="w-full rounded-lg border border-border bg-background px-4 py-3 text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                        placeholder="Nome do vendedor"
+                      />
+                    </div>
+
+                    {/* Save Button */}
+                    <div className="pt-4">
+                      <button
+                        onClick={handleCompanySave}
+                        disabled={savingCompany}
+                        className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-primary py-3 font-semibold text-primary-foreground shadow-glow transition-colors hover:bg-primary/90 disabled:opacity-50"
+                      >
+                        <Save className="h-5 w-5" />
+                        {savingCompany ? 'Salvando...' : 'Salvar Dados'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
           )}
 
           {/* Hardware Tab */}

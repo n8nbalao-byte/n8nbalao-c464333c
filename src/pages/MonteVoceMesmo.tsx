@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
-import { api, type HardwareItem } from "@/lib/api";
+import { api, type HardwareItem, type CompanyData } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { Cpu, CircuitBoard, MemoryStick, HardDrive, Monitor, Zap, Box, Droplets, Check, Printer, ShoppingCart, ArrowLeft, ArrowRight, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -23,15 +23,6 @@ type ComponentKey = typeof componentSteps[number]['key'];
 interface SelectedComponents {
   [key: string]: HardwareItem | null;
 }
-
-const storeInfo = {
-  name: "N8N Balão Informática",
-  address: "Rua Exemplo, 123 - Centro",
-  city: "São Paulo - SP",
-  phone: "(11) 99999-9999",
-  email: "contato@n8nbalao.com",
-  cnpj: "00.000.000/0001-00",
-};
 
 function formatPrice(price: number): string {
   return new Intl.NumberFormat('pt-BR', {
@@ -117,27 +108,38 @@ export default function MonteVoceMesmo() {
   const [selectedComponents, setSelectedComponents] = useState<SelectedComponents>({});
   const [loading, setLoading] = useState(true);
   const [showQuote, setShowQuote] = useState(false);
+  const [companyData, setCompanyData] = useState<CompanyData>({
+    name: '',
+    address: '',
+    city: '',
+    phone: '',
+    email: '',
+    cnpj: '',
+    seller: '',
+    logo: ''
+  });
   const quoteRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    fetchHardware();
+    fetchData();
   }, []);
 
-  async function fetchHardware() {
+  async function fetchData() {
     setLoading(true);
     try {
-      const hardwareData = await Promise.all(
-        componentSteps.map(step => api.getHardware(step.key))
-      );
+      const [hardwareData, company] = await Promise.all([
+        Promise.all(componentSteps.map(step => api.getHardware(step.key))),
+        api.getCompany()
+      ]);
       
       const hardwareByCategory: Record<string, HardwareItem[]> = {};
       componentSteps.forEach((step, i) => {
-        // Sort by price (lowest to highest)
         hardwareByCategory[step.key] = hardwareData[i].sort((a, b) => a.price - b.price);
       });
       setHardware(hardwareByCategory);
+      setCompanyData(company);
     } catch (error) {
-      toast({ title: "Erro", description: "Falha ao carregar componentes", variant: "destructive" });
+      toast({ title: "Erro", description: "Falha ao carregar dados", variant: "destructive" });
     }
     setLoading(false);
   }
@@ -193,7 +195,7 @@ export default function MonteVoceMesmo() {
       <!DOCTYPE html>
       <html>
         <head>
-          <title>Orçamento - ${storeInfo.name}</title>
+          <title>Orçamento - ${companyData.name || 'Orçamento'}</title>
           <style>
             * { margin: 0; padding: 0; box-sizing: border-box; }
             body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 40px; color: #333; }
@@ -279,13 +281,25 @@ export default function MonteVoceMesmo() {
               <div className="quote-container">
                 {/* Header */}
                 <div className="header text-center border-b-4 border-primary pb-6 mb-8">
+                  {companyData.logo && (
+                    <img src={companyData.logo} alt="Logo" className="h-16 mx-auto mb-4 object-contain" />
+                  )}
                   <div className="logo-title text-3xl font-bold text-primary mb-2">
-                    {storeInfo.name}
+                    {companyData.name || 'Empresa'}
                   </div>
                   <div className="store-info text-sm text-muted-foreground space-y-1">
-                    <p>{storeInfo.address} - {storeInfo.city}</p>
-                    <p>Tel: {storeInfo.phone} | Email: {storeInfo.email}</p>
-                    <p>CNPJ: {storeInfo.cnpj}</p>
+                    {(companyData.address || companyData.city) && (
+                      <p>{companyData.address}{companyData.address && companyData.city && ' - '}{companyData.city}</p>
+                    )}
+                    {(companyData.phone || companyData.email) && (
+                      <p>
+                        {companyData.phone && `Tel: ${companyData.phone}`}
+                        {companyData.phone && companyData.email && ' | '}
+                        {companyData.email && `Email: ${companyData.email}`}
+                      </p>
+                    )}
+                    {companyData.cnpj && <p>CNPJ: {companyData.cnpj}</p>}
+                    {companyData.seller && <p>Vendedor: {companyData.seller}</p>}
                   </div>
                 </div>
 
