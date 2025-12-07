@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import type { Product } from "@/lib/api";
+import { Download } from "lucide-react";
 
 interface ProductCardProps {
   product: Product;
@@ -12,6 +13,8 @@ export function ProductCard({ product }: ProductCardProps) {
       currency: "BRL",
     }).format(price);
   };
+
+  const isAutomacao = product.productType === 'automacao';
 
   return (
     <Link
@@ -28,9 +31,9 @@ export function ProductCard({ product }: ProductCardProps) {
             (e.target as HTMLImageElement).src = "/placeholder.svg";
           }}
         />
-        {product.categories && product.categories.length > 0 && (
-          <span className="absolute right-3 top-3 rounded-full bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground">
-            {product.categories[0]}
+        {product.productType && (
+          <span className="absolute right-3 top-3 rounded-full bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground capitalize">
+            {product.productType}
           </span>
         )}
       </div>
@@ -47,9 +50,16 @@ export function ProductCard({ product }: ProductCardProps) {
         )}
 
         <div className="mt-auto pt-4">
-          <span className="text-2xl font-bold text-primary">
-            {formatPrice(product.totalPrice)}
-          </span>
+          {isAutomacao ? (
+            <span className="inline-flex items-center gap-2 text-lg font-bold text-primary">
+              <Download className="h-5 w-5" />
+              Download Grátis
+            </span>
+          ) : (
+            <span className="text-2xl font-bold text-primary">
+              {formatPrice(product.totalPrice)}
+            </span>
+          )}
         </div>
       </div>
     </Link>

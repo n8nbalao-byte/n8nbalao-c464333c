@@ -1,6 +1,8 @@
 // API Configuration - connects to your PHP backend on Hostinger
 const API_BASE_URL = 'https://www.n8nbalao.com/api';
 
+export type ProductCategory = 'pc' | 'kit' | 'notebook' | 'automacao' | 'software' | 'acessorio';
+
 export interface Product {
   id: string;
   title: string;
@@ -11,6 +13,10 @@ export interface Product {
   components: ProductComponents;
   totalPrice: number;
   createdAt: string;
+  // For automações - download link
+  downloadUrl?: string;
+  // Product type to identify if it's a PC assembly or simple product
+  productType?: ProductCategory;
 }
 
 export interface MediaItem {
@@ -26,7 +32,7 @@ export interface ProductComponents {
   gpu?: HardwareItem;
   psu?: HardwareItem;
   case?: HardwareItem;
-  watercooler?: HardwareItem;
+  cooler?: HardwareItem;
 }
 
 // Component IDs only for saving to database (lighter payload)
@@ -38,7 +44,7 @@ export interface ProductComponentIds {
   gpu?: string;
   psu?: string;
   case?: string;
-  watercooler?: string;
+  cooler?: string;
 }
 
 // Helper to extract only IDs from components
@@ -52,6 +58,9 @@ function extractComponentIds(components: ProductComponents): ProductComponentIds
   return ids;
 }
 
+// Hardware is for PC components only
+export type HardwareCategory = 'processor' | 'motherboard' | 'memory' | 'storage' | 'gpu' | 'psu' | 'case' | 'cooler';
+
 export interface HardwareItem {
   id: string;
   name: string;
@@ -60,7 +69,7 @@ export interface HardwareItem {
   price: number;
   image: string;
   specs: Record<string, string>;
-  category: 'processor' | 'motherboard' | 'memory' | 'storage' | 'gpu' | 'psu' | 'case' | 'watercooler' | 'kit' | 'notebook' | 'automacao';
+  category: HardwareCategory;
   createdAt: string;
   // Compatibility fields
   socket?: string;
@@ -109,8 +118,8 @@ export const api = {
   // Create a new product
   async createProduct(product: Omit<Product, 'id' | 'createdAt'>): Promise<boolean> {
     try {
-      // Extract only component IDs to reduce payload size
-      const componentIds = extractComponentIds(product.components);
+      // Extract only component IDs to reduce payload size (for PC products)
+      const componentIds = product.components ? extractComponentIds(product.components) : {};
       
       const response = await fetch(`${API_BASE_URL}/products.php`, {
         method: 'POST',
@@ -167,7 +176,7 @@ export const api = {
     }
   },
 
-  // Hardware endpoints
+  // Hardware endpoints (only for PC components)
   async getHardware(category?: string): Promise<HardwareItem[]> {
     try {
       const url = category 

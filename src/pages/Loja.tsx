@@ -4,16 +4,18 @@ import { Footer } from "@/components/Footer";
 import { StarryBackground } from "@/components/StarryBackground";
 import { ProductCard } from "@/components/ProductCard";
 import { api, type Product } from "@/lib/api";
-import { Search, ArrowUpDown, Monitor, Package, Laptop, Bot } from "lucide-react";
+import { Search, ArrowUpDown, Monitor, Package, Laptop, Bot, Wrench, Code } from "lucide-react";
 
-type ProductType = 'all' | 'pc' | 'kits' | 'notebook' | 'automacoes';
+type ProductType = 'all' | 'pc' | 'kit' | 'notebook' | 'automacao' | 'software' | 'acessorio';
 
 const productTypes: { key: ProductType; label: string; icon: React.ElementType }[] = [
   { key: 'all', label: 'Todos', icon: Package },
   { key: 'pc', label: 'PCs', icon: Monitor },
-  { key: 'kits', label: 'Kits', icon: Package },
+  { key: 'kit', label: 'Kits', icon: Package },
   { key: 'notebook', label: 'Notebooks', icon: Laptop },
-  { key: 'automacoes', label: 'Automações', icon: Bot },
+  { key: 'automacao', label: 'Automações', icon: Bot },
+  { key: 'software', label: 'Softwares', icon: Code },
+  { key: 'acessorio', label: 'Acessórios', icon: Wrench },
 ];
 
 export default function Loja() {
@@ -21,7 +23,6 @@ export default function Loja() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [selectedType, setSelectedType] = useState<ProductType>("all");
-  const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
 
   useEffect(() => {
@@ -33,22 +34,18 @@ export default function Loja() {
     fetchProducts();
   }, []);
 
-  const categories = ["all", ...new Set(products.flatMap((p) => p.categories || []))];
-
   const filteredProducts = products
     .filter((product) => {
       const matchesSearch =
         product.title.toLowerCase().includes(search.toLowerCase()) ||
         product.subtitle?.toLowerCase().includes(search.toLowerCase());
-      const matchesCategory =
-        selectedCategory === "all" ||
-        product.categories?.includes(selectedCategory);
       
       // Filter by product type
       const matchesType = selectedType === "all" || 
+        product.productType === selectedType ||
         product.categories?.some(cat => cat.toLowerCase() === selectedType.toLowerCase());
       
-      return matchesSearch && matchesCategory && matchesType;
+      return matchesSearch && matchesType;
     })
     .sort((a, b) => {
       if (sortOrder === "asc") {
@@ -118,23 +115,6 @@ export default function Loja() {
                 <option value="asc">Menor preço</option>
                 <option value="desc">Maior preço</option>
               </select>
-            </div>
-
-            {/* Categories */}
-            <div className="flex flex-wrap gap-2">
-              {categories.map((category) => (
-                <button
-                  key={category}
-                  onClick={() => setSelectedCategory(category)}
-                  className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
-                    selectedCategory === category
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
-                  }`}
-                >
-                  {category === "all" ? "Todos" : category}
-                </button>
-              ))}
             </div>
           </div>
 
