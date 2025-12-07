@@ -4,19 +4,18 @@ import robotMascot from "@/assets/robot-mascot.png";
 export function FloatingRobot() {
   const [position, setPosition] = useState({ x: 50, y: 200 });
   const [targetPosition, setTargetPosition] = useState({ x: 50, y: 200 });
-  const [isScared, setIsScared] = useState(false);
   const robotRef = useRef<HTMLDivElement>(null);
   const animationRef = useRef<number>();
 
-  // Smooth animation towards target position
+  // Very smooth animation towards target position
   useEffect(() => {
     const animate = () => {
       setPosition(prev => {
         const dx = targetPosition.x - prev.x;
         const dy = targetPosition.y - prev.y;
         
-        // Easing - move 8% towards target each frame for smooth movement
-        const easing = 0.08;
+        // Very slow easing - move only 2% towards target each frame
+        const easing = 0.02;
         
         return {
           x: prev.x + dx * easing,
@@ -48,19 +47,17 @@ export function FloatingRobot() {
       Math.pow(e.clientY - robotCenterY, 2)
     );
 
-    // If mouse is within 250px of robot, run away smoothly
-    if (distance < 250) {
-      setIsScared(true);
-      
+    // If mouse is within 200px of robot, slowly move away
+    if (distance < 200) {
       // Calculate direction away from mouse
       const angle = Math.atan2(robotCenterY - e.clientY, robotCenterX - e.clientX);
       
-      // Move robot away from mouse - distance based on proximity
-      const moveDistance = Math.max(100, 300 - distance);
+      // Small movement distance for gentle escape
+      const moveDistance = 80;
       let newX = position.x + Math.cos(angle) * moveDistance;
       let newY = position.y + Math.sin(angle) * moveDistance;
 
-      // Keep robot within viewport bounds with padding
+      // Keep robot within viewport bounds
       const padding = 50;
       const maxX = window.innerWidth - 180;
       const maxY = window.innerHeight - 180;
@@ -69,9 +66,6 @@ export function FloatingRobot() {
       newY = Math.max(100, Math.min(maxY, newY));
 
       setTargetPosition({ x: newX, y: newY });
-
-      // Reset scared state after a delay
-      setTimeout(() => setIsScared(false), 500);
     }
   }, [position]);
 
@@ -80,19 +74,17 @@ export function FloatingRobot() {
     return () => window.removeEventListener("mousemove", handleMouseMove);
   }, [handleMouseMove]);
 
-  // Gentle idle floating animation
+  // Gentle idle floating - very subtle movement
   useEffect(() => {
-    if (isScared) return;
-    
     const idleInterval = setInterval(() => {
       setTargetPosition(prev => ({
-        x: prev.x + (Math.random() - 0.5) * 20,
-        y: prev.y + (Math.random() - 0.5) * 15
+        x: prev.x + (Math.random() - 0.5) * 10,
+        y: prev.y + (Math.random() - 0.5) * 8
       }));
-    }, 3000);
+    }, 4000);
 
     return () => clearInterval(idleInterval);
-  }, [isScared]);
+  }, []);
 
   return (
     <div
@@ -101,26 +93,13 @@ export function FloatingRobot() {
       style={{
         left: `${position.x}px`,
         top: `${position.y}px`,
-        transition: "none", // We handle animation manually
       }}
     >
       <img
         src={robotMascot}
         alt="Assistente Virtual"
-        className={`w-36 h-auto drop-shadow-2xl transition-transform duration-300 ${
-          isScared ? "scale-90" : "scale-100"
-        }`}
-        style={{
-          transform: `${isScared ? "scaleX(-1)" : "scaleX(1)"} translateY(${Math.sin(Date.now() / 1000) * 8}px)`,
-          filter: isScared ? "brightness(1.1)" : "brightness(1)",
-        }}
+        className="w-36 h-auto drop-shadow-2xl"
       />
-      {/* Scared expression indicator */}
-      {isScared && (
-        <div className="absolute -top-2 -right-2 text-2xl animate-bounce">
-          😰
-        </div>
-      )}
     </div>
   );
 }
