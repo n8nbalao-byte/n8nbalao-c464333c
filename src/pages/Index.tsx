@@ -124,11 +124,6 @@ export default function Index() {
                 {/* Glow effect behind phone */}
                 <div className="absolute inset-0 -z-10 blur-3xl bg-primary/20 rounded-full scale-75" />
               </div>
-              
-              <div className="absolute -right-4 top-1/2 -translate-y-1/2 rounded-xl bg-card/80 backdrop-blur-sm border border-border/50 p-4 shadow-card">
-                <h4 className="font-semibold text-foreground">WhatsappBot</h4>
-                <p className="text-sm text-muted-foreground">Seu assistente virtual inteligente para WhatsApp</p>
-              </div>
             </div>
           </div>
         </div>
