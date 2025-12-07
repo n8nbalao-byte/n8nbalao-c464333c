@@ -694,6 +694,7 @@ export default function MonteVoceMesmo() {
                       <HoverCard key={item.id} openDelay={200} closeDelay={100}>
                         <HoverCardTrigger asChild>
                           <div
+                            onClick={() => !currentStepData.allowMultiple && selectHardware(item)}
                             className={`p-2 rounded-lg border cursor-pointer transition-all hover:shadow-md ${
                               isSelected 
                                 ? 'border-green-500 bg-green-500/10 ring-1 ring-green-500' 
@@ -703,7 +704,7 @@ export default function MonteVoceMesmo() {
                             <p className="font-medium text-xs line-clamp-2 mb-1">{item.brand} {item.model}</p>
                             <p className="text-sm font-bold text-primary">{formatPrice(item.price)}</p>
                             
-                            {/* Add/Remove buttons for multiple selection */}
+                            {/* Add/Remove buttons for multiple selection only */}
                             {currentStepData.allowMultiple ? (
                               <div className="flex items-center justify-between pt-2 mt-2 border-t border-border">
                                 <span className="text-[10px] text-muted-foreground">{itemCount}x</span>
@@ -734,27 +735,13 @@ export default function MonteVoceMesmo() {
                                   </Button>
                                 </div>
                               </div>
-                            ) : (
-                              <div className="pt-2 mt-2 border-t border-border flex justify-end">
-                                {isSelected ? (
-                                  <span className="flex items-center gap-1 text-green-500 text-[10px]">
-                                    <Check className="h-3 w-3" /> OK
-                                  </span>
-                                ) : (
-                                  <Button
-                                    variant="default"
-                                    size="sm"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      selectHardware(item);
-                                    }}
-                                    className="h-6 px-2 text-xs"
-                                  >
-                                    <Plus className="h-3 w-3 mr-1" /> Add
-                                  </Button>
-                                )}
+                            ) : isSelected ? (
+                              <div className="pt-2 mt-2 border-t border-border flex justify-center">
+                                <span className="flex items-center gap-1 text-green-500 text-[10px]">
+                                  <Check className="h-3 w-3" /> Selecionado
+                                </span>
                               </div>
-                            )}
+                            ) : null}
                           </div>
                         </HoverCardTrigger>
                         <HoverCardContent side="right" className="w-64 p-3">
