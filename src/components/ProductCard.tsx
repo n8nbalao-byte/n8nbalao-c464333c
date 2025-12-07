@@ -47,12 +47,9 @@ export function ProductCard({ product }: ProductCardProps) {
         )}
 
         <div className="mt-auto pt-4">
-          <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-bold text-primary">
-              {formatPrice(product.totalPrice)}
-            </span>
-            <span className="text-sm text-muted-foreground">/mês</span>
-          </div>
+          <span className="text-2xl font-bold text-primary">
+            {formatPrice(product.totalPrice)}
+          </span>
         </div>
       </div>
     </Link>
