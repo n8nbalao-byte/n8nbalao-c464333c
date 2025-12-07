@@ -40,7 +40,7 @@ $pdo->exec("
         price DECIMAL(10,2) DEFAULT 0,
         image LONGTEXT,
         specs JSON,
-        category ENUM('processor', 'motherboard', 'memory', 'storage', 'gpu', 'psu', 'case', 'watercooler') NOT NULL,
+        category ENUM('processor', 'motherboard', 'memory', 'storage', 'gpu', 'psu', 'case', 'cooler') NOT NULL,
         socket VARCHAR(50) DEFAULT NULL,
         memoryType VARCHAR(20) DEFAULT NULL,
         formFactor VARCHAR(30) DEFAULT NULL,
