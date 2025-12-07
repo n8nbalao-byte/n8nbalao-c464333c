@@ -2292,41 +2292,50 @@ export default function Admin() {
                 </p>
               </div>
 
-              {/* Specs */}
-              <div>
-                <label className="mb-2 block text-sm font-medium text-foreground">Especificações</label>
-                <div className="mb-2 space-y-2">
-                  {Object.entries(productFormData.specs).map(([key, value]) => (
-                    <div key={key} className="flex items-center justify-between rounded-lg bg-secondary/50 px-4 py-2">
-                      <span className="text-foreground">
-                        <strong>{key}:</strong> {value}
-                      </span>
-                      <button type="button" onClick={() => removeProductSpec(key)} className="text-destructive">
-                        <X className="h-4 w-4" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
+              {/* Specs / Informações do Produto */}
+              <div className="rounded-xl border border-border bg-card/50 p-4">
+                <label className="mb-3 block text-lg font-semibold text-foreground">
+                  📋 Informações do Produto
+                </label>
+                <p className="mb-4 text-sm text-muted-foreground">
+                  Adicione informações que aparecerão na página do produto (ex: Garantia, Peso, Dimensões, Cor, etc.)
+                </p>
+                
+                {Object.entries(productFormData.specs).length > 0 && (
+                  <div className="mb-4 space-y-2">
+                    {Object.entries(productFormData.specs).map(([key, value]) => (
+                      <div key={key} className="flex items-center justify-between rounded-lg bg-secondary px-4 py-3">
+                        <span className="text-foreground">
+                          <strong className="text-primary">{key}:</strong> {value}
+                        </span>
+                        <button type="button" onClick={() => removeProductSpec(key)} className="text-destructive hover:text-destructive/80">
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                
                 <div className="flex gap-2">
                   <input
                     type="text"
                     value={newProductSpecKey}
                     onChange={(e) => setNewProductSpecKey(e.target.value)}
-                    className="flex-1 rounded-lg border border-border bg-background px-4 py-2 text-foreground focus:border-primary focus:outline-none"
-                    placeholder="Chave"
+                    className="flex-1 rounded-lg border border-border bg-background px-4 py-3 text-foreground focus:border-primary focus:outline-none"
+                    placeholder="Nome (ex: Garantia)"
                   />
                   <input
                     type="text"
                     value={newProductSpecValue}
                     onChange={(e) => setNewProductSpecValue(e.target.value)}
-                    className="flex-1 rounded-lg border border-border bg-background px-4 py-2 text-foreground focus:border-primary focus:outline-none"
-                    placeholder="Valor"
+                    className="flex-1 rounded-lg border border-border bg-background px-4 py-3 text-foreground focus:border-primary focus:outline-none"
+                    placeholder="Valor (ex: 12 meses)"
                     onKeyPress={(e) => e.key === "Enter" && (e.preventDefault(), addProductSpec())}
                   />
                   <button
                     type="button"
                     onClick={addProductSpec}
-                    className="rounded-lg bg-secondary px-4 py-2 text-foreground transition-colors hover:bg-secondary/80"
+                    className="rounded-lg bg-primary px-4 py-3 text-primary-foreground transition-colors hover:bg-primary/90"
                   >
                     <Plus className="h-5 w-5" />
                   </button>
