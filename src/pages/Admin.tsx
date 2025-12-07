@@ -678,6 +678,9 @@ export default function Admin() {
 
   // Bulk upload functions
   function downloadExcelTemplate() {
+    // Build list of all hardware categories
+    const allCategories = hardwareCategories.map(c => c.key).join(', ');
+    
     const templateData = [
       {
         nome: "Exemplo Processador",
@@ -685,27 +688,63 @@ export default function Admin() {
         modelo: "Core i7-13700K",
         preco: 2499.99,
         categoria: activeHardwareCategory,
+        socket: "LGA1700",
+        memoria_tipo: "DDR5",
+        form_factor: "ATX",
+        tdp: 125,
         spec_1_chave: "Núcleos",
         spec_1_valor: "16",
         spec_2_chave: "Threads",
         spec_2_valor: "24",
         spec_3_chave: "Frequência",
         spec_3_valor: "3.4GHz",
+        spec_4_chave: "",
+        spec_4_valor: "",
+        spec_5_chave: "",
+        spec_5_valor: "",
       },
     ];
 
-    const ws = XLSX.utils.json_to_sheet(templateData);
+    // Add instructions row
+    const instructionsData = [
+      {
+        nome: `CATEGORIAS: ${allCategories}`,
+        marca: "Socket: LGA1700, AM5, AM4...",
+        modelo: "Memória: DDR5, DDR4",
+        preco: "",
+        categoria: "",
+        socket: "Para CPU/Mobo",
+        memoria_tipo: "Para RAM/Mobo",
+        form_factor: "ATX, Micro-ATX...",
+        tdp: "Watts",
+        spec_1_chave: "",
+        spec_1_valor: "",
+        spec_2_chave: "",
+        spec_2_valor: "",
+        spec_3_chave: "",
+        spec_3_valor: "",
+        spec_4_chave: "",
+        spec_4_valor: "",
+        spec_5_chave: "",
+        spec_5_valor: "",
+      },
+      ...templateData,
+    ];
+
+    const ws = XLSX.utils.json_to_sheet(instructionsData);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Hardware");
 
     // Auto-size columns
     ws["!cols"] = [
-      { wch: 25 }, { wch: 15 }, { wch: 20 }, { wch: 12 }, { wch: 15 },
+      { wch: 40 }, { wch: 25 }, { wch: 25 }, { wch: 12 }, { wch: 15 },
+      { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 10 },
       { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 },
+      { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 },
     ];
 
     XLSX.writeFile(wb, `template_hardware_${activeHardwareCategory}.xlsx`);
-    toast({ title: "Download iniciado", description: "Use este modelo para envio em massa" });
+    toast({ title: "Download iniciado", description: "Template atualizado com campos de compatibilidade" });
   }
 
   async function handleBulkUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -724,6 +763,9 @@ export default function Admin() {
       let errorCount = 0;
 
       for (const row of jsonData as any[]) {
+        // Skip instruction row (first row with CATEGORIAS)
+        if (typeof row.nome === 'string' && row.nome.startsWith('CATEGORIAS:')) continue;
+        
         const specs: Record<string, string> = {};
         
         // Extract specs from columns
@@ -743,6 +785,10 @@ export default function Admin() {
           image: "",
           specs,
           category: (row.categoria || activeHardwareCategory) as HardwareCategory,
+          socket: row.socket || "",
+          memoryType: row.memoria_tipo || "",
+          formFactor: row.form_factor || "",
+          tdp: parseFloat(row.tdp) || 0,
         };
 
         if (hardwareItem.name && hardwareItem.brand && hardwareItem.model) {
@@ -1075,31 +1121,65 @@ export default function Admin() {
 
   // Bulk upload products
   function downloadProductExcelTemplate() {
+    // Build list of all available product types (base + custom)
+    const allTypes = productTypes.map(t => t.key).join(', ');
+    
     const templateData = [
       {
         titulo: "Produto Exemplo",
         subtitulo: "Descrição curta",
+        descricao: "Descrição completa do produto",
         preco: 999.99,
-        tipo: "notebook", // pc, kit, notebook, automacao, software, acessorio
-        download_url: "", // apenas para automações
+        tipo: "notebook",
+        download_url: "",
         spec_1_chave: "Processador",
         spec_1_valor: "Intel Core i7",
         spec_2_chave: "RAM",
         spec_2_valor: "16GB",
+        spec_3_chave: "",
+        spec_3_valor: "",
+        spec_4_chave: "",
+        spec_4_valor: "",
+        spec_5_chave: "",
+        spec_5_valor: "",
       },
     ];
 
-    const ws = XLSX.utils.json_to_sheet(templateData);
+    // Add instructions row showing all available types
+    const instructionsData = [
+      {
+        titulo: `TIPOS DISPONÍVEIS: ${allTypes}`,
+        subtitulo: "Preencha a partir da linha 3",
+        descricao: "",
+        preco: "",
+        tipo: "",
+        download_url: "Apenas para automações",
+        spec_1_chave: "",
+        spec_1_valor: "",
+        spec_2_chave: "",
+        spec_2_valor: "",
+        spec_3_chave: "",
+        spec_3_valor: "",
+        spec_4_chave: "",
+        spec_4_valor: "",
+        spec_5_chave: "",
+        spec_5_valor: "",
+      },
+      ...templateData,
+    ];
+
+    const ws = XLSX.utils.json_to_sheet(instructionsData);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Produtos");
 
     ws["!cols"] = [
-      { wch: 30 }, { wch: 30 }, { wch: 12 }, { wch: 15 }, { wch: 40 },
+      { wch: 50 }, { wch: 30 }, { wch: 40 }, { wch: 12 }, { wch: 20 }, { wch: 40 },
+      { wch: 15 }, { wch: 20 }, { wch: 15 }, { wch: 20 }, { wch: 15 }, { wch: 20 },
       { wch: 15 }, { wch: 20 }, { wch: 15 }, { wch: 20 },
     ];
 
     XLSX.writeFile(wb, `template_produtos.xlsx`);
-    toast({ title: "Download iniciado", description: "Use este modelo para envio em massa de produtos" });
+    toast({ title: "Download iniciado", description: "Template atualizado com todos os tipos de produto" });
   }
 
   async function handleProductBulkUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -1118,6 +1198,9 @@ export default function Admin() {
       let errorCount = 0;
 
       for (const row of jsonData as any[]) {
+        // Skip instruction row (first row with TIPOS DISPONÍVEIS)
+        if (typeof row.titulo === 'string' && row.titulo.startsWith('TIPOS DISPONÍVEIS:')) continue;
+        
         const specs: Record<string, string> = {};
         
         for (let i = 1; i <= 10; i++) {
@@ -1132,6 +1215,7 @@ export default function Admin() {
         const product = {
           title: row.titulo || "",
           subtitle: row.subtitulo || "",
+          description: row.descricao || "",
           totalPrice: parseFloat(row.preco) || 0,
           productType,
           downloadUrl: row.download_url || "",
