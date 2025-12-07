@@ -15,14 +15,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit();
 }
 
-// Database config
+// Configurações do Banco de Dados Hostinger
 define('DB_HOST', 'localhost');
 define('DB_USER', 'u770915504_n8nbalao');
 define('DB_PASS', 'Balao2025');
 define('DB_NAME', 'u770915504_n8nbalao');
 
 try {
-    $pdo = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=utf8mb4", DB_USER, DB_PASS);
+   $pdo = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=utf8mb4", DB_USER, DB_PASS);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 } catch (PDOException $e) {
     http_response_code(500);
@@ -49,30 +49,22 @@ $pdo->exec("
     )
 ");
 
-// Add compatibility columns if they don't exist
+// Add compatibility columns if they don't exist (for existing tables)
 try {
     $pdo->exec("ALTER TABLE hardware ADD COLUMN socket VARCHAR(50) DEFAULT NULL");
-} catch (PDOException $e) {
-    // Column already exists
-}
+} catch (PDOException $e) {}
 
 try {
     $pdo->exec("ALTER TABLE hardware ADD COLUMN memoryType VARCHAR(20) DEFAULT NULL");
-} catch (PDOException $e) {
-    // Column already exists
-}
+} catch (PDOException $e) {}
 
 try {
     $pdo->exec("ALTER TABLE hardware ADD COLUMN formFactor VARCHAR(30) DEFAULT NULL");
-} catch (PDOException $e) {
-    // Column already exists
-}
+} catch (PDOException $e) {}
 
 try {
     $pdo->exec("ALTER TABLE hardware ADD COLUMN tdp INT DEFAULT NULL");
-} catch (PDOException $e) {
-    // Column already exists
-}
+} catch (PDOException $e) {}
 
 $method = $_SERVER['REQUEST_METHOD'];
 
@@ -82,7 +74,6 @@ switch ($method) {
         $id = $_GET['id'] ?? null;
 
         if ($id) {
-            // Get single hardware
             $stmt = $pdo->prepare("SELECT * FROM hardware WHERE id = ?");
             $stmt->execute([$id]);
             $hardware = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -97,7 +88,6 @@ switch ($method) {
                 echo json_encode(['error' => 'Hardware not found']);
             }
         } else {
-            // Get all hardware (optionally filtered by category)
             if ($category) {
                 $stmt = $pdo->prepare("SELECT * FROM hardware WHERE category = ? ORDER BY price ASC");
                 $stmt->execute([$category]);
