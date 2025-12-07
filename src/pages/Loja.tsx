@@ -28,19 +28,35 @@ export default function Loja() {
   const [search, setSearch] = useState("");
   const [selectedType, setSelectedType] = useState<ProductType>("all");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
-
-  // Merge base categories with custom categories
-  const customCategories = getCustomCategories();
-  const productTypes = [
-    ...baseProductTypes,
-    ...customCategories.map(c => ({ key: c.key, label: c.label, icon: getIconFromKey(c.icon) }))
-  ];
+  const [productTypes, setProductTypes] = useState(baseProductTypes);
 
   useEffect(() => {
     async function fetchProducts() {
       const data = await api.getProducts();
       setProducts(data);
       setLoading(false);
+      
+      // Build complete category list from custom categories AND product data
+      const customCategories = getCustomCategories();
+      const baseKeys = baseProductTypes.map(c => c.key);
+      const customKeys = customCategories.map(c => c.key);
+      
+      // Extract unique categories from products
+      const productCategoryKeys = data
+        .map(p => p.categories?.[0] || p.productType || '')
+        .filter(cat => cat && !baseKeys.includes(cat) && !customKeys.includes(cat));
+      
+      const uniqueProductCats = [...new Set(productCategoryKeys)].map(key => ({
+        key,
+        label: key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, ' '),
+        icon: getIconFromKey('tag')
+      }));
+      
+      setProductTypes([
+        ...baseProductTypes,
+        ...customCategories.map(c => ({ key: c.key, label: c.label, icon: getIconFromKey(c.icon) })),
+        ...uniqueProductCats
+      ]);
     }
     fetchProducts();
   }, []);
