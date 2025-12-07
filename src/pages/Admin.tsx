@@ -56,13 +56,18 @@ interface HardwareFormData {
 const socketOptions = [
   { value: 'LGA1700', label: 'Intel LGA 1700 (12ª-14ª Gen)' },
   { value: 'LGA1200', label: 'Intel LGA 1200 (10ª-11ª Gen)' },
+  { value: 'LGA1151', label: 'Intel LGA 1151 (6ª-9ª Gen)' },
+  { value: 'LGA1150', label: 'Intel LGA 1150 (4ª-5ª Gen)' },
+  { value: 'LGA1155', label: 'Intel LGA 1155 (2ª-3ª Gen)' },
   { value: 'AM5', label: 'AMD AM5 (Ryzen 7000+)' },
   { value: 'AM4', label: 'AMD AM4 (Ryzen 1000-5000)' },
+  { value: 'AM3+', label: 'AMD AM3+ (FX Series)' },
 ];
 
 const memoryTypeOptions = [
   { value: 'DDR5', label: 'DDR5' },
   { value: 'DDR4', label: 'DDR4' },
+  { value: 'DDR3', label: 'DDR3' },
 ];
 
 const formFactorOptions = [
