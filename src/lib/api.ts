@@ -4,7 +4,13 @@ const API_BASE_URL = 'https://www.n8nbalao.com/api';
 export type ProductCategory = 'pc' | 'kit' | 'notebook' | 'automacao' | 'software' | 'acessorio' | 'licenca' | 'monitor' | 'cadeira_gamer';
 
 // Custom categories stored in localStorage (can be extended by admin)
-export function getCustomCategories(): { key: string; label: string }[] {
+export interface CustomCategory {
+  key: string;
+  label: string;
+  icon?: string; // Icon key from availableIcons
+}
+
+export function getCustomCategories(): CustomCategory[] {
   try {
     const stored = localStorage.getItem('custom_categories');
     return stored ? JSON.parse(stored) : [];
@@ -13,14 +19,14 @@ export function getCustomCategories(): { key: string; label: string }[] {
   }
 }
 
-export function saveCustomCategories(categories: { key: string; label: string }[]): void {
+export function saveCustomCategories(categories: CustomCategory[]): void {
   localStorage.setItem('custom_categories', JSON.stringify(categories));
 }
 
-export function addCustomCategory(key: string, label: string): void {
+export function addCustomCategory(key: string, label: string, icon?: string): void {
   const categories = getCustomCategories();
   if (!categories.find(c => c.key === key)) {
-    categories.push({ key, label });
+    categories.push({ key, label, icon });
     saveCustomCategories(categories);
   }
 }
