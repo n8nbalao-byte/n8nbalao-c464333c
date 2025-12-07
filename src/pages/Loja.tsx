@@ -4,13 +4,14 @@ import { Footer } from "@/components/Footer";
 import { Sidebar } from "@/components/Sidebar";
 import { ProductCard } from "@/components/ProductCard";
 import { api, type Product } from "@/lib/api";
-import { Search } from "lucide-react";
+import { Search, ArrowUpDown } from "lucide-react";
 
 export default function Loja() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
 
   useEffect(() => {
     async function fetchProducts() {
@@ -33,7 +34,12 @@ export default function Loja() {
         product.categories?.includes(selectedCategory);
       return matchesSearch && matchesCategory;
     })
-    .sort((a, b) => (a.totalPrice || 0) - (b.totalPrice || 0));
+    .sort((a, b) => {
+      if (sortOrder === "asc") {
+        return (a.totalPrice || 0) - (b.totalPrice || 0);
+      }
+      return (b.totalPrice || 0) - (a.totalPrice || 0);
+    });
 
   return (
     <div className="min-h-screen bg-background">
@@ -62,6 +68,19 @@ export default function Loja() {
                 onChange={(e) => setSearch(e.target.value)}
                 className="w-full rounded-lg border border-border bg-card py-2 pl-10 pr-4 text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
               />
+            </div>
+
+            {/* Sort Order */}
+            <div className="flex items-center gap-2">
+              <ArrowUpDown className="h-4 w-4 text-muted-foreground" />
+              <select
+                value={sortOrder}
+                onChange={(e) => setSortOrder(e.target.value as "asc" | "desc")}
+                className="rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+              >
+                <option value="asc">Menor preço</option>
+                <option value="desc">Maior preço</option>
+              </select>
             </div>
 
             {/* Categories */}
