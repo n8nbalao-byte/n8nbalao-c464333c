@@ -42,10 +42,13 @@ export default function Loja() {
       const baseKeys = baseProductTypes.map(c => c.key);
       const customKeys = customCategories.map(c => c.key);
       
-      // Extract unique categories from products
+      // Categories to exclude from display
+      const excludedCategories = ['games', 'console', 'controle', 'controles'];
+      
+      // Extract unique categories from products (excluding unwanted ones)
       const productCategoryKeys = data
         .map(p => p.categories?.[0] || p.productType || '')
-        .filter(cat => cat && !baseKeys.includes(cat) && !customKeys.includes(cat));
+        .filter(cat => cat && !baseKeys.includes(cat) && !customKeys.includes(cat) && !excludedCategories.includes(cat.toLowerCase()));
       
       const uniqueProductCats = [...new Set(productCategoryKeys)].map(key => ({
         key,

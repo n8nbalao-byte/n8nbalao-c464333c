@@ -101,10 +101,13 @@ export default function MonteVoceMesmo() {
         const defaultKeys = defaultCategories.map(c => c.key);
         const customKeys = customCats.map(c => c.key);
         
+        // Categories to exclude
+        const excludedCategories = ['games', 'console', 'controle', 'controles'];
+        
         // Extract unique categories from products that aren't in defaults or custom
         const productCategories = products
           .map(p => p.categories?.[0] || p.productType || '')
-          .filter(cat => cat && !defaultKeys.includes(cat) && !customKeys.includes(cat));
+          .filter(cat => cat && !defaultKeys.includes(cat) && !customKeys.includes(cat) && !excludedCategories.includes(cat.toLowerCase()));
         
         const uniqueProductCats = [...new Set(productCategories)].map(key => ({
           key,
