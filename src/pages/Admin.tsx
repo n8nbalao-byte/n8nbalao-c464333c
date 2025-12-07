@@ -525,6 +525,9 @@ export default function Admin() {
   }
 
   function openProductEditor(product?: Product) {
+    // Refresh custom categories before opening editor
+    setCustomCategoriesList(getCustomCategories());
+    
     if (product) {
       setEditingProductId(product.id);
       setProductFormData({
@@ -1752,20 +1755,40 @@ export default function Admin() {
                 <div className="flex flex-wrap gap-2">
                   {productTypes.map((type) => {
                     const Icon = type.icon;
+                    const isCustomType = customCategoriesList.some(c => c.key === type.key);
+                    const isSelected = productFormData.productType === type.key;
                     return (
-                      <button
-                        key={type.key}
-                        type="button"
-                        onClick={() => setProductFormData(prev => ({ ...prev, productType: type.key }))}
-                        className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
-                          productFormData.productType === type.key
-                            ? "bg-primary text-primary-foreground"
-                            : "bg-secondary text-foreground hover:bg-secondary/80"
-                        }`}
-                      >
-                        <Icon className="h-4 w-4" />
-                        {type.label}
-                      </button>
+                      <div key={type.key} className="relative group">
+                        <button
+                          type="button"
+                          onClick={() => setProductFormData(prev => ({ ...prev, productType: type.key }))}
+                          className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+                            isSelected
+                              ? "bg-primary text-primary-foreground"
+                              : "bg-secondary text-foreground hover:bg-secondary/80"
+                          }`}
+                        >
+                          <Icon className="h-4 w-4" />
+                          {type.label}
+                        </button>
+                        {/* Delete button for custom types */}
+                        {isCustomType && !isSelected && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (confirm(`Excluir tipo "${type.label}"?`)) {
+                                removeCustomCategory(type.key);
+                                setCustomCategoriesList(getCustomCategories());
+                                toast({ title: "Tipo removido" });
+                              }
+                            }}
+                            className="absolute -top-2 -right-2 hidden group-hover:flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-destructive-foreground text-xs hover:bg-destructive/80"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        )}
+                      </div>
                     );
                   })}
                   {/* Add new type button */}
