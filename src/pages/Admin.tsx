@@ -805,8 +805,8 @@ export default function Admin() {
   };
 
   // Add test hardware data for specific category
-  async function addTestHardwareData() {
-    const categoryData = testHardwareData[activeHardwareCategory];
+  async function addTestHardwareData(category: HardwareCategory) {
+    const categoryData = testHardwareData[category];
     if (!categoryData || categoryData.length === 0) {
       toast({ title: "Erro", description: "Nenhum dado de teste disponível para esta categoria", variant: "destructive" });
       return;
@@ -817,12 +817,12 @@ export default function Admin() {
       const success = await api.createHardware({
         ...item,
         image: "",
-        category: activeHardwareCategory,
+        category: category,
       });
       if (success) successCount++;
     }
 
-    const categoryLabel = hardwareCategories.find(c => c.key === activeHardwareCategory)?.label || activeHardwareCategory;
+    const categoryLabel = hardwareCategories.find(c => c.key === category)?.label || category;
     toast({
       title: "Dados de teste adicionados",
       description: `${successCount} ${categoryLabel} criados com sucesso!`,
@@ -1043,7 +1043,7 @@ export default function Admin() {
               {activeTab === 'hardware' && (
                 <>
                   <button
-                    onClick={addTestHardwareData}
+                    onClick={() => addTestHardwareData(activeHardwareCategory)}
                     className="inline-flex items-center gap-2 rounded-lg bg-secondary px-4 py-3 font-medium text-foreground transition-colors hover:bg-secondary/80"
                   >
                     Adicionar {hardwareCategories.find(c => c.key === activeHardwareCategory)?.label || 'Dados'} de Teste
