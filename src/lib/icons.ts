@@ -112,6 +112,11 @@ export const iconMap: Record<string, LucideIcon> = {
   'dumbbell': Dumbbell,
 };
 
+// Available icons as array for selection UI
+export const availableIcons: { key: string; icon: LucideIcon }[] = Object.entries(iconMap).map(
+  ([key, icon]) => ({ key, icon })
+);
+
 // Get icon component from key, defaults to Tag
 export function getIconFromKey(iconKey?: string): LucideIcon {
   if (!iconKey) return Tag;
