@@ -3,57 +3,14 @@ import { Link } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Sidebar } from "@/components/Sidebar";
+import { StarryBackground } from "@/components/StarryBackground";
+import { FloatingRobot } from "@/components/FloatingRobot";
+import { BenefitsCarousel } from "@/components/BenefitsCarousel";
+import { TestimonialsCarousel } from "@/components/TestimonialsCarousel";
+import { IntegrationsCarousel } from "@/components/IntegrationsCarousel";
 import { ProductCard } from "@/components/ProductCard";
 import { api, type Product } from "@/lib/api";
-import { Check, MessageCircle, Zap, Clock, Brain, Mic, Shield, Users } from "lucide-react";
-
-const benefits = [
-  {
-    icon: Clock,
-    title: "Atendimento 24/7",
-    description: "Nunca mais perca um cliente. Seu bot responde a qualquer hora, em qualquer dia.",
-    detail: "Com nosso bot, você nunca fecha! Atenda clientes de madrugada, finais de semana e feriados sem custo adicional."
-  },
-  {
-    icon: Zap,
-    title: "Resposta Imediata",
-    description: "Atendimento instantâneo sem filas de espera, mesmo com alto volume de mensagens.",
-    detail: "Resposta em menos de 2 segundos! Seus clientes não esperam e você não perde vendas."
-  },
-  {
-    icon: Brain,
-    title: "IA Avançada",
-    description: "Inteligência artificial treinada para entender perguntas complexas e contextos variados.",
-    detail: "IA que entende contexto e lembra conversas. Atendimento humano, mas automatizado!"
-  },
-  {
-    icon: Mic,
-    title: "Áudio Humanizado",
-    description: "Respostas em áudio com voz natural e entonação humana para melhor experiência.",
-    detail: "Áudios com voz profissional e natural que engajam seus clientes."
-  },
-];
-
-const testimonials = [
-  {
-    name: "Carlos Silva",
-    role: "Dono de E-commerce",
-    text: "O WhatsAppBot revolucionou meu atendimento. Minhas vendas aumentaram 40% no primeiro mês!",
-    avatar: "CS"
-  },
-  {
-    name: "Maria Santos",
-    role: "Consultora de Vendas",
-    text: "Antes eu perdia clientes por não conseguir responder rápido. Agora o bot faz isso por mim 24/7.",
-    avatar: "MS"
-  },
-  {
-    name: "João Oliveira",
-    role: "Empresário",
-    text: "A inteligência artificial entende perfeitamente o contexto das conversas. Impressionante!",
-    avatar: "JO"
-  },
-];
+import { MessageCircle, Download } from "lucide-react";
 
 const stats = [
   { value: "+1.988", label: "Clientes Ativos" },
@@ -68,32 +25,25 @@ export default function Index() {
   useEffect(() => {
     async function fetchProducts() {
       const data = await api.getProducts();
-      setProducts(data.slice(0, 3)); // Show only 3 featured products
+      setProducts(data.slice(0, 4));
       setLoading(false);
     }
     fetchProducts();
   }, []);
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen relative">
+      <StarryBackground />
       <Header />
       <Sidebar />
+      <FloatingRobot />
 
       {/* Hero Section */}
       <section className="relative overflow-hidden py-20 lg:py-32">
-        <div className="absolute inset-0 gradient-hero" />
-        <div className="absolute left-0 top-20 opacity-30">
-          <img 
-            src="https://www.n8nbalao.com/images/robo.png" 
-            alt="Robot" 
-            className="h-48 w-auto animate-float"
-          />
-        </div>
-        
         <div className="container relative z-10">
           <div className="grid gap-12 lg:grid-cols-2 lg:items-center">
             <div className="space-y-8">
-              <div className="inline-block rounded-full bg-primary/20 px-4 py-2 text-sm font-medium text-primary">
+              <div className="inline-block rounded-full bg-primary/20 px-4 py-2 text-sm font-medium text-primary border border-primary/30">
                 AUTOMATIZE SEU ATENDIMENTO
               </div>
               
@@ -111,17 +61,18 @@ export default function Index() {
               <div className="flex flex-wrap gap-4">
                 <a
                   href="#pricing"
-                  className="inline-flex items-center justify-center gap-2 rounded-md bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-glow transition-colors hover:bg-primary/90"
+                  className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-glow transition-all hover:bg-primary/90 hover:scale-105"
                 >
-                  <MessageCircle className="h-5 w-5" />
-                  Assine
+                  <Download className="h-5 w-5" />
+                  Download
                 </a>
                 <a
                   href="https://wa.me/5519981470446"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center justify-center gap-2 rounded-md border border-primary bg-transparent px-6 py-3 text-sm font-semibold text-primary transition-colors hover:bg-primary hover:text-primary-foreground"
+                  className="inline-flex items-center justify-center gap-2 rounded-lg border border-primary bg-transparent px-6 py-3 text-sm font-semibold text-primary transition-all hover:bg-primary hover:text-primary-foreground hover:scale-105"
                 >
+                  <MessageCircle className="h-5 w-5" />
                   Fale Conosco
                 </a>
               </div>
@@ -137,12 +88,17 @@ export default function Index() {
             </div>
 
             <div className="relative flex justify-center">
-              <img
-                src="https://www.n8nbalao.com/images/celular.png"
-                alt="WhatsApp Bot Demo"
-                className="relative z-10 max-w-sm rounded-3xl shadow-2xl"
-              />
-              <div className="absolute -right-4 top-1/2 -translate-y-1/2 rounded-xl bg-card p-4 shadow-card">
+              <div className="relative">
+                <img
+                  src="https://meuwhatsappbot.com.br/images/celular.png"
+                  alt="WhatsApp Bot Demo"
+                  className="relative z-10 max-w-sm rounded-3xl drop-shadow-2xl"
+                />
+                {/* Glow effect behind phone */}
+                <div className="absolute inset-0 -z-10 blur-3xl bg-primary/20 rounded-full scale-75" />
+              </div>
+              
+              <div className="absolute -right-4 top-1/2 -translate-y-1/2 rounded-xl bg-card/80 backdrop-blur-sm border border-border/50 p-4 shadow-card">
                 <h4 className="font-semibold text-foreground">WhatsappBot</h4>
                 <p className="text-sm text-muted-foreground">Seu assistente virtual inteligente para WhatsApp</p>
               </div>
@@ -151,98 +107,147 @@ export default function Index() {
         </div>
       </section>
 
-      {/* Benefits Section */}
-      <section id="benefits" className="py-20 bg-card">
-        <div className="container">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-foreground lg:text-4xl">
-              Por que escolher o <span className="text-primary">WhatsAppBot IA</span>
-            </h2>
-            <p className="mt-4 text-muted-foreground">
-              Nossa solução oferece recursos exclusivos que transformam seu atendimento e aumentam suas conversões.
-            </p>
-          </div>
+      {/* Benefits Carousel Section */}
+      <BenefitsCarousel />
 
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-            {benefits.map((benefit) => (
-              <div
-                key={benefit.title}
-                className="group rounded-xl border border-border bg-background p-6 transition-all duration-300 hover:border-primary/50 hover:shadow-glow"
-              >
-                <div className="mb-4 inline-flex rounded-lg bg-primary/20 p-3">
-                  <benefit.icon className="h-6 w-6 text-primary" />
-                </div>
-                <h3 className="mb-2 text-lg font-semibold text-foreground">{benefit.title}</h3>
-                <p className="text-sm text-muted-foreground">{benefit.description}</p>
-              </div>
-            ))}
+      {/* No-Code Section */}
+      <section className="py-20">
+        <div className="container">
+          <div className="grid gap-12 lg:grid-cols-2 lg:items-center">
+            <div className="space-y-6">
+              <h2 className="text-3xl font-bold text-foreground lg:text-4xl">
+                Interface <span className="text-primary">No-Code</span> quando você precisa, Código quando quiser
+              </h2>
+              <p className="text-muted-foreground">
+                Configure seu bot de WhatsApp sem escrever uma linha de código. Nossa interface visual 
+                intuitiva permite criar automações poderosas em minutos.
+              </p>
+              <ul className="space-y-4">
+                <li className="flex items-start gap-3">
+                  <span className="text-primary font-bold">•</span>
+                  <span><strong className="text-foreground">Interface 100% No-Code</strong> - Crie fluxos de conversação arrastando e soltando</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <span className="text-primary font-bold">•</span>
+                  <span><strong className="text-foreground">Personalização Avançada</strong> - Adapte o bot à identidade da sua marca</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <span className="text-primary font-bold">•</span>
+                  <span><strong className="text-foreground">Integrações Nativas</strong> - Conecte com CRM, planilhas e sistemas externos</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <span className="text-primary font-bold">•</span>
+                  <span><strong className="text-foreground">Respostas Inteligentes</strong> - IA que aprende com suas interações</span>
+                </li>
+              </ul>
+            </div>
+            
+            <div className="relative">
+              <img
+                src="https://meuwhatsappbot.com.br/images/code.webp"
+                alt="Interface No-Code"
+                className="rounded-xl shadow-card"
+              />
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Products Preview Section */}
+      {/* Workflow Section */}
+      <section className="py-20 bg-card/30">
+        <div className="container text-center">
+          <h2 className="text-3xl font-bold text-foreground lg:text-4xl mb-4">
+            Automatize processos complexos com facilidade
+          </h2>
+          <p className="text-muted-foreground mb-12 max-w-2xl mx-auto">
+            Crie workflows poderosos que conectam diferentes ferramentas e serviços, tudo de forma visual e intuitiva.
+          </p>
+          <div className="max-w-5xl mx-auto">
+            <img
+              src="https://meuwhatsappbot.com.br/images/workflow.png"
+              alt="Exemplo de workflow"
+              className="rounded-xl shadow-card w-full"
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* Integrations Carousel */}
+      <IntegrationsCarousel />
+
+      {/* Testimonials Carousel */}
+      <TestimonialsCarousel />
+
+      {/* Custom Plan CTA */}
       <section className="py-20">
         <div className="container">
-          <div className="flex items-center justify-between mb-12">
+          <div className="grid gap-12 lg:grid-cols-2 lg:items-center rounded-2xl bg-card/50 backdrop-blur-sm border border-border/50 p-8 lg:p-12">
             <div>
-              <h2 className="text-3xl font-bold text-foreground">Nossos Planos</h2>
-              <p className="mt-2 text-muted-foreground">Escolha o plano ideal para seu negócio</p>
+              <img
+                src="https://meuwhatsappbot.com.br/images/team.png"
+                alt="Nossa Equipe"
+                className="rounded-xl"
+              />
             </div>
-            <Link
-              to="/loja"
-              className="inline-flex items-center gap-2 text-primary hover:underline"
-            >
-              Ver todos
-              <span>→</span>
-            </Link>
+            <div className="space-y-6">
+              <h2 className="text-3xl font-bold text-foreground lg:text-4xl">
+                Precisa de um plano personalizado para sua empresa?
+              </h2>
+              <p className="text-muted-foreground">
+                Nossa equipe especializada está pronta para criar a solução perfeita para o seu negócio
+              </p>
+              <a
+                href="https://wa.me/5519981470446"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 rounded-lg bg-primary px-6 py-3 font-semibold text-primary-foreground transition-all hover:bg-primary/90 hover:scale-105"
+              >
+                <MessageCircle className="h-5 w-5" />
+                Entre em contato
+              </a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Products/Pricing Section */}
+      <section id="pricing" className="py-20">
+        <div className="container">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold text-foreground lg:text-4xl">
+              Escolha o plano ideal para seu negócio
+            </h2>
+            <p className="mt-4 text-muted-foreground">
+              Suporte técnico incluso em todos os planos
+            </p>
           </div>
 
           {loading ? (
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {[1, 2, 3].map((i) => (
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+              {[1, 2, 3, 4].map((i) => (
                 <div key={i} className="h-80 animate-pulse rounded-xl bg-card" />
               ))}
             </div>
           ) : products.length > 0 ? (
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
               {products.map((product) => (
                 <ProductCard key={product.id} product={product} />
               ))}
             </div>
           ) : (
             <div className="text-center py-12 text-muted-foreground">
-              Nenhum produto disponível no momento.
+              Nenhum plano disponível no momento.
             </div>
           )}
-        </div>
-      </section>
 
-      {/* Testimonials Section */}
-      <section id="testimonials" className="py-20 bg-card">
-        <div className="container">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-foreground">O que nossos clientes dizem</h2>
-            <p className="mt-4 text-muted-foreground">Depoimentos de quem já transformou seu negócio</p>
-          </div>
-
-          <div className="grid gap-6 md:grid-cols-3">
-            {testimonials.map((testimonial) => (
-              <div
-                key={testimonial.name}
-                className="rounded-xl border border-border bg-background p-6"
-              >
-                <div className="flex items-center gap-4 mb-4">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground font-semibold">
-                    {testimonial.avatar}
-                  </div>
-                  <div>
-                    <div className="font-semibold text-foreground">{testimonial.name}</div>
-                    <div className="text-sm text-muted-foreground">{testimonial.role}</div>
-                  </div>
-                </div>
-                <p className="text-muted-foreground italic">"{testimonial.text}"</p>
-              </div>
-            ))}
+          <div className="mt-8 text-center">
+            <Link
+              to="/loja"
+              className="inline-flex items-center gap-2 text-primary hover:underline font-medium"
+            >
+              Ver todos os planos
+              <span>→</span>
+            </Link>
           </div>
         </div>
       </section>
@@ -250,23 +255,29 @@ export default function Index() {
       {/* CTA Section */}
       <section id="cta" className="py-20">
         <div className="container">
-          <div className="rounded-2xl gradient-primary p-12 text-center">
-            <h2 className="text-3xl font-bold text-primary-foreground lg:text-4xl">
-              Pronto para automatizar seu atendimento?
-            </h2>
-            <p className="mt-4 text-primary-foreground/80">
-              Comece agora e transforme seu WhatsApp em uma máquina de vendas
-            </p>
-            <div className="mt-8 flex flex-wrap justify-center gap-4">
-              <a
-                href="https://wa.me/5519981470446"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 rounded-md bg-background px-6 py-3 font-semibold text-primary transition-colors hover:bg-background/90"
-              >
-                <MessageCircle className="h-5 w-5" />
-                Falar com Consultor
-              </a>
+          <div className="rounded-2xl gradient-primary p-12 text-center relative overflow-hidden">
+            {/* Decorative elements */}
+            <div className="absolute top-0 left-0 w-32 h-32 bg-white/10 rounded-full -translate-x-1/2 -translate-y-1/2" />
+            <div className="absolute bottom-0 right-0 w-48 h-48 bg-white/10 rounded-full translate-x-1/2 translate-y-1/2" />
+            
+            <div className="relative z-10">
+              <h2 className="text-3xl font-bold text-primary-foreground lg:text-4xl">
+                Pronto para automatizar seu atendimento?
+              </h2>
+              <p className="mt-4 text-primary-foreground/80 max-w-2xl mx-auto">
+                Comece agora e transforme seu WhatsApp em uma máquina de vendas
+              </p>
+              <div className="mt-8 flex flex-wrap justify-center gap-4">
+                <a
+                  href="https://wa.me/5519981470446"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 rounded-lg bg-background px-6 py-3 font-semibold text-primary transition-all hover:bg-background/90 hover:scale-105"
+                >
+                  <MessageCircle className="h-5 w-5" />
+                  Falar com Consultor
+                </a>
+              </div>
             </div>
           </div>
         </div>
