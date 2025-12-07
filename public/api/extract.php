@@ -27,29 +27,70 @@ if (empty($url) || empty($apiKey)) {
 
 function fetchPageHtml($url) {
     $ch = curl_init();
+    
+    // More realistic browser headers to bypass anti-bot protection
+    $headers = [
+        'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+        'Accept-Language: pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7',
+        'Accept-Encoding: gzip, deflate, br',
+        'Cache-Control: max-age=0',
+        'Sec-Ch-Ua: "Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
+        'Sec-Ch-Ua-Mobile: ?0',
+        'Sec-Ch-Ua-Platform: "Windows"',
+        'Sec-Fetch-Dest: document',
+        'Sec-Fetch-Mode: navigate',
+        'Sec-Fetch-Site: none',
+        'Sec-Fetch-User: ?1',
+        'Upgrade-Insecure-Requests: 1',
+        'Connection: keep-alive',
+    ];
+    
     curl_setopt($ch, CURLOPT_URL, $url);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+    curl_setopt($ch, CURLOPT_MAXREDIRS, 5);
     curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
     curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
-    curl_setopt($ch, CURLOPT_TIMEOUT, 30);
-    curl_setopt($ch, CURLOPT_HTTPHEADER, [
-        'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-        'Accept-Language: pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7',
-        'Cache-Control: no-cache',
-        'Pragma: no-cache',
-    ]);
-    curl_setopt($ch, CURLOPT_ENCODING, 'gzip, deflate');
+    curl_setopt($ch, CURLOPT_TIMEOUT, 45);
+    curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 15);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+    curl_setopt($ch, CURLOPT_ENCODING, '');
+    curl_setopt($ch, CURLOPT_COOKIEJAR, '/tmp/cookies.txt');
+    curl_setopt($ch, CURLOPT_COOKIEFILE, '/tmp/cookies.txt');
     
     $html = curl_exec($ch);
     $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     $error = curl_error($ch);
+    $effectiveUrl = curl_getinfo($ch, CURLINFO_EFFECTIVE_URL);
     curl_close($ch);
     
-    if ($error) return ['success' => false, 'error' => 'Erro: ' . $error];
-    if ($httpCode !== 200) return ['success' => false, 'error' => 'HTTP Error: ' . $httpCode];
+    if ($error) {
+        return ['success' => false, 'error' => 'Erro de conexão: ' . $error];
+    }
     
-    return ['success' => true, 'html' => $html];
+    if ($httpCode === 403) {
+        return ['success' => false, 'error' => 'Site bloqueou a requisição (403). Tente copiar o HTML manualmente ou use links de produtos individuais.'];
+    }
+    
+    if ($httpCode === 503) {
+        return ['success' => false, 'error' => 'Site com proteção anti-bot ativa (503). Tente novamente em alguns segundos.'];
+    }
+    
+    if ($httpCode !== 200) {
+        return ['success' => false, 'error' => 'Erro HTTP ' . $httpCode . '. O site pode estar bloqueando acessos automatizados.'];
+    }
+    
+    if (empty($html) || strlen($html) < 1000) {
+        return ['success' => false, 'error' => 'Página retornou conteúdo vazio ou muito pequeno. O site pode usar JavaScript para carregar produtos.'];
+    }
+    
+    // Check for common anti-bot indicators
+    if (stripos($html, 'captcha') !== false || stripos($html, 'challenge') !== false) {
+        return ['success' => false, 'error' => 'Site requer verificação de CAPTCHA. Tente extrair produtos individuais.'];
+    }
+    
+    return ['success' => true, 'html' => $html, 'effectiveUrl' => $effectiveUrl];
 }
 
 function callOpenAI($apiKey, $prompt, $systemPrompt) {
@@ -198,6 +239,29 @@ function cleanHtml($html) {
     return trim($html);
 }
 
+// Extract product links from listing pages (for Kabum and similar)
+function extractProductLinks($html, $baseUrl) {
+    $links = [];
+    
+    // Extract href links that look like product pages
+    preg_match_all('/href=["\']([^"\']*produto[^"\']*)["\']|href=["\']([^"\']*\/p\/[^"\']*)["\']|href=["\']([^"\']*product[^"\']*)["\']|href=["\']([^"\']*item[^"\']*)["\']/', $html, $matches);
+    
+    foreach ($matches as $matchGroup) {
+        foreach ($matchGroup as $link) {
+            if (!empty($link) && strpos($link, '#') !== 0) {
+                // Make absolute URL
+                if (strpos($link, 'http') !== 0) {
+                    $parsedBase = parse_url($baseUrl);
+                    $link = $parsedBase['scheme'] . '://' . $parsedBase['host'] . $link;
+                }
+                $links[] = $link;
+            }
+        }
+    }
+    
+    return array_values(array_unique($links));
+}
+
 $fetchResult = fetchPageHtml($url);
 if (!$fetchResult['success']) {
     echo json_encode($fetchResult);
@@ -287,26 +351,36 @@ IMPORTANTE:
     echo json_encode(['success' => true, 'type' => 'product', 'data' => $productData, 'sourceUrl' => $url]);
     
 } else {
-    $systemPrompt = 'Você é um especialista em extrair produtos de lojas. Retorne APENAS JSON válido.';
+    // For store pages, try to find products in JSON data first
+    $systemPrompt = 'Você é um especialista em extrair produtos de páginas de lojas online. Analise o HTML e JSON para encontrar TODOS os produtos listados. Retorne APENAS JSON válido.';
     
-    $prompt = "Extraia TODOS os produtos desta página.
+    $prompt = "Extraia TODOS os produtos desta página de loja.
 
 DADOS PRÉ-EXTRAÍDOS:
 " . json_encode($preExtracted, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) . "
 
 HTML (parcial):
-" . substr($cleanedHtml, 0, 40000) . "
+" . substr($cleanedHtml, 0, 45000) . "
+
+Procure por:
+- Listas de produtos com nome, preço e imagem
+- Dados em formato JSON dentro do HTML
+- Cards de produtos com links
 
 Retorne um JSON array:
 [{
-  \"title\": \"nome\", 
+  \"title\": \"nome completo do produto\", 
   \"price\": 0.00, 
-  \"image\": \"url\", 
-  \"link\": \"url\",
+  \"image\": \"url da imagem\", 
+  \"link\": \"url do produto\",
   \"category\": \"categoria\"
 }]
 
-Se encontrar apenas 1 produto, retorne array com 1 item.";
+IMPORTANTE:
+- Extraia TODOS os produtos que encontrar
+- O preço deve ser número (sem R$)
+- Se não encontrar produtos, retorne array vazio []
+- Para links relativos, converta para absolutos usando: " . parse_url($url, PHP_URL_SCHEME) . "://" . parse_url($url, PHP_URL_HOST);
 
     $aiResult = callOpenAI($apiKey, $prompt, $systemPrompt);
     
@@ -320,7 +394,20 @@ Se encontrar apenas 1 produto, retorne array com 1 item.";
     $productsData = json_decode(trim($content), true);
     
     if (!$productsData || !is_array($productsData)) {
-        echo json_encode(['success' => false, 'error' => 'Não foi possível extrair produtos']);
+        echo json_encode([
+            'success' => false, 
+            'error' => 'Não foi possível extrair produtos. O site pode usar JavaScript para carregar os produtos dinamicamente. Tente extrair produtos individuais usando links diretos.',
+            'hint' => 'Copie os links dos produtos individuais e use a opção "Produto Único" para cada um.'
+        ]);
+        exit();
+    }
+    
+    if (count($productsData) === 0) {
+        echo json_encode([
+            'success' => false, 
+            'error' => 'Nenhum produto encontrado na página. O site pode carregar produtos via JavaScript.',
+            'hint' => 'Tente usar links de produtos individuais.'
+        ]);
         exit();
     }
     
