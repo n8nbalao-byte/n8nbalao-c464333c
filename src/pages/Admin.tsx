@@ -161,6 +161,7 @@ export default function Admin() {
   const [newProductSpecValue, setNewProductSpecValue] = useState("");
   const [productSortColumn, setProductSortColumn] = useState<'title' | 'type' | 'price'>('title');
   const [productSortDirection, setProductSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [productSearchTerm, setProductSearchTerm] = useState("");
 
   // Hardware state
   const [activeHardwareCategory, setActiveHardwareCategory] = useState<HardwareCategory>('processor');
@@ -170,6 +171,7 @@ export default function Admin() {
   const [hardwareFormData, setHardwareFormData] = useState<HardwareFormData>(defaultHardwareFormData);
   const [newHardwareSpecKey, setNewHardwareSpecKey] = useState("");
   const [newHardwareSpecValue, setNewHardwareSpecValue] = useState("");
+  const [hardwareSearchTerm, setHardwareSearchTerm] = useState("");
 
   // Company state
   const [companyData, setCompanyData] = useState<CompanyData>({
@@ -1283,25 +1285,37 @@ export default function Admin() {
           {/* Products Tab */}
           {activeTab === 'products' && (
             <>
-              {/* Bulk actions for products */}
-              <div className="mb-4 flex gap-2">
-                <button
-                  onClick={downloadProductExcelTemplate}
-                  className="inline-flex items-center gap-2 rounded-lg bg-secondary px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-secondary/80"
-                >
-                  <Download className="h-4 w-4" />
-                  Baixar Template Excel
-                </button>
-                <label className="cursor-pointer inline-flex items-center gap-2 rounded-lg bg-secondary px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-secondary/80">
-                  <Upload className="h-4 w-4" />
-                  Importar Produtos (Excel)
+              {/* Search and bulk actions for products */}
+              <div className="mb-4 flex flex-wrap gap-4">
+                <div className="relative flex-1 min-w-[250px]">
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <input
-                    type="file"
-                    accept=".xlsx,.xls"
-                    onChange={handleProductBulkUpload}
-                    className="hidden"
+                    type="text"
+                    value={productSearchTerm}
+                    onChange={(e) => setProductSearchTerm(e.target.value)}
+                    placeholder="Buscar produtos por nome, tipo..."
+                    className="w-full rounded-lg border border-border bg-background pl-10 pr-4 py-2 text-foreground focus:border-primary focus:outline-none"
                   />
-                </label>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={downloadProductExcelTemplate}
+                    className="inline-flex items-center gap-2 rounded-lg bg-secondary px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-secondary/80"
+                  >
+                    <Download className="h-4 w-4" />
+                    Baixar Template
+                  </button>
+                  <label className="cursor-pointer inline-flex items-center gap-2 rounded-lg bg-secondary px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-secondary/80">
+                    <Upload className="h-4 w-4" />
+                    Importar Excel
+                    <input
+                      type="file"
+                      accept=".xlsx,.xls"
+                      onChange={handleProductBulkUpload}
+                      className="hidden"
+                    />
+                  </label>
+                </div>
               </div>
 
               {loading ? (
@@ -1355,18 +1369,28 @@ export default function Admin() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border">
-                      {[...products].sort((a, b) => {
-                        const direction = productSortDirection === 'asc' ? 1 : -1;
-                        if (productSortColumn === 'title') {
-                          return a.title.localeCompare(b.title) * direction;
-                        } else if (productSortColumn === 'type') {
-                          const typeA = a.productType || '';
-                          const typeB = b.productType || '';
-                          return typeA.localeCompare(typeB) * direction;
-                        } else {
-                          return ((a.totalPrice || 0) - (b.totalPrice || 0)) * direction;
-                        }
-                      }).map((product) => {
+                      {[...products]
+                        .filter((p) => {
+                          if (!productSearchTerm) return true;
+                          const search = productSearchTerm.toLowerCase();
+                          return (
+                            p.title.toLowerCase().includes(search) ||
+                            (p.subtitle || '').toLowerCase().includes(search) ||
+                            (p.productType || '').toLowerCase().includes(search)
+                          );
+                        })
+                        .sort((a, b) => {
+                          const direction = productSortDirection === 'asc' ? 1 : -1;
+                          if (productSortColumn === 'title') {
+                            return a.title.localeCompare(b.title) * direction;
+                          } else if (productSortColumn === 'type') {
+                            const typeA = a.productType || '';
+                            const typeB = b.productType || '';
+                            return typeA.localeCompare(typeB) * direction;
+                          } else {
+                            return ((a.totalPrice || 0) - (b.totalPrice || 0)) * direction;
+                          }
+                        }).map((product) => {
                         const typeInfo = productTypes.find(t => t.key === product.productType) || productTypes[0];
                         const TypeIcon = typeInfo.icon;
                         return (
@@ -1600,25 +1624,37 @@ export default function Admin() {
                 })}
               </div>
 
-              {/* Bulk actions */}
-              <div className="mb-4 flex gap-2">
-                <button
-                  onClick={downloadExcelTemplate}
-                  className="inline-flex items-center gap-2 rounded-lg bg-secondary px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-secondary/80"
-                >
-                  <Download className="h-4 w-4" />
-                  Baixar Template Excel
-                </button>
-                <label className="cursor-pointer inline-flex items-center gap-2 rounded-lg bg-secondary px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-secondary/80">
-                  <Upload className="h-4 w-4" />
-                  Importar Excel
+              {/* Search and bulk actions for hardware */}
+              <div className="mb-4 flex flex-wrap gap-4">
+                <div className="relative flex-1 min-w-[250px]">
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <input
-                    type="file"
-                    accept=".xlsx,.xls"
-                    onChange={handleBulkUpload}
-                    className="hidden"
+                    type="text"
+                    value={hardwareSearchTerm}
+                    onChange={(e) => setHardwareSearchTerm(e.target.value)}
+                    placeholder="Buscar hardware por nome, marca, modelo..."
+                    className="w-full rounded-lg border border-border bg-background pl-10 pr-4 py-2 text-foreground focus:border-primary focus:outline-none"
                   />
-                </label>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={downloadExcelTemplate}
+                    className="inline-flex items-center gap-2 rounded-lg bg-secondary px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-secondary/80"
+                  >
+                    <Download className="h-4 w-4" />
+                    Baixar Template
+                  </button>
+                  <label className="cursor-pointer inline-flex items-center gap-2 rounded-lg bg-secondary px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-secondary/80">
+                    <Upload className="h-4 w-4" />
+                    Importar Excel
+                    <input
+                      type="file"
+                      accept=".xlsx,.xls"
+                      onChange={handleBulkUpload}
+                      className="hidden"
+                    />
+                  </label>
+                </div>
               </div>
 
               {loading ? (
@@ -1636,7 +1672,17 @@ export default function Admin() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border">
-                      {hardwareList.map((item) => (
+                      {hardwareList
+                        .filter((item) => {
+                          if (!hardwareSearchTerm) return true;
+                          const search = hardwareSearchTerm.toLowerCase();
+                          return (
+                            item.name.toLowerCase().includes(search) ||
+                            item.brand.toLowerCase().includes(search) ||
+                            item.model.toLowerCase().includes(search)
+                          );
+                        })
+                        .map((item) => (
                         <tr key={item.id} className="hover:bg-secondary/50">
                           <td className="px-6 py-4">
                             <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-lg bg-secondary">
