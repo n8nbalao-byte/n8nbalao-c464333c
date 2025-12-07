@@ -11,16 +11,19 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 
 // Hardware steps for PC assembly
-const hardwareSteps: { key: HardwareCategory; label: string; required: boolean }[] = [
-  { key: 'processor', label: 'Processador', required: true },
-  { key: 'motherboard', label: 'Placa Mãe', required: true },
-  { key: 'memory', label: 'Memória RAM', required: true },
-  { key: 'storage', label: 'Armazenamento', required: true },
-  { key: 'gpu', label: 'Placa de Vídeo', required: false },
-  { key: 'cooler', label: 'Cooler', required: false },
-  { key: 'psu', label: 'Fonte', required: true },
-  { key: 'case', label: 'Gabinete', required: true },
+const hardwareSteps: { key: HardwareCategory; label: string; required: boolean; allowMultiple: boolean }[] = [
+  { key: 'processor', label: 'Processador', required: true, allowMultiple: false },
+  { key: 'motherboard', label: 'Placa Mãe', required: true, allowMultiple: false },
+  { key: 'memory', label: 'Memória RAM', required: true, allowMultiple: true },
+  { key: 'storage', label: 'Armazenamento', required: true, allowMultiple: true },
+  { key: 'gpu', label: 'Placa de Vídeo', required: false, allowMultiple: false },
+  { key: 'cooler', label: 'Cooler', required: false, allowMultiple: false },
+  { key: 'psu', label: 'Fonte', required: true, allowMultiple: false },
+  { key: 'case', label: 'Gabinete', required: true, allowMultiple: false },
 ];
+
+// Categories that allow multiple selections in extras phase
+const multipleAllowedCategories = ['monitor'];
 
 // Product categories for additional items
 const defaultCategories = [
@@ -36,7 +39,7 @@ const defaultCategories = [
 ];
 
 interface SelectedHardware {
-  [key: string]: HardwareItem | null;
+  [key: string]: HardwareItem | HardwareItem[] | null;
 }
 
 interface SelectedProduct {
@@ -129,8 +132,10 @@ export default function MonteVoceMesmo() {
   }
 
   function filterCompatibleHardware(items: HardwareItem[], category: HardwareCategory): HardwareItem[] {
-    const processor = selectedHardware['processor'];
-    const motherboard = selectedHardware['motherboard'];
+    const processorValue = selectedHardware['processor'];
+    const processor = Array.isArray(processorValue) ? processorValue[0] : processorValue;
+    const motherboardValue = selectedHardware['motherboard'];
+    const motherboard = Array.isArray(motherboardValue) ? motherboardValue[0] : motherboardValue;
 
     return items.filter(item => {
       // Motherboard must match processor socket
@@ -149,13 +154,46 @@ export default function MonteVoceMesmo() {
 
   function selectHardware(item: HardwareItem) {
     const step = hardwareSteps[currentStep];
-    setSelectedHardware(prev => ({ ...prev, [step.key]: item }));
-    toast({ title: "Selecionado!", description: `${item.brand} ${item.model}` });
     
-    // Auto advance to next step
-    if (currentStep < hardwareSteps.length - 1) {
-      setTimeout(() => setCurrentStep(prev => prev + 1), 300);
+    if (step.allowMultiple) {
+      // For multiple selection, add to array
+      setSelectedHardware(prev => {
+        const current = prev[step.key];
+        const currentArray = Array.isArray(current) ? current : current ? [current] : [];
+        
+        // Check if already selected
+        const existingIndex = currentArray.findIndex(h => h.id === item.id);
+        if (existingIndex >= 0) {
+          // Remove if already selected
+          const newArray = currentArray.filter(h => h.id !== item.id);
+          return { ...prev, [step.key]: newArray.length > 0 ? newArray : null };
+        } else {
+          // Add to selection
+          return { ...prev, [step.key]: [...currentArray, item] };
+        }
+      });
+      toast({ title: "Atualizado!", description: `${item.brand} ${item.model}` });
+    } else {
+      // Single selection
+      setSelectedHardware(prev => ({ ...prev, [step.key]: item }));
+      toast({ title: "Selecionado!", description: `${item.brand} ${item.model}` });
+      
+      // Auto advance to next step only for single selection
+      if (currentStep < hardwareSteps.length - 1) {
+        setTimeout(() => setCurrentStep(prev => prev + 1), 300);
+      }
     }
+  }
+
+  function removeHardwareItem(stepKey: string, itemId: string) {
+    setSelectedHardware(prev => {
+      const current = prev[stepKey];
+      if (Array.isArray(current)) {
+        const newArray = current.filter(h => h.id !== itemId);
+        return { ...prev, [stepKey]: newArray.length > 0 ? newArray : null };
+      }
+      return { ...prev, [stepKey]: null };
+    });
   }
 
   function skipStep() {
@@ -171,7 +209,12 @@ export default function MonteVoceMesmo() {
   }
 
   function calculateHardwareTotal(): number {
-    return Object.values(selectedHardware).reduce((sum, item) => sum + (item?.price || 0), 0);
+    return Object.values(selectedHardware).reduce((sum, item) => {
+      if (Array.isArray(item)) {
+        return sum + item.reduce((s, h) => s + h.price, 0);
+      }
+      return sum + (item?.price || 0);
+    }, 0);
   }
 
   function calculateProductsTotal(): number {
@@ -184,7 +227,12 @@ export default function MonteVoceMesmo() {
 
   function finishHardwareSelection() {
     // Check required components
-    const missing = hardwareSteps.filter(step => step.required && !selectedHardware[step.key]);
+    const missing = hardwareSteps.filter(step => {
+      const value = selectedHardware[step.key];
+      if (!step.required) return false;
+      if (Array.isArray(value)) return value.length === 0;
+      return !value;
+    });
     if (missing.length > 0) {
       toast({ 
         title: "Componentes obrigatórios faltando", 
@@ -211,7 +259,10 @@ export default function MonteVoceMesmo() {
   }
 
   function addProduct(product: Product) {
-    if (selectedProducts.some(p => p.id === product.id)) {
+    const productCategory = product.categories?.[0] || product.productType || '';
+    const allowsMultiple = multipleAllowedCategories.includes(productCategory);
+    
+    if (!allowsMultiple && selectedProducts.some(p => p.id === product.id)) {
       toast({ title: "Atenção", description: "Este produto já foi adicionado", variant: "destructive" });
       return;
     }
@@ -390,6 +441,19 @@ export default function MonteVoceMesmo() {
                         {hardwareSteps.map((step) => {
                           const item = selectedHardware[step.key];
                           if (!item) return null;
+                          
+                          // Handle array (multiple items)
+                          if (Array.isArray(item)) {
+                            return item.map((h, idx) => (
+                              <tr key={`${step.key}-${idx}`} className="border-b border-border">
+                                <td className="p-3 font-medium">{step.label} {item.length > 1 ? `#${idx + 1}` : ''}</td>
+                                <td className="p-3">{h.brand} {h.model}</td>
+                                <td className="p-3 text-right">{formatPrice(h.price)}</td>
+                              </tr>
+                            ));
+                          }
+                          
+                          // Single item
                           return (
                             <tr key={step.key} className="border-b border-border">
                               <td className="p-3 font-medium">{step.label}</td>
@@ -508,7 +572,9 @@ export default function MonteVoceMesmo() {
             {/* Step Navigation */}
             <div className="flex flex-wrap gap-2 mb-6 justify-center">
               {hardwareSteps.map((step, index) => {
-                const isSelected = !!selectedHardware[step.key];
+                const selection = selectedHardware[step.key];
+                const isSelected = Array.isArray(selection) ? selection.length > 0 : !!selection;
+                const count = Array.isArray(selection) ? selection.length : (selection ? 1 : 0);
                 const isCurrent = index === currentStep;
                 return (
                   <Button
@@ -520,6 +586,7 @@ export default function MonteVoceMesmo() {
                   >
                     {isSelected && <Check className="h-3 w-3 mr-1" />}
                     {step.label}
+                    {step.allowMultiple && count > 1 && <span className="ml-1 text-xs">({count})</span>}
                     {step.required && !isSelected && <span className="text-destructive ml-1">*</span>}
                   </Button>
                 );
@@ -542,15 +609,32 @@ export default function MonteVoceMesmo() {
             {/* Current Step */}
             <Card className="p-6 mb-6">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-bold">
-                  {currentStepData.label}
-                  {currentStepData.required && <span className="text-destructive ml-1">*</span>}
-                </h2>
-                {!currentStepData.required && (
-                  <Button variant="ghost" size="sm" onClick={skipStep}>
-                    Pular
-                  </Button>
-                )}
+                <div>
+                  <h2 className="text-xl font-bold">
+                    {currentStepData.label}
+                    {currentStepData.required && <span className="text-destructive ml-1">*</span>}
+                  </h2>
+                  {currentStepData.allowMultiple && (
+                    <p className="text-sm text-muted-foreground">Você pode selecionar vários itens</p>
+                  )}
+                </div>
+                <div className="flex gap-2">
+                  {currentStepData.allowMultiple && (
+                    <Button 
+                      variant="default" 
+                      size="sm" 
+                      onClick={() => setCurrentStep(prev => Math.min(hardwareSteps.length - 1, prev + 1))}
+                      disabled={currentStep >= hardwareSteps.length - 1}
+                    >
+                      Continuar
+                    </Button>
+                  )}
+                  {!currentStepData.required && (
+                    <Button variant="ghost" size="sm" onClick={skipStep}>
+                      Pular
+                    </Button>
+                  )}
+                </div>
               </div>
 
               {loading ? (
@@ -565,7 +649,10 @@ export default function MonteVoceMesmo() {
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[400px] overflow-y-auto">
                   {hardware.map((item) => {
-                    const isSelected = selectedHardware[currentStepData.key]?.id === item.id;
+                    const currentSelection = selectedHardware[currentStepData.key];
+                    const isSelected = Array.isArray(currentSelection) 
+                      ? currentSelection.some(h => h.id === item.id)
+                      : currentSelection?.id === item.id;
                     return (
                       <div
                         key={item.id}
