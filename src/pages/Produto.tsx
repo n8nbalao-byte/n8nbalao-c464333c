@@ -168,6 +168,13 @@ export default function Produto() {
                 <p className="text-lg text-muted-foreground">{product.subtitle}</p>
               )}
 
+              {/* Description - Free Text */}
+              {product.description && (
+                <div className="prose prose-invert max-w-none">
+                  <p className="text-muted-foreground whitespace-pre-wrap">{product.description}</p>
+                </div>
+              )}
+
               {!isAutomacao && (
                 <div className="flex items-baseline gap-3">
                   <span className="text-4xl font-bold text-primary">

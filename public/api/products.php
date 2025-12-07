@@ -35,6 +35,7 @@ $pdo->exec("CREATE TABLE IF NOT EXISTS products (
     id VARCHAR(36) PRIMARY KEY,
     title VARCHAR(255) NOT NULL,
     subtitle TEXT,
+    description LONGTEXT,
     categories LONGTEXT,
     media LONGTEXT,
     specs LONGTEXT,
@@ -44,6 +45,13 @@ $pdo->exec("CREATE TABLE IF NOT EXISTS products (
     downloadUrl TEXT,
     createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
 )");
+
+// Add description column if it doesn't exist
+try {
+    $pdo->exec("ALTER TABLE products ADD COLUMN description LONGTEXT AFTER subtitle");
+} catch (PDOException $e) {
+    // Column already exists, ignore
+}
 
 // Add productType column if it doesn't exist
 try {
@@ -111,12 +119,13 @@ switch ($method) {
             exit();
         }
 
-        $stmt = $pdo->prepare("INSERT INTO products (id, title, subtitle, categories, media, specs, components, totalPrice, productType, downloadUrl, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        $stmt = $pdo->prepare("INSERT INTO products (id, title, subtitle, description, categories, media, specs, components, totalPrice, productType, downloadUrl, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
         
         $success = $stmt->execute([
             $data['id'] ?? uniqid(),
             $data['title'],
             $data['subtitle'] ?? '',
+            $data['description'] ?? '',
             json_encode($data['categories'] ?? []),
             json_encode($data['media'] ?? []),
             json_encode($data['specs'] ?? []),
@@ -154,6 +163,10 @@ switch ($method) {
         if (isset($data['subtitle'])) {
             $fields[] = 'subtitle = ?';
             $values[] = $data['subtitle'];
+        }
+        if (isset($data['description'])) {
+            $fields[] = 'description = ?';
+            $values[] = $data['description'];
         }
         if (isset($data['categories'])) {
             $fields[] = 'categories = ?';

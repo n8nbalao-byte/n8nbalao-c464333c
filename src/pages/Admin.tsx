@@ -25,6 +25,7 @@ interface ExtraProduct {
 interface ProductFormData {
   title: string;
   subtitle: string;
+  description: string;
   categories: string[];
   media: MediaItem[];
   specs: Record<string, string>;
@@ -73,6 +74,7 @@ const formFactorOptions = [
 const defaultProductFormData: ProductFormData = {
   title: "",
   subtitle: "",
+  description: "",
   categories: [],
   media: [],
   specs: {},
@@ -480,6 +482,7 @@ export default function Admin() {
       setProductFormData({
         title: product.title,
         subtitle: product.subtitle || "",
+        description: product.description || "",
         categories: product.categories || [],
         media: product.media || [],
         specs: product.specs || {},
@@ -1849,6 +1852,19 @@ export default function Admin() {
                   />
                 </div>
               </div>
+
+              {/* Description - Free Text Field */}
+              <div>
+                <label className="mb-2 block text-sm font-medium text-foreground">Descrição</label>
+                <textarea
+                  value={productFormData.description}
+                  onChange={(e) => setProductFormData(prev => ({ ...prev, description: e.target.value }))}
+                  rows={4}
+                  className="w-full rounded-lg border border-border bg-background px-4 py-3 text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary resize-y"
+                  placeholder="Descrição detalhada do produto (texto livre)..."
+                />
+              </div>
+
 
               {/* Price for products without component selection (not PC or Kit) */}
               {!['pc', 'kit'].includes(productFormData.productType) && (

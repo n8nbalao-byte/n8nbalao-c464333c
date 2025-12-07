@@ -52,6 +52,7 @@ export interface Product {
   id: string;
   title: string;
   subtitle: string;
+  description?: string; // Free text field for product details
   categories: string[];
   media: MediaItem[];
   specs: Record<string, string>;
