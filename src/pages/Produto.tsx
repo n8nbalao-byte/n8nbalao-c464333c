@@ -5,7 +5,7 @@ import { Footer } from "@/components/Footer";
 import { Sidebar } from "@/components/Sidebar";
 import { MediaCarousel } from "@/components/MediaCarousel";
 import { api, type Product, type HardwareItem } from "@/lib/api";
-import { ArrowLeft, Shield, Headphones, Zap, MessageCircle, Cpu, CircuitBoard, MemoryStick, HardDrive, Monitor, Box } from "lucide-react";
+import { ArrowLeft, Shield, Headphones, Zap, MessageCircle, Cpu, CircuitBoard, MemoryStick, HardDrive, Monitor, Box, Download, Droplets } from "lucide-react";
 
 const componentLabels: Record<string, string> = {
   processor: "Processador",
@@ -15,6 +15,7 @@ const componentLabels: Record<string, string> = {
   gpu: "Placa de Vídeo",
   psu: "Fonte",
   case: "Gabinete",
+  cooler: "Cooler",
 };
 
 const componentIcons: Record<string, React.ElementType> = {
@@ -25,9 +26,10 @@ const componentIcons: Record<string, React.ElementType> = {
   gpu: Monitor,
   psu: Zap,
   case: Box,
+  cooler: Droplets,
 };
 
-const componentCategories = ['processor', 'motherboard', 'memory', 'storage', 'gpu', 'psu', 'case'];
+const componentCategories = ['processor', 'motherboard', 'memory', 'storage', 'gpu', 'psu', 'case', 'cooler'];
 
 export default function Produto() {
   const { id } = useParams<{ id: string }>();
@@ -42,7 +44,7 @@ export default function Produto() {
         setProduct(data);
         
         // If we have component IDs (strings), fetch the full hardware details
-        if (data?.components) {
+        if (data?.components && data.productType === 'pc') {
           const allHardware = await Promise.all(
             componentCategories.map(cat => api.getHardware(cat))
           );
@@ -112,6 +114,7 @@ export default function Produto() {
   }
 
   const hasComponents = Object.keys(hardwareDetails).length > 0;
+  const isAutomacao = product.productType === 'automacao';
 
   return (
     <div className="min-h-screen bg-background">
@@ -163,14 +166,16 @@ export default function Produto() {
                 <p className="text-lg text-muted-foreground">{product.subtitle}</p>
               )}
 
-              <div className="flex items-baseline gap-3">
-                <span className="text-4xl font-bold text-primary">
-                  {formatPrice(product.totalPrice)}
-                </span>
-                <span className="text-lg text-muted-foreground">à vista</span>
-              </div>
+              {!isAutomacao && (
+                <div className="flex items-baseline gap-3">
+                  <span className="text-4xl font-bold text-primary">
+                    {formatPrice(product.totalPrice)}
+                  </span>
+                  <span className="text-lg text-muted-foreground">à vista</span>
+                </div>
+              )}
 
-              {/* Components as simple text */}
+              {/* Components as simple text (for PC products) */}
               {hasComponents && (
                 <div className="space-y-2 border-t border-border pt-4">
                   <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Configuração</h3>
@@ -192,21 +197,33 @@ export default function Produto() {
 
               {/* CTA Buttons */}
               <div className="flex flex-col gap-4 pt-4 sm:flex-row">
-                <a
-                  href={`https://wa.me/5519981470446?text=Olá! Tenho interesse no PC: ${product.title}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-8 py-4 text-lg font-semibold text-primary-foreground shadow-glow transition-colors hover:bg-primary/90"
-                >
-                  <MessageCircle className="h-5 w-5" />
-                  Comprar Agora
-                </a>
+                {isAutomacao && product.downloadUrl ? (
+                  <a
+                    href={product.downloadUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-8 py-4 text-lg font-semibold text-primary-foreground shadow-glow transition-colors hover:bg-primary/90"
+                  >
+                    <Download className="h-5 w-5" />
+                    Baixar Agora
+                  </a>
+                ) : (
+                  <a
+                    href={`https://wa.me/5519981470446?text=Olá! Tenho interesse no produto: ${product.title}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-8 py-4 text-lg font-semibold text-primary-foreground shadow-glow transition-colors hover:bg-primary/90"
+                  >
+                    <MessageCircle className="h-5 w-5" />
+                    Comprar Agora
+                  </a>
+                )}
                 <Link
                   to="/loja"
                   className="inline-flex items-center justify-center gap-2 rounded-lg border border-border px-8 py-4 text-lg font-semibold text-foreground transition-colors hover:bg-secondary"
                 >
                   <ArrowLeft className="h-5 w-5" />
-                  Ver Outros PCs
+                  Ver Outros Produtos
                 </Link>
               </div>
             </div>

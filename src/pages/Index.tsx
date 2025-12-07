@@ -10,12 +10,21 @@ import { TestimonialsCarousel } from "@/components/TestimonialsCarousel";
 import { IntegrationsCarousel } from "@/components/IntegrationsCarousel";
 import { ProductCard } from "@/components/ProductCard";
 import { api, type Product } from "@/lib/api";
-import { MessageCircle, Download } from "lucide-react";
+import { MessageCircle, Download, Monitor, Package, Laptop, Bot, Code, Wrench } from "lucide-react";
 
 const stats = [
   { value: "+1.988", label: "Clientes Ativos" },
   { value: "98%", label: "Satisfação" },
   { value: "24/7", label: "Atendimento" },
+];
+
+const categoryConfig = [
+  { key: 'pc', label: 'PCs Montados', icon: Monitor },
+  { key: 'kit', label: 'Kits', icon: Package },
+  { key: 'notebook', label: 'Notebooks', icon: Laptop },
+  { key: 'automacao', label: 'Automações', icon: Bot },
+  { key: 'software', label: 'Softwares', icon: Code },
+  { key: 'acessorio', label: 'Acessórios', icon: Wrench },
 ];
 
 export default function Index() {
@@ -25,11 +34,19 @@ export default function Index() {
   useEffect(() => {
     async function fetchProducts() {
       const data = await api.getProducts();
-      setProducts(data.slice(0, 4));
+      // Sort by price (cheapest to most expensive)
+      setProducts(data.sort((a, b) => (a.totalPrice || 0) - (b.totalPrice || 0)));
       setLoading(false);
     }
     fetchProducts();
   }, []);
+
+  // Group products by category
+  const getProductsByCategory = (category: string) => {
+    return products
+      .filter(p => p.productType === category || p.categories?.includes(category))
+      .slice(0, 4);
+  };
 
   return (
     <div className="min-h-screen relative">
@@ -210,15 +227,15 @@ export default function Index() {
         </div>
       </section>
 
-      {/* Products/Pricing Section */}
+      {/* Products/Pricing Section - Show all categories */}
       <section id="pricing" className="py-20">
         <div className="container">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold text-foreground lg:text-4xl">
-              Escolha o plano ideal para seu negócio
+              Nossos Produtos
             </h2>
             <p className="mt-4 text-muted-foreground">
-              Suporte técnico incluso em todos os planos
+              Encontre o produto ideal para suas necessidades
             </p>
           </div>
 
@@ -228,24 +245,43 @@ export default function Index() {
                 <div key={i} className="h-80 animate-pulse rounded-xl bg-card" />
               ))}
             </div>
-          ) : products.length > 0 ? (
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-              {products.map((product) => (
-                <ProductCard key={product.id} product={product} />
-              ))}
-            </div>
           ) : (
-            <div className="text-center py-12 text-muted-foreground">
-              Nenhum plano disponível no momento.
+            <div className="space-y-16">
+              {categoryConfig.map((category) => {
+                const categoryProducts = getProductsByCategory(category.key);
+                if (categoryProducts.length === 0) return null;
+                
+                const Icon = category.icon;
+                
+                return (
+                  <div key={category.key}>
+                    <div className="flex items-center gap-3 mb-6">
+                      <Icon className="h-6 w-6 text-primary" />
+                      <h3 className="text-2xl font-bold text-foreground">{category.label}</h3>
+                    </div>
+                    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+                      {categoryProducts.map((product) => (
+                        <ProductCard key={product.id} product={product} />
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+              
+              {products.length === 0 && (
+                <div className="text-center py-12 text-muted-foreground">
+                  Nenhum produto disponível no momento.
+                </div>
+              )}
             </div>
           )}
 
-          <div className="mt-8 text-center">
+          <div className="mt-12 text-center">
             <Link
               to="/loja"
               className="inline-flex items-center gap-2 text-primary hover:underline font-medium"
             >
-              Ver todos os planos
+              Ver todos os produtos
               <span>→</span>
             </Link>
           </div>

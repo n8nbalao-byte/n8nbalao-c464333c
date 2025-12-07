@@ -2,9 +2,9 @@ import { useState, useEffect } from "react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Sidebar } from "@/components/Sidebar";
-import { api, type Product, type HardwareItem, type MediaItem, type ProductComponents, type CompanyData } from "@/lib/api";
+import { api, type Product, type HardwareItem, type MediaItem, type ProductComponents, type CompanyData, type ProductCategory, type HardwareCategory } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Pencil, Trash2, Save, X, Upload, Play, Image, Cpu, CircuitBoard, MemoryStick, HardDrive, Monitor, Zap, Box, Package, Download, Droplets, Building2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Save, X, Upload, Play, Image, Cpu, CircuitBoard, MemoryStick, HardDrive, Monitor, Zap, Box, Package, Download, Droplets, Building2, Laptop, Bot, Code, Wrench } from "lucide-react";
 import * as XLSX from "xlsx";
 import { HardwareCard } from "@/components/HardwareCard";
 
@@ -13,7 +13,6 @@ const ADMIN_USER = "n8nbalao";
 const ADMIN_PASS = "Balao2025";
 
 type AdminTab = 'products' | 'hardware' | 'company';
-type HardwareCategory = 'processor' | 'motherboard' | 'memory' | 'storage' | 'gpu' | 'psu' | 'case' | 'watercooler' | 'kit' | 'notebook' | 'automacao';
 
 interface ProductFormData {
   title: string;
@@ -23,6 +22,8 @@ interface ProductFormData {
   specs: Record<string, string>;
   components: ProductComponents;
   totalPrice: number;
+  productType: ProductCategory;
+  downloadUrl: string;
 }
 
 interface HardwareFormData {
@@ -68,6 +69,8 @@ const defaultProductFormData: ProductFormData = {
   specs: {},
   components: {},
   totalPrice: 0,
+  productType: "pc",
+  downloadUrl: "",
 };
 
 const defaultHardwareFormData: HardwareFormData = {
@@ -84,17 +87,19 @@ const defaultHardwareFormData: HardwareFormData = {
   tdp: 0,
 };
 
+// PC component steps (hardware)
 const componentSteps = [
   { key: 'processor', label: 'Processador', icon: Cpu },
   { key: 'motherboard', label: 'Placa-Mãe', icon: CircuitBoard },
   { key: 'memory', label: 'Memória RAM', icon: MemoryStick },
   { key: 'storage', label: 'Armazenamento', icon: HardDrive },
   { key: 'gpu', label: 'Placa de Vídeo', icon: Monitor },
-  { key: 'watercooler', label: 'Watercooler', icon: Droplets },
+  { key: 'cooler', label: 'Cooler', icon: Droplets },
   { key: 'psu', label: 'Fonte', icon: Zap },
   { key: 'case', label: 'Gabinete', icon: Box },
 ] as const;
 
+// Hardware categories (PC components only)
 const hardwareCategories: { key: HardwareCategory; label: string; icon: React.ElementType }[] = [
   { key: 'processor', label: 'Processadores', icon: Cpu },
   { key: 'motherboard', label: 'Placas-Mãe', icon: CircuitBoard },
@@ -103,10 +108,17 @@ const hardwareCategories: { key: HardwareCategory; label: string; icon: React.El
   { key: 'gpu', label: 'Placas de Vídeo', icon: Monitor },
   { key: 'psu', label: 'Fontes', icon: Zap },
   { key: 'case', label: 'Gabinetes', icon: Box },
-  { key: 'watercooler', label: 'Watercooler', icon: Droplets },
-  { key: 'kit', label: 'Kits', icon: Package },
-  { key: 'notebook', label: 'Notebooks', icon: Monitor },
-  { key: 'automacao', label: 'Automações', icon: Zap },
+  { key: 'cooler', label: 'Coolers', icon: Droplets },
+];
+
+// Product types for simple products (not PC assembly)
+const productTypes: { key: ProductCategory; label: string; icon: React.ElementType }[] = [
+  { key: 'pc', label: 'PC Montado', icon: Monitor },
+  { key: 'kit', label: 'Kit', icon: Package },
+  { key: 'notebook', label: 'Notebook', icon: Laptop },
+  { key: 'automacao', label: 'Automação', icon: Bot },
+  { key: 'software', label: 'Software', icon: Code },
+  { key: 'acessorio', label: 'Acessório', icon: Wrench },
 ];
 
 export default function Admin() {
@@ -358,6 +370,8 @@ export default function Admin() {
         specs: product.specs || {},
         components: product.components || {},
         totalPrice: product.totalPrice,
+        productType: product.productType || "pc",
+        downloadUrl: product.downloadUrl || "",
       });
     } else {
       setEditingProductId(null);
@@ -380,16 +394,25 @@ export default function Admin() {
       return;
     }
 
-    const missingComponents = componentSteps.filter(
-      step => !productFormData.components[step.key as keyof ProductComponents]
-    );
+    // Only validate components for PC type
+    if (productFormData.productType === 'pc') {
+      const missingComponents = componentSteps.filter(
+        step => !productFormData.components[step.key as keyof ProductComponents]
+      );
 
-    if (missingComponents.length > 0) {
-      toast({
-        title: "Componentes obrigatórios",
-        description: `Selecione: ${missingComponents.map(c => c.label).join(", ")}`,
-        variant: "destructive",
-      });
+      if (missingComponents.length > 0) {
+        toast({
+          title: "Componentes obrigatórios",
+          description: `Selecione: ${missingComponents.map(c => c.label).join(", ")}`,
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
+    // For non-PC products, ensure price is set
+    if (productFormData.productType !== 'pc' && productFormData.totalPrice <= 0) {
+      toast({ title: "Erro", description: "Defina o preço do produto", variant: "destructive" });
       return;
     }
 
@@ -604,6 +627,68 @@ export default function Admin() {
     e.target.value = "";
   }
 
+  // Add test data
+  async function addTestData() {
+    const testNotebooks = [
+      { title: "Notebook Gamer RTX 3060", subtitle: "Intel Core i7, 16GB RAM, 512GB SSD", totalPrice: 5999, productType: "notebook" as ProductCategory },
+      { title: "Notebook Ultrafino Pro", subtitle: "Intel Core i5, 8GB RAM, 256GB SSD", totalPrice: 3499, productType: "notebook" as ProductCategory },
+      { title: "Notebook Workstation", subtitle: "Intel Core i9, 32GB RAM, 1TB SSD", totalPrice: 8999, productType: "notebook" as ProductCategory },
+      { title: "Notebook Estudante", subtitle: "AMD Ryzen 5, 8GB RAM, 256GB SSD", totalPrice: 2499, productType: "notebook" as ProductCategory },
+      { title: "Notebook Gaming Elite", subtitle: "Intel Core i7, RTX 4070, 16GB RAM", totalPrice: 7999, productType: "notebook" as ProductCategory },
+      { title: "Notebook Empresarial", subtitle: "Intel Core i5, 16GB RAM, 512GB SSD", totalPrice: 4299, productType: "notebook" as ProductCategory },
+      { title: "Notebook Criador de Conteúdo", subtitle: "AMD Ryzen 7, 32GB RAM, 1TB SSD", totalPrice: 6499, productType: "notebook" as ProductCategory },
+      { title: "Notebook Básico", subtitle: "Intel Core i3, 4GB RAM, 128GB SSD", totalPrice: 1899, productType: "notebook" as ProductCategory },
+      { title: "Notebook 2 em 1 Touch", subtitle: "Intel Core i5, 8GB RAM, 256GB SSD", totalPrice: 3999, productType: "notebook" as ProductCategory },
+      { title: "Notebook MacBook Style", subtitle: "Intel Core i7, 16GB RAM, 512GB SSD", totalPrice: 5499, productType: "notebook" as ProductCategory },
+    ];
+
+    const testSoftwares = [
+      { title: "Windows 11 Pro", subtitle: "Licença vitalícia", totalPrice: 299, productType: "software" as ProductCategory },
+      { title: "Office 365 Family", subtitle: "1 ano, até 6 usuários", totalPrice: 449, productType: "software" as ProductCategory },
+      { title: "Antivírus Premium", subtitle: "Proteção completa 1 ano", totalPrice: 149, productType: "software" as ProductCategory },
+      { title: "Adobe Creative Cloud", subtitle: "Pacote completo mensal", totalPrice: 299, productType: "software" as ProductCategory },
+      { title: "AutoCAD LT", subtitle: "Licença anual", totalPrice: 1999, productType: "software" as ProductCategory },
+      { title: "Visual Studio Pro", subtitle: "Licença vitalícia", totalPrice: 899, productType: "software" as ProductCategory },
+      { title: "Backup Cloud Pro", subtitle: "1TB armazenamento anual", totalPrice: 199, productType: "software" as ProductCategory },
+      { title: "VPN Premium", subtitle: "Proteção total 1 ano", totalPrice: 129, productType: "software" as ProductCategory },
+      { title: "Driver Booster Pro", subtitle: "Atualização automática", totalPrice: 79, productType: "software" as ProductCategory },
+      { title: "Pacote Produtividade", subtitle: "10 apps essenciais", totalPrice: 249, productType: "software" as ProductCategory },
+    ];
+
+    const testAutomacoes = [
+      { title: "Bot WhatsApp Básico", subtitle: "Atendimento automático 24/7", totalPrice: 0, productType: "automacao" as ProductCategory, downloadUrl: "https://example.com/download/bot-basico" },
+      { title: "Bot WhatsApp Pro", subtitle: "IA avançada + integrações", totalPrice: 0, productType: "automacao" as ProductCategory, downloadUrl: "https://example.com/download/bot-pro" },
+      { title: "Automação E-commerce", subtitle: "Integração com lojas virtuais", totalPrice: 0, productType: "automacao" as ProductCategory, downloadUrl: "https://example.com/download/ecommerce" },
+      { title: "Bot Agendamento", subtitle: "Sistema de agendamentos automático", totalPrice: 0, productType: "automacao" as ProductCategory, downloadUrl: "https://example.com/download/agendamento" },
+      { title: "Automação CRM", subtitle: "Gestão de leads e clientes", totalPrice: 0, productType: "automacao" as ProductCategory, downloadUrl: "https://example.com/download/crm" },
+      { title: "Bot Suporte Técnico", subtitle: "Atendimento N1 automatizado", totalPrice: 0, productType: "automacao" as ProductCategory, downloadUrl: "https://example.com/download/suporte" },
+      { title: "Automação Marketing", subtitle: "Campanhas e funis automáticos", totalPrice: 0, productType: "automacao" as ProductCategory, downloadUrl: "https://example.com/download/marketing" },
+      { title: "Bot Vendas", subtitle: "Qualificação e fechamento", totalPrice: 0, productType: "automacao" as ProductCategory, downloadUrl: "https://example.com/download/vendas" },
+      { title: "Integração N8N", subtitle: "Workflows personalizados", totalPrice: 0, productType: "automacao" as ProductCategory, downloadUrl: "https://example.com/download/n8n" },
+      { title: "Automação Financeira", subtitle: "Cobranças e notificações", totalPrice: 0, productType: "automacao" as ProductCategory, downloadUrl: "https://example.com/download/financeiro" },
+    ];
+
+    let successCount = 0;
+    const allProducts = [...testNotebooks, ...testSoftwares, ...testAutomacoes];
+
+    for (const product of allProducts) {
+      const success = await api.createProduct({
+        ...product,
+        categories: [product.productType],
+        media: [],
+        specs: {},
+        components: {},
+      });
+      if (success) successCount++;
+    }
+
+    toast({
+      title: "Dados de teste adicionados",
+      description: `${successCount} produtos criados com sucesso!`,
+    });
+    fetchProductsData();
+  }
+
   // Login Screen
   if (!isAuthenticated) {
     return (
@@ -662,13 +747,30 @@ export default function Admin() {
               <p className="mt-2 text-muted-foreground">Gerencie produtos e componentes</p>
             </div>
             <div className="flex gap-4">
-              {activeTab !== 'company' && (
+              {activeTab === 'products' && (
+                <>
+                  <button
+                    onClick={addTestData}
+                    className="inline-flex items-center gap-2 rounded-lg bg-secondary px-4 py-3 font-medium text-foreground transition-colors hover:bg-secondary/80"
+                  >
+                    Adicionar Dados de Teste
+                  </button>
+                  <button
+                    onClick={() => openProductEditor()}
+                    className="inline-flex items-center gap-2 rounded-lg bg-primary px-6 py-3 font-semibold text-primary-foreground shadow-glow transition-colors hover:bg-primary/90"
+                  >
+                    <Plus className="h-5 w-5" />
+                    Novo Produto
+                  </button>
+                </>
+              )}
+              {activeTab === 'hardware' && (
                 <button
-                  onClick={() => activeTab === 'products' ? openProductEditor() : openHardwareEditor()}
+                  onClick={() => openHardwareEditor()}
                   className="inline-flex items-center gap-2 rounded-lg bg-primary px-6 py-3 font-semibold text-primary-foreground shadow-glow transition-colors hover:bg-primary/90"
                 >
                   <Plus className="h-5 w-5" />
-                  {activeTab === 'products' ? 'Novo PC' : 'Novo Item'}
+                  Novo Componente
                 </button>
               )}
               <button
@@ -691,7 +793,7 @@ export default function Admin() {
               }`}
             >
               <Package className="h-5 w-5" />
-              PCs Montados
+              Produtos
             </button>
             <button
               onClick={() => setActiveTab('hardware')}
@@ -702,7 +804,7 @@ export default function Admin() {
               }`}
             >
               <Cpu className="h-5 w-5" />
-              Hardware
+              Hardware (PC)
             </button>
             <button
               onClick={() => setActiveTab('company')}
@@ -729,52 +831,61 @@ export default function Admin() {
                       <tr>
                         <th className="px-6 py-4 text-left text-sm font-semibold text-foreground">Mídia</th>
                         <th className="px-6 py-4 text-left text-sm font-semibold text-foreground">Título</th>
-                        <th className="px-6 py-4 text-left text-sm font-semibold text-foreground">Componentes</th>
+                        <th className="px-6 py-4 text-left text-sm font-semibold text-foreground">Tipo</th>
                         <th className="px-6 py-4 text-left text-sm font-semibold text-foreground">Preço</th>
                         <th className="px-6 py-4 text-right text-sm font-semibold text-foreground">Ações</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border">
-                      {products.map((product) => (
-                        <tr key={product.id} className="hover:bg-secondary/50">
-                          <td className="px-6 py-4">
-                            <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-lg bg-secondary">
-                              {product.media?.[0]?.type === 'video' ? (
-                                <Play className="h-6 w-6 text-muted-foreground" />
-                              ) : (
-                                <img
-                                  src={product.media?.[0]?.url || "/placeholder.svg"}
-                                  alt={product.title}
-                                  className="h-full w-full object-cover"
-                                />
-                              )}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 font-medium text-foreground">{product.title}</td>
-                          <td className="px-6 py-4">
-                            <div className="flex gap-1">
-                              {Object.keys(product.components || {}).length} componentes
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 font-semibold text-primary">{formatPrice(product.totalPrice)}</td>
-                          <td className="px-6 py-4">
-                            <div className="flex justify-end gap-2">
-                              <button
-                                onClick={() => openProductEditor(product)}
-                                className="rounded-lg bg-secondary p-2 text-foreground transition-colors hover:bg-secondary/80"
-                              >
-                                <Pencil className="h-4 w-4" />
-                              </button>
-                              <button
-                                onClick={() => handleProductDelete(product.id)}
-                                className="rounded-lg bg-destructive/20 p-2 text-destructive transition-colors hover:bg-destructive/30"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
+                      {products.map((product) => {
+                        const typeInfo = productTypes.find(t => t.key === product.productType) || productTypes[0];
+                        const TypeIcon = typeInfo.icon;
+                        return (
+                          <tr key={product.id} className="hover:bg-secondary/50">
+                            <td className="px-6 py-4">
+                              <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-lg bg-secondary">
+                                {product.media?.[0]?.type === 'video' ? (
+                                  <Play className="h-6 w-6 text-muted-foreground" />
+                                ) : product.media?.[0]?.url ? (
+                                  <img
+                                    src={product.media[0].url}
+                                    alt={product.title}
+                                    className="h-full w-full object-cover"
+                                  />
+                                ) : (
+                                  <TypeIcon className="h-6 w-6 text-muted-foreground" />
+                                )}
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 font-medium text-foreground">{product.title}</td>
+                            <td className="px-6 py-4">
+                              <div className="flex items-center gap-2 text-muted-foreground">
+                                <TypeIcon className="h-4 w-4" />
+                                {typeInfo.label}
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 font-semibold text-primary">
+                              {product.productType === 'automacao' ? 'Download' : formatPrice(product.totalPrice)}
+                            </td>
+                            <td className="px-6 py-4">
+                              <div className="flex justify-end gap-2">
+                                <button
+                                  onClick={() => openProductEditor(product)}
+                                  className="rounded-lg bg-secondary p-2 text-foreground transition-colors hover:bg-secondary/80"
+                                >
+                                  <Pencil className="h-4 w-4" />
+                                </button>
+                                <button
+                                  onClick={() => handleProductDelete(product.id)}
+                                  className="rounded-lg bg-destructive/20 p-2 text-destructive transition-colors hover:bg-destructive/30"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
                       {products.length === 0 && (
                         <tr>
                           <td colSpan={5} className="px-6 py-12 text-center text-muted-foreground">
@@ -900,7 +1011,7 @@ export default function Admin() {
 
                     {/* Email */}
                     <div>
-                      <label className="block text-sm font-medium text-foreground mb-2">Email</label>
+                      <label className="block text-sm font-medium text-foreground mb-2">E-mail</label>
                       <input
                         type="email"
                         value={companyData.email}
@@ -918,21 +1029,18 @@ export default function Admin() {
                         value={companyData.seller}
                         onChange={(e) => setCompanyData(prev => ({ ...prev, seller: e.target.value }))}
                         className="w-full rounded-lg border border-border bg-background px-4 py-3 text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                        placeholder="Nome do vendedor"
+                        placeholder="Nome do vendedor padrão"
                       />
                     </div>
 
-                    {/* Save Button */}
-                    <div className="pt-4">
-                      <button
-                        onClick={handleCompanySave}
-                        disabled={savingCompany}
-                        className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-primary py-3 font-semibold text-primary-foreground shadow-glow transition-colors hover:bg-primary/90 disabled:opacity-50"
-                      >
-                        <Save className="h-5 w-5" />
-                        {savingCompany ? 'Salvando...' : 'Salvar Dados'}
-                      </button>
-                    </div>
+                    <button
+                      onClick={handleCompanySave}
+                      disabled={savingCompany}
+                      className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-primary py-3 font-semibold text-primary-foreground shadow-glow transition-colors hover:bg-primary/90 disabled:opacity-50"
+                    >
+                      <Save className="h-5 w-5" />
+                      {savingCompany ? "Salvando..." : "Salvar Dados"}
+                    </button>
                   </div>
                 </div>
               )}
@@ -942,30 +1050,9 @@ export default function Admin() {
           {/* Hardware Tab */}
           {activeTab === 'hardware' && (
             <>
-              {/* Bulk Upload Button */}
-              <div className="mb-4 flex flex-wrap gap-2">
-                <button
-                  onClick={downloadExcelTemplate}
-                  className="inline-flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-green-700"
-                >
-                  <Download className="h-4 w-4" />
-                  Envio em Massa
-                </button>
-                <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-secondary px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-secondary/80">
-                  <Upload className="h-4 w-4" />
-                  Importar Excel
-                  <input
-                    type="file"
-                    accept=".xlsx,.xls"
-                    onChange={handleBulkUpload}
-                    className="hidden"
-                  />
-                </label>
-              </div>
-
               {/* Hardware Category Tabs */}
               <div className="mb-6 flex flex-wrap gap-2">
-                {hardwareCategories.map(cat => {
+                {hardwareCategories.map((cat) => {
                   const Icon = cat.icon;
                   return (
                     <button
@@ -982,6 +1069,27 @@ export default function Admin() {
                     </button>
                   );
                 })}
+              </div>
+
+              {/* Bulk actions */}
+              <div className="mb-4 flex gap-2">
+                <button
+                  onClick={downloadExcelTemplate}
+                  className="inline-flex items-center gap-2 rounded-lg bg-secondary px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-secondary/80"
+                >
+                  <Download className="h-4 w-4" />
+                  Baixar Template Excel
+                </button>
+                <label className="cursor-pointer inline-flex items-center gap-2 rounded-lg bg-secondary px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-secondary/80">
+                  <Upload className="h-4 w-4" />
+                  Importar Excel
+                  <input
+                    type="file"
+                    accept=".xlsx,.xls"
+                    onChange={handleBulkUpload}
+                    className="hidden"
+                  />
+                </label>
               </div>
 
               {loading ? (
@@ -1055,7 +1163,7 @@ export default function Admin() {
           <div className="my-8 w-full max-w-4xl rounded-2xl border border-border bg-card p-6 shadow-card">
             <div className="mb-6 flex items-center justify-between">
               <h2 className="text-2xl font-bold text-foreground">
-                {editingProductId ? "Editar PC" : "Montar Novo PC"}
+                {editingProductId ? "Editar Produto" : "Novo Produto"}
               </h2>
               <button onClick={closeProductEditor} className="text-muted-foreground hover:text-foreground">
                 <X className="h-6 w-6" />
@@ -1063,6 +1171,31 @@ export default function Admin() {
             </div>
 
             <form onSubmit={handleProductSubmit} className="space-y-8">
+              {/* Product Type Selection */}
+              <div>
+                <label className="mb-2 block text-sm font-medium text-foreground">Tipo de Produto *</label>
+                <div className="flex flex-wrap gap-2">
+                  {productTypes.map((type) => {
+                    const Icon = type.icon;
+                    return (
+                      <button
+                        key={type.key}
+                        type="button"
+                        onClick={() => setProductFormData(prev => ({ ...prev, productType: type.key }))}
+                        className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+                          productFormData.productType === type.key
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-secondary text-foreground hover:bg-secondary/80"
+                        }`}
+                      >
+                        <Icon className="h-4 w-4" />
+                        {type.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
               {/* Basic Info */}
               <div className="grid gap-6 md:grid-cols-2">
                 <div>
@@ -1072,7 +1205,7 @@ export default function Admin() {
                     value={productFormData.title}
                     onChange={(e) => setProductFormData(prev => ({ ...prev, title: e.target.value }))}
                     className="w-full rounded-lg border border-border bg-background px-4 py-3 text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                    placeholder="Nome do PC"
+                    placeholder="Nome do produto"
                   />
                 </div>
                 <div>
@@ -1086,6 +1219,37 @@ export default function Admin() {
                   />
                 </div>
               </div>
+
+              {/* Price for non-PC products */}
+              {productFormData.productType !== 'pc' && (
+                <div className="grid gap-6 md:grid-cols-2">
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-foreground">Preço (R$) *</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={productFormData.totalPrice}
+                      onChange={(e) => setProductFormData(prev => ({ ...prev, totalPrice: parseFloat(e.target.value) || 0 }))}
+                      className="w-full rounded-lg border border-border bg-background px-4 py-3 text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                      placeholder="0.00"
+                    />
+                  </div>
+                  
+                  {/* Download URL for automações */}
+                  {productFormData.productType === 'automacao' && (
+                    <div>
+                      <label className="mb-2 block text-sm font-medium text-foreground">Link de Download *</label>
+                      <input
+                        type="url"
+                        value={productFormData.downloadUrl}
+                        onChange={(e) => setProductFormData(prev => ({ ...prev, downloadUrl: e.target.value }))}
+                        className="w-full rounded-lg border border-border bg-background px-4 py-3 text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                        placeholder="https://exemplo.com/download"
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Media Upload */}
               <div>
@@ -1150,137 +1314,59 @@ export default function Admin() {
                 </div>
               </div>
 
-              {/* Component Selection - Step by Step */}
-              <div className="space-y-6">
-                <h3 className="text-lg font-semibold text-foreground">Componentes Obrigatórios</h3>
-                
-                {/* Progress indicators */}
-                <div className="flex flex-wrap gap-2">
-                  {componentSteps.map((step, index) => {
-                    const Icon = step.icon;
-                    const isCompleted = !!productFormData.components[step.key as keyof ProductComponents];
+              {/* Component Selection - Only for PC type */}
+              {productFormData.productType === 'pc' && (
+                <div className="space-y-6">
+                  <h3 className="text-lg font-semibold text-foreground">Componentes Obrigatórios</h3>
+                  
+                  {/* Progress indicators */}
+                  <div className="flex flex-wrap gap-2">
+                    {componentSteps.map((step, index) => {
+                      const Icon = step.icon;
+                      const isCompleted = !!productFormData.components[step.key as keyof ProductComponents];
+                      const currentStepIndex = componentSteps.findIndex(
+                        s => !productFormData.components[s.key as keyof ProductComponents]
+                      );
+                      const isCurrent = index === currentStepIndex;
+                      
+                      return (
+                        <div
+                          key={step.key}
+                          className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm transition-colors ${
+                            isCompleted
+                              ? 'bg-primary text-primary-foreground'
+                              : isCurrent
+                              ? 'bg-primary/20 text-primary border border-primary'
+                              : 'bg-secondary text-muted-foreground'
+                          }`}
+                        >
+                          <Icon className="h-4 w-4" />
+                          <span className="hidden sm:inline">{step.label}</span>
+                          {isCompleted && <span>✓</span>}
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Current step selection */}
+                  {(() => {
                     const currentStepIndex = componentSteps.findIndex(
                       s => !productFormData.components[s.key as keyof ProductComponents]
                     );
-                    const isCurrent = index === currentStepIndex;
                     
-                    return (
-                      <div
-                        key={step.key}
-                        className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm transition-colors ${
-                          isCompleted
-                            ? 'bg-primary text-primary-foreground'
-                            : isCurrent
-                            ? 'bg-primary/20 text-primary border border-primary'
-                            : 'bg-secondary text-muted-foreground'
-                        }`}
-                      >
-                        <Icon className="h-4 w-4" />
-                        <span className="hidden sm:inline">{step.label}</span>
-                        {isCompleted && <span>✓</span>}
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {/* Current step selection */}
-                {(() => {
-                  const currentStepIndex = componentSteps.findIndex(
-                    s => !productFormData.components[s.key as keyof ProductComponents]
-                  );
-                  
-                  // All steps completed
-                  if (currentStepIndex === -1) {
-                    return (
-                      <div className="rounded-xl border border-primary bg-primary/10 p-6 text-center">
-                        <p className="text-lg font-semibold text-primary">Todos os componentes selecionados!</p>
-                        <p className="mt-2 text-sm text-muted-foreground">
-                          Você pode clicar nos componentes abaixo para alterar a seleção.
-                        </p>
-                        
-                        {/* Show all selected components for editing */}
-                        <div className="mt-4 space-y-3 text-left">
-                          {componentSteps.map(step => {
-                            const Icon = step.icon;
-                            const selected = productFormData.components[step.key as keyof ProductComponents];
-                            if (!selected) return null;
-                            
-                            return (
-                              <div
-                                key={step.key}
-                                onClick={() => selectComponent(step.key, undefined)}
-                                className="flex cursor-pointer items-center justify-between rounded-lg border border-border bg-card p-3 transition-colors hover:border-destructive hover:bg-destructive/10"
-                              >
-                                <div className="flex items-center gap-3">
-                                  <Icon className="h-5 w-5 text-primary" />
-                                  <div>
-                                    <p className="text-sm font-medium text-foreground">{step.label}</p>
-                                    <p className="text-sm text-muted-foreground">{selected.brand} {selected.model}</p>
-                                  </div>
-                                </div>
-                                <div className="flex items-center gap-3">
-                                  <span className="font-semibold text-primary">{formatPrice(selected.price)}</span>
-                                  <X className="h-4 w-4 text-muted-foreground" />
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    );
-                  }
-                  
-                  const currentStep = componentSteps[currentStepIndex];
-                  const Icon = currentStep.icon;
-                  const items = (hardware[currentStep.key] || []).sort((a, b) => a.price - b.price);
-                  
-                  return (
-                    <div className="rounded-xl border border-primary bg-card p-4">
-                      <div className="mb-4 flex items-center gap-2">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground">
-                          {currentStepIndex + 1}
-                        </div>
-                        <Icon className="h-5 w-5 text-primary" />
-                        <h4 className="font-medium text-foreground">Selecione o {currentStep.label}</h4>
-                        <span className="ml-auto text-sm text-muted-foreground">
-                          Passo {currentStepIndex + 1} de {componentSteps.length}
-                        </span>
-                      </div>
-
-                      {items.length === 0 ? (
-                        <p className="text-sm text-muted-foreground">
-                          Nenhum {currentStep.label.toLowerCase()} cadastrado. Adicione na aba Hardware.
-                        </p>
-                      ) : (
-                        <div className="space-y-2 max-h-96 overflow-y-auto pr-2">
-                          {items.map((item, idx) => (
-                            <div
-                              key={item.id}
-                              onClick={() => selectComponent(currentStep.key, item)}
-                              className="flex cursor-pointer items-center justify-between rounded-lg border border-border bg-background p-4 transition-all hover:border-primary hover:bg-primary/5"
-                            >
-                              <div className="flex items-center gap-4">
-                                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-secondary text-xs text-muted-foreground">
-                                  {idx + 1}
-                                </span>
-                                <div>
-                                  <p className="font-medium text-foreground">{item.name}</p>
-                                  <p className="text-sm text-muted-foreground">{item.brand} {item.model}</p>
-                                </div>
-                              </div>
-                              <span className="text-lg font-bold text-primary">{formatPrice(item.price)}</span>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                      
-                      {/* Show already selected components */}
-                      {currentStepIndex > 0 && (
-                        <div className="mt-4 border-t border-border pt-4">
-                          <p className="mb-2 text-xs font-medium text-muted-foreground">Já selecionados:</p>
-                          <div className="flex flex-wrap gap-2">
-                            {componentSteps.slice(0, currentStepIndex).map(step => {
-                              const StepIcon = step.icon;
+                    // All steps completed
+                    if (currentStepIndex === -1) {
+                      return (
+                        <div className="rounded-xl border border-primary bg-primary/10 p-6 text-center">
+                          <p className="text-lg font-semibold text-primary">Todos os componentes selecionados!</p>
+                          <p className="mt-2 text-sm text-muted-foreground">
+                            Você pode clicar nos componentes abaixo para alterar a seleção.
+                          </p>
+                          
+                          {/* Show all selected components for editing */}
+                          <div className="mt-4 space-y-3 text-left">
+                            {componentSteps.map(step => {
+                              const Icon = step.icon;
                               const selected = productFormData.components[step.key as keyof ProductComponents];
                               if (!selected) return null;
                               
@@ -1288,22 +1374,102 @@ export default function Admin() {
                                 <div
                                   key={step.key}
                                   onClick={() => selectComponent(step.key, undefined)}
-                                  className="flex cursor-pointer items-center gap-2 rounded-lg bg-secondary px-3 py-2 text-sm transition-colors hover:bg-destructive/20"
+                                  className="flex cursor-pointer items-center justify-between rounded-lg border border-border bg-card p-3 transition-colors hover:border-destructive hover:bg-destructive/10"
                                 >
-                                  <StepIcon className="h-4 w-4 text-primary" />
-                                  <span className="text-foreground">{selected.brand} {selected.model}</span>
-                                  <span className="text-primary">{formatPrice(selected.price)}</span>
-                                  <X className="h-3 w-3 text-muted-foreground" />
+                                  <div className="flex items-center gap-3">
+                                    <Icon className="h-5 w-5 text-primary" />
+                                    <div>
+                                      <p className="text-sm font-medium text-foreground">{step.label}</p>
+                                      <p className="text-sm text-muted-foreground">{selected.brand} {selected.model}</p>
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-3">
+                                    <span className="font-semibold text-primary">{formatPrice(selected.price)}</span>
+                                    <X className="h-4 w-4 text-muted-foreground" />
+                                  </div>
                                 </div>
                               );
                             })}
                           </div>
                         </div>
-                      )}
-                    </div>
-                  );
-                })()}
-              </div>
+                      );
+                    }
+                    
+                    const currentStep = componentSteps[currentStepIndex];
+                    const Icon = currentStep.icon;
+                    const items = (hardware[currentStep.key] || []).sort((a, b) => a.price - b.price);
+                    
+                    return (
+                      <div className="rounded-xl border border-primary bg-card p-4">
+                        <div className="mb-4 flex items-center gap-2">
+                          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                            {currentStepIndex + 1}
+                          </div>
+                          <Icon className="h-5 w-5 text-primary" />
+                          <h4 className="font-medium text-foreground">Selecione o {currentStep.label}</h4>
+                          <span className="ml-auto text-sm text-muted-foreground">
+                            Passo {currentStepIndex + 1} de {componentSteps.length}
+                          </span>
+                        </div>
+
+                        {items.length === 0 ? (
+                          <p className="text-sm text-muted-foreground">
+                            Nenhum {currentStep.label.toLowerCase()} cadastrado. Adicione na aba Hardware.
+                          </p>
+                        ) : (
+                          <div className="space-y-2 max-h-96 overflow-y-auto pr-2">
+                            {items.map((item, idx) => (
+                              <div
+                                key={item.id}
+                                onClick={() => selectComponent(currentStep.key, item)}
+                                className="flex cursor-pointer items-center justify-between rounded-lg border border-border bg-background p-4 transition-all hover:border-primary hover:bg-primary/5"
+                              >
+                                <div className="flex items-center gap-4">
+                                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-secondary text-xs text-muted-foreground">
+                                    {idx + 1}
+                                  </span>
+                                  <div>
+                                    <p className="font-medium text-foreground">{item.name}</p>
+                                    <p className="text-sm text-muted-foreground">{item.brand} {item.model}</p>
+                                  </div>
+                                </div>
+                                <span className="text-lg font-bold text-primary">{formatPrice(item.price)}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        
+                        {/* Show already selected components */}
+                        {currentStepIndex > 0 && (
+                          <div className="mt-4 border-t border-border pt-4">
+                            <p className="mb-2 text-xs font-medium text-muted-foreground">Já selecionados:</p>
+                            <div className="flex flex-wrap gap-2">
+                              {componentSteps.slice(0, currentStepIndex).map(step => {
+                                const StepIcon = step.icon;
+                                const selected = productFormData.components[step.key as keyof ProductComponents];
+                                if (!selected) return null;
+                                
+                                return (
+                                  <div
+                                    key={step.key}
+                                    onClick={() => selectComponent(step.key, undefined)}
+                                    className="flex cursor-pointer items-center gap-2 rounded-lg bg-secondary px-3 py-2 text-sm transition-colors hover:bg-destructive/20"
+                                  >
+                                    <StepIcon className="h-4 w-4 text-primary" />
+                                    <span className="text-foreground">{selected.brand} {selected.model}</span>
+                                    <span className="text-primary">{formatPrice(selected.price)}</span>
+                                    <X className="h-3 w-3 text-muted-foreground" />
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
+                </div>
+              )}
 
               {/* Total Price */}
               <div className="rounded-xl bg-primary/10 p-6 text-center">
@@ -1313,7 +1479,7 @@ export default function Admin() {
 
               {/* Categories */}
               <div>
-                <label className="mb-2 block text-sm font-medium text-foreground">Categorias</label>
+                <label className="mb-2 block text-sm font-medium text-foreground">Categorias Adicionais</label>
                 <div className="mb-2 flex flex-wrap gap-2">
                   {productFormData.categories.map((cat, i) => (
                     <span key={i} className="inline-flex items-center gap-1 rounded-full bg-primary/20 px-3 py-1 text-sm text-primary">
@@ -1343,9 +1509,9 @@ export default function Admin() {
                 </div>
               </div>
 
-              {/* Extra Specs */}
+              {/* Specs */}
               <div>
-                <label className="mb-2 block text-sm font-medium text-foreground">Especificações Extras</label>
+                <label className="mb-2 block text-sm font-medium text-foreground">Especificações</label>
                 <div className="mb-2 space-y-2">
                   {Object.entries(productFormData.specs).map(([key, value]) => (
                     <div key={key} className="flex items-center justify-between rounded-lg bg-secondary/50 px-4 py-2">
@@ -1391,7 +1557,7 @@ export default function Admin() {
                   className="flex-1 inline-flex items-center justify-center gap-2 rounded-lg bg-primary py-3 font-semibold text-primary-foreground shadow-glow transition-colors hover:bg-primary/90"
                 >
                   <Save className="h-5 w-5" />
-                  Salvar PC
+                  Salvar Produto
                 </button>
                 <button
                   type="button"
@@ -1412,7 +1578,7 @@ export default function Admin() {
           <div className="my-8 w-full max-w-2xl rounded-2xl border border-border bg-card p-6 shadow-card">
             <div className="mb-6 flex items-center justify-between">
               <h2 className="text-2xl font-bold text-foreground">
-                {editingHardwareId ? "Editar Hardware" : "Novo Hardware"}
+                {editingHardwareId ? "Editar Componente" : "Novo Componente"}
               </h2>
               <button onClick={closeHardwareEditor} className="text-muted-foreground hover:text-foreground">
                 <X className="h-6 w-6" />
@@ -1520,9 +1686,9 @@ export default function Admin() {
                 </div>
               </div>
 
-              {(hardwareFormData.category === 'processor' || hardwareFormData.category === 'motherboard' || hardwareFormData.category === 'watercooler') && (
+              {(hardwareFormData.category === 'processor' || hardwareFormData.category === 'motherboard' || hardwareFormData.category === 'cooler') && (
                 <div className="rounded-lg border border-primary/30 bg-primary/5 p-4">
-                  <h3 className="mb-4 text-sm font-semibold text-primary">🔗 Campos de Compatibilidade</h3>
+                  <h3 className="mb-4 text-sm font-semibold text-primary">Campos de Compatibilidade</h3>
                   <div className="grid gap-4 md:grid-cols-2">
                     <div>
                       <label className="mb-2 block text-sm font-medium text-foreground">Socket *</label>
@@ -1586,7 +1752,7 @@ export default function Admin() {
 
               {hardwareFormData.category === 'memory' && (
                 <div className="rounded-lg border border-primary/30 bg-primary/5 p-4">
-                  <h3 className="mb-4 text-sm font-semibold text-primary">🔗 Campos de Compatibilidade</h3>
+                  <h3 className="mb-4 text-sm font-semibold text-primary">Campos de Compatibilidade</h3>
                   <div>
                     <label className="mb-2 block text-sm font-medium text-foreground">Tipo de Memória *</label>
                     <select
@@ -1605,7 +1771,7 @@ export default function Admin() {
 
               {hardwareFormData.category === 'case' && (
                 <div className="rounded-lg border border-primary/30 bg-primary/5 p-4">
-                  <h3 className="mb-4 text-sm font-semibold text-primary">🔗 Campos de Compatibilidade</h3>
+                  <h3 className="mb-4 text-sm font-semibold text-primary">Campos de Compatibilidade</h3>
                   <div>
                     <label className="mb-2 block text-sm font-medium text-foreground">Form Factors Suportados *</label>
                     <select
