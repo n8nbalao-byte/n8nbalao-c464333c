@@ -15,14 +15,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit();
 }
 
-// Database config - ajuste conforme seu config.php
-$host = 'localhost';
-$dbname = 'u770915504_n8nbalao';
-$username = 'u770915504_admin'; // Ajuste conforme necessário
-$password = ''; // Adicione sua senha
+// Database config
+define('DB_HOST', 'localhost');
+define('DB_USER', 'u770915504_n8nbalao');
+define('DB_PASS', 'Balao2025');
+define('DB_NAME', 'u770915504_n8nbalao');
 
 try {
-    $pdo = new PDO("mysql:host=$host;dbname=$dbname;charset=utf8mb4", $username, $password);
+    $pdo = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=utf8mb4", DB_USER, DB_PASS);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 } catch (PDOException $e) {
     http_response_code(500);
@@ -30,7 +30,7 @@ try {
     exit();
 }
 
-// Create hardware table if not exists
+// Create hardware table if not exists (with compatibility fields)
 $pdo->exec("
     CREATE TABLE IF NOT EXISTS hardware (
         id VARCHAR(36) PRIMARY KEY,
@@ -41,15 +41,37 @@ $pdo->exec("
         image LONGTEXT,
         specs JSON,
         category ENUM('processor', 'motherboard', 'memory', 'storage', 'gpu', 'psu', 'case', 'watercooler') NOT NULL,
+        socket VARCHAR(50) DEFAULT NULL,
+        memoryType VARCHAR(20) DEFAULT NULL,
+        formFactor VARCHAR(30) DEFAULT NULL,
+        tdp INT DEFAULT NULL,
         createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
     )
 ");
 
-// Add watercooler to existing table if needed
+// Add compatibility columns if they don't exist
 try {
-    $pdo->exec("ALTER TABLE hardware MODIFY COLUMN category ENUM('processor', 'motherboard', 'memory', 'storage', 'gpu', 'psu', 'case', 'watercooler') NOT NULL");
+    $pdo->exec("ALTER TABLE hardware ADD COLUMN socket VARCHAR(50) DEFAULT NULL");
 } catch (PDOException $e) {
-    // Column might already have the correct type
+    // Column already exists
+}
+
+try {
+    $pdo->exec("ALTER TABLE hardware ADD COLUMN memoryType VARCHAR(20) DEFAULT NULL");
+} catch (PDOException $e) {
+    // Column already exists
+}
+
+try {
+    $pdo->exec("ALTER TABLE hardware ADD COLUMN formFactor VARCHAR(30) DEFAULT NULL");
+} catch (PDOException $e) {
+    // Column already exists
+}
+
+try {
+    $pdo->exec("ALTER TABLE hardware ADD COLUMN tdp INT DEFAULT NULL");
+} catch (PDOException $e) {
+    // Column already exists
 }
 
 $method = $_SERVER['REQUEST_METHOD'];
@@ -68,6 +90,7 @@ switch ($method) {
             if ($hardware) {
                 $hardware['price'] = floatval($hardware['price']);
                 $hardware['specs'] = json_decode($hardware['specs'], true) ?? [];
+                $hardware['tdp'] = $hardware['tdp'] ? intval($hardware['tdp']) : null;
                 echo json_encode($hardware);
             } else {
                 http_response_code(404);
@@ -76,10 +99,10 @@ switch ($method) {
         } else {
             // Get all hardware (optionally filtered by category)
             if ($category) {
-                $stmt = $pdo->prepare("SELECT * FROM hardware WHERE category = ? ORDER BY createdAt DESC");
+                $stmt = $pdo->prepare("SELECT * FROM hardware WHERE category = ? ORDER BY price ASC");
                 $stmt->execute([$category]);
             } else {
-                $stmt = $pdo->query("SELECT * FROM hardware ORDER BY category, createdAt DESC");
+                $stmt = $pdo->query("SELECT * FROM hardware ORDER BY category, price ASC");
             }
             
             $hardwareList = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -87,6 +110,7 @@ switch ($method) {
             foreach ($hardwareList as &$hw) {
                 $hw['price'] = floatval($hw['price']);
                 $hw['specs'] = json_decode($hw['specs'], true) ?? [];
+                $hw['tdp'] = $hw['tdp'] ? intval($hw['tdp']) : null;
             }
             
             echo json_encode($hardwareList);
@@ -103,8 +127,8 @@ switch ($method) {
         }
 
         $stmt = $pdo->prepare("
-            INSERT INTO hardware (id, name, brand, model, price, image, specs, category, createdAt)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO hardware (id, name, brand, model, price, image, specs, category, socket, memoryType, formFactor, tdp, createdAt)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ");
 
         $stmt->execute([
@@ -116,6 +140,10 @@ switch ($method) {
             $data['image'] ?? '',
             json_encode($data['specs'] ?? []),
             $data['category'],
+            $data['socket'] ?? null,
+            $data['memoryType'] ?? null,
+            $data['formFactor'] ?? null,
+            $data['tdp'] ?? null,
             $data['createdAt'] ?? date('Y-m-d H:i:s')
         ]);
 
@@ -134,7 +162,7 @@ switch ($method) {
         $updates = [];
         $params = [];
 
-        $allowedFields = ['name', 'brand', 'model', 'price', 'image', 'category'];
+        $allowedFields = ['name', 'brand', 'model', 'price', 'image', 'category', 'socket', 'memoryType', 'formFactor', 'tdp'];
         
         foreach ($allowedFields as $field) {
             if (isset($data[$field])) {

@@ -3,7 +3,7 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { api, type HardwareItem } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
-import { Cpu, CircuitBoard, MemoryStick, HardDrive, Monitor, Zap, Box, Droplets, Check, Printer, ShoppingCart, ArrowLeft, ArrowRight } from "lucide-react";
+import { Cpu, CircuitBoard, MemoryStick, HardDrive, Monitor, Zap, Box, Droplets, Check, Printer, ShoppingCart, ArrowLeft, ArrowRight, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 
@@ -46,6 +46,68 @@ function formatDate(date: Date): string {
     month: '2-digit',
     year: 'numeric'
   }).format(date);
+}
+
+// Compatibility helper functions
+function getFormFactorHierarchy(formFactor: string): number {
+  const hierarchy: Record<string, number> = {
+    'E-ATX': 4,
+    'ATX': 3,
+    'Micro-ATX': 2,
+    'Mini-ITX': 1,
+  };
+  return hierarchy[formFactor] || 0;
+}
+
+function isFormFactorCompatible(caseFormFactor: string, motherboardFormFactor: string): boolean {
+  // Larger cases can fit smaller motherboards
+  return getFormFactorHierarchy(caseFormFactor) >= getFormFactorHierarchy(motherboardFormFactor);
+}
+
+function checkCompatibility(
+  item: HardwareItem,
+  category: string,
+  selectedComponents: SelectedComponents
+): { compatible: boolean; issues: string[] } {
+  const issues: string[] = [];
+  
+  const selectedProcessor = selectedComponents['processor'];
+  const selectedMotherboard = selectedComponents['motherboard'];
+  
+  // Motherboard compatibility check (socket must match processor)
+  if (category === 'motherboard' && selectedProcessor) {
+    if (item.socket && selectedProcessor.socket && item.socket !== selectedProcessor.socket) {
+      issues.push(`Socket incompatível: ${item.socket} ≠ ${selectedProcessor.socket} (processador)`);
+    }
+  }
+  
+  // Memory compatibility check (DDR type must match motherboard)
+  if (category === 'memory' && selectedMotherboard) {
+    if (item.memoryType && selectedMotherboard.memoryType && item.memoryType !== selectedMotherboard.memoryType) {
+      issues.push(`Tipo incompatível: ${item.memoryType} ≠ ${selectedMotherboard.memoryType} (placa-mãe)`);
+    }
+  }
+  
+  // Watercooler compatibility check (socket must match processor)
+  if (category === 'watercooler' && selectedProcessor) {
+    if (item.socket && selectedProcessor.socket && item.socket !== selectedProcessor.socket) {
+      issues.push(`Socket incompatível: ${item.socket} ≠ ${selectedProcessor.socket} (processador)`);
+    }
+  }
+  
+  // Case compatibility check (form factor must fit motherboard)
+  if (category === 'case' && selectedMotherboard) {
+    if (item.formFactor && selectedMotherboard.formFactor) {
+      if (!isFormFactorCompatible(item.formFactor, selectedMotherboard.formFactor)) {
+        issues.push(`Gabinete ${item.formFactor} não suporta placa-mãe ${selectedMotherboard.formFactor}`);
+      }
+    }
+  }
+  
+  return {
+    compatible: issues.length === 0,
+    issues
+  };
 }
 
 export default function MonteVoceMesmo() {
@@ -362,18 +424,32 @@ export default function MonteVoceMesmo() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
             {currentHardware.map((item) => {
               const isSelected = selectedItem?.id === item.id;
+              const compatibility = checkCompatibility(item, currentStepData?.key || '', selectedComponents);
+              const isIncompatible = !compatibility.compatible;
+              
               return (
                 <Card
                   key={item.id}
-                  onClick={() => selectComponent(item)}
+                  onClick={() => {
+                    if (isIncompatible) {
+                      toast({
+                        title: "⚠️ Incompatibilidade detectada",
+                        description: compatibility.issues.join('. '),
+                        variant: "destructive",
+                      });
+                    }
+                    selectComponent(item);
+                  }}
                   className={`p-4 cursor-pointer transition-all hover:shadow-lg ${
                     isSelected 
                       ? 'ring-2 ring-primary bg-primary/5' 
-                      : 'hover:ring-1 hover:ring-primary/50'
+                      : isIncompatible
+                        ? 'ring-1 ring-destructive/50 bg-destructive/5 opacity-70'
+                        : 'hover:ring-1 hover:ring-primary/50'
                   }`}
                 >
                   <div className="flex items-start gap-4">
-                    <div className="flex-shrink-0 w-16 h-16 bg-muted rounded-lg flex items-center justify-center">
+                    <div className="flex-shrink-0 w-16 h-16 bg-muted rounded-lg flex items-center justify-center relative">
                       {item.image ? (
                         <img 
                           src={item.image} 
@@ -387,6 +463,11 @@ export default function MonteVoceMesmo() {
                       ) : (
                         <currentStepData.icon className="h-8 w-8 text-muted-foreground" />
                       )}
+                      {isIncompatible && (
+                        <div className="absolute -top-1 -right-1 bg-destructive rounded-full p-0.5">
+                          <AlertTriangle className="h-3 w-3 text-destructive-foreground" />
+                        </div>
+                      )}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-2">
@@ -398,6 +479,25 @@ export default function MonteVoceMesmo() {
                           <Check className="h-5 w-5 text-primary flex-shrink-0" />
                         )}
                       </div>
+                      {isIncompatible && (
+                        <p className="text-xs text-destructive mt-1 line-clamp-2">
+                          {compatibility.issues[0]}
+                        </p>
+                      )}
+                      {/* Show compatibility info */}
+                      {(item.socket || item.memoryType || item.formFactor) && !isIncompatible && (
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {item.socket && (
+                            <span className="text-xs bg-secondary px-1.5 py-0.5 rounded">{item.socket}</span>
+                          )}
+                          {item.memoryType && (
+                            <span className="text-xs bg-secondary px-1.5 py-0.5 rounded">{item.memoryType}</span>
+                          )}
+                          {item.formFactor && (
+                            <span className="text-xs bg-secondary px-1.5 py-0.5 rounded">{item.formFactor}</span>
+                          )}
+                        </div>
+                      )}
                       <p className="text-lg font-bold text-primary mt-2">
                         {formatPrice(item.price)}
                       </p>

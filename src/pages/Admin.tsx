@@ -33,7 +33,32 @@ interface HardwareFormData {
   image: string;
   specs: Record<string, string>;
   category: HardwareCategory;
+  // Compatibility fields
+  socket?: string;
+  memoryType?: string;
+  formFactor?: string;
+  tdp?: number;
 }
+
+// Compatibility options
+const socketOptions = [
+  { value: 'LGA1700', label: 'Intel LGA 1700 (12ª-14ª Gen)' },
+  { value: 'LGA1200', label: 'Intel LGA 1200 (10ª-11ª Gen)' },
+  { value: 'AM5', label: 'AMD AM5 (Ryzen 7000+)' },
+  { value: 'AM4', label: 'AMD AM4 (Ryzen 1000-5000)' },
+];
+
+const memoryTypeOptions = [
+  { value: 'DDR5', label: 'DDR5' },
+  { value: 'DDR4', label: 'DDR4' },
+];
+
+const formFactorOptions = [
+  { value: 'ATX', label: 'ATX' },
+  { value: 'Micro-ATX', label: 'Micro-ATX' },
+  { value: 'Mini-ITX', label: 'Mini-ITX' },
+  { value: 'E-ATX', label: 'E-ATX' },
+];
 
 const defaultProductFormData: ProductFormData = {
   title: "",
@@ -53,6 +78,10 @@ const defaultHardwareFormData: HardwareFormData = {
   image: "",
   specs: {},
   category: "processor",
+  socket: "",
+  memoryType: "",
+  formFactor: "",
+  tdp: 0,
 };
 
 const componentSteps = [
@@ -338,6 +367,10 @@ export default function Admin() {
         image: item.image || "",
         specs: item.specs || {},
         category: item.category,
+        socket: item.socket || "",
+        memoryType: item.memoryType || "",
+        formFactor: item.formFactor || "",
+        tdp: item.tdp || 0,
       });
     } else {
       setEditingHardwareId(null);
@@ -482,130 +515,6 @@ export default function Admin() {
     };
     reader.readAsArrayBuffer(file);
     e.target.value = "";
-  }
-
-  // Populate test data function
-  async function populateTestData() {
-    const testData: Record<HardwareCategory, Array<{ name: string; brand: string; model: string; price: number; specs: Record<string, string> }>> = {
-      processor: [
-        { name: "Processador Intel Core i9-14900K", brand: "Intel", model: "Core i9-14900K", price: 3899.00, specs: { "Núcleos": "24", "Threads": "32", "Frequência Base": "3.2GHz", "Frequência Turbo": "6.0GHz" } },
-        { name: "Processador Intel Core i7-14700K", brand: "Intel", model: "Core i7-14700K", price: 2799.00, specs: { "Núcleos": "20", "Threads": "28", "Frequência Base": "3.4GHz", "Frequência Turbo": "5.6GHz" } },
-        { name: "Processador Intel Core i5-14600K", brand: "Intel", model: "Core i5-14600K", price: 1899.00, specs: { "Núcleos": "14", "Threads": "20", "Frequência Base": "3.5GHz", "Frequência Turbo": "5.3GHz" } },
-        { name: "Processador AMD Ryzen 9 7950X", brand: "AMD", model: "Ryzen 9 7950X", price: 3599.00, specs: { "Núcleos": "16", "Threads": "32", "Frequência Base": "4.5GHz", "Frequência Turbo": "5.7GHz" } },
-        { name: "Processador AMD Ryzen 7 7800X3D", brand: "AMD", model: "Ryzen 7 7800X3D", price: 2499.00, specs: { "Núcleos": "8", "Threads": "16", "Frequência Base": "4.2GHz", "3D V-Cache": "96MB" } },
-        { name: "Processador AMD Ryzen 5 7600X", brand: "AMD", model: "Ryzen 5 7600X", price: 1499.00, specs: { "Núcleos": "6", "Threads": "12", "Frequência Base": "4.7GHz", "Frequência Turbo": "5.3GHz" } },
-        { name: "Processador Intel Core i9-13900K", brand: "Intel", model: "Core i9-13900K", price: 3299.00, specs: { "Núcleos": "24", "Threads": "32", "Frequência Base": "3.0GHz", "Frequência Turbo": "5.8GHz" } },
-        { name: "Processador AMD Ryzen 9 7900X", brand: "AMD", model: "Ryzen 9 7900X", price: 2899.00, specs: { "Núcleos": "12", "Threads": "24", "Frequência Base": "4.7GHz", "Frequência Turbo": "5.6GHz" } },
-        { name: "Processador Intel Core i3-14100", brand: "Intel", model: "Core i3-14100", price: 899.00, specs: { "Núcleos": "4", "Threads": "8", "Frequência Base": "3.5GHz", "Frequência Turbo": "4.7GHz" } },
-        { name: "Processador AMD Ryzen 5 5600X", brand: "AMD", model: "Ryzen 5 5600X", price: 999.00, specs: { "Núcleos": "6", "Threads": "12", "Frequência Base": "3.7GHz", "Frequência Turbo": "4.6GHz" } },
-      ],
-      motherboard: [
-        { name: "Placa-Mãe ASUS ROG Maximus Z790 Hero", brand: "ASUS", model: "ROG Maximus Z790 Hero", price: 4299.00, specs: { "Socket": "LGA 1700", "Chipset": "Z790", "DDR5": "Sim", "PCIe 5.0": "Sim" } },
-        { name: "Placa-Mãe MSI MEG Z790 ACE", brand: "MSI", model: "MEG Z790 ACE", price: 3899.00, specs: { "Socket": "LGA 1700", "Chipset": "Z790", "DDR5": "Sim", "USB 4": "Sim" } },
-        { name: "Placa-Mãe Gigabyte Z790 AORUS Master", brand: "Gigabyte", model: "Z790 AORUS Master", price: 3599.00, specs: { "Socket": "LGA 1700", "Chipset": "Z790", "DDR5": "Sim", "WiFi 6E": "Sim" } },
-        { name: "Placa-Mãe ASUS ROG Crosshair X670E Hero", brand: "ASUS", model: "ROG Crosshair X670E Hero", price: 4499.00, specs: { "Socket": "AM5", "Chipset": "X670E", "DDR5": "Sim", "PCIe 5.0": "Sim" } },
-        { name: "Placa-Mãe MSI MAG B650 TOMAHAWK", brand: "MSI", model: "MAG B650 TOMAHAWK", price: 1599.00, specs: { "Socket": "AM5", "Chipset": "B650", "DDR5": "Sim", "USB-C": "Sim" } },
-        { name: "Placa-Mãe Gigabyte B650 AORUS Elite AX", brand: "Gigabyte", model: "B650 AORUS Elite AX", price: 1399.00, specs: { "Socket": "AM5", "Chipset": "B650", "DDR5": "Sim", "WiFi 6E": "Sim" } },
-        { name: "Placa-Mãe ASUS TUF Gaming B760M-Plus", brand: "ASUS", model: "TUF Gaming B760M-Plus", price: 1199.00, specs: { "Socket": "LGA 1700", "Chipset": "B760", "DDR5": "Sim", "mATX": "Sim" } },
-        { name: "Placa-Mãe ASRock B650M Pro RS", brand: "ASRock", model: "B650M Pro RS", price: 999.00, specs: { "Socket": "AM5", "Chipset": "B650", "DDR5": "Sim", "mATX": "Sim" } },
-        { name: "Placa-Mãe MSI PRO B760-P", brand: "MSI", model: "PRO B760-P", price: 899.00, specs: { "Socket": "LGA 1700", "Chipset": "B760", "DDR4": "Sim", "ATX": "Sim" } },
-        { name: "Placa-Mãe Gigabyte A620M Gaming X", brand: "Gigabyte", model: "A620M Gaming X", price: 699.00, specs: { "Socket": "AM5", "Chipset": "A620", "DDR5": "Sim", "mATX": "Sim" } },
-      ],
-      memory: [
-        { name: "Memória G.Skill Trident Z5 RGB 64GB", brand: "G.Skill", model: "Trident Z5 RGB 64GB", price: 1899.00, specs: { "Capacidade": "64GB (2x32GB)", "Velocidade": "DDR5-6000", "Latência": "CL30", "RGB": "Sim" } },
-        { name: "Memória Corsair Dominator Platinum 32GB", brand: "Corsair", model: "Dominator Platinum 32GB", price: 1299.00, specs: { "Capacidade": "32GB (2x16GB)", "Velocidade": "DDR5-6400", "Latência": "CL32", "RGB": "Sim" } },
-        { name: "Memória Kingston Fury Beast 32GB", brand: "Kingston", model: "Fury Beast 32GB", price: 899.00, specs: { "Capacidade": "32GB (2x16GB)", "Velocidade": "DDR5-5600", "Latência": "CL36", "Heatspreader": "Sim" } },
-        { name: "Memória G.Skill Trident Z5 32GB", brand: "G.Skill", model: "Trident Z5 32GB", price: 999.00, specs: { "Capacidade": "32GB (2x16GB)", "Velocidade": "DDR5-6000", "Latência": "CL30", "RGB": "Não" } },
-        { name: "Memória Corsair Vengeance 32GB", brand: "Corsair", model: "Vengeance 32GB", price: 749.00, specs: { "Capacidade": "32GB (2x16GB)", "Velocidade": "DDR5-5200", "Latência": "CL40", "Low Profile": "Sim" } },
-        { name: "Memória Crucial Ballistix 16GB", brand: "Crucial", model: "Ballistix 16GB", price: 449.00, specs: { "Capacidade": "16GB (2x8GB)", "Velocidade": "DDR4-3600", "Latência": "CL16", "RGB": "Não" } },
-        { name: "Memória HyperX Fury 16GB", brand: "HyperX", model: "Fury 16GB", price: 399.00, specs: { "Capacidade": "16GB (2x8GB)", "Velocidade": "DDR4-3200", "Latência": "CL16", "Heatspreader": "Sim" } },
-        { name: "Memória TeamGroup T-Force Delta 32GB", brand: "TeamGroup", model: "T-Force Delta 32GB", price: 799.00, specs: { "Capacidade": "32GB (2x16GB)", "Velocidade": "DDR5-5600", "Latência": "CL36", "RGB": "Sim" } },
-        { name: "Memória Patriot Viper Steel 32GB", brand: "Patriot", model: "Viper Steel 32GB", price: 649.00, specs: { "Capacidade": "32GB (2x16GB)", "Velocidade": "DDR4-3600", "Latência": "CL18", "Alumínio": "Sim" } },
-        { name: "Memória ADATA XPG Lancer 32GB", brand: "ADATA", model: "XPG Lancer 32GB", price: 849.00, specs: { "Capacidade": "32GB (2x16GB)", "Velocidade": "DDR5-5600", "Latência": "CL36", "RGB": "Sim" } },
-      ],
-      storage: [
-        { name: "SSD Samsung 990 Pro 2TB", brand: "Samsung", model: "990 Pro 2TB", price: 1499.00, specs: { "Capacidade": "2TB", "Interface": "NVMe PCIe 4.0", "Leitura": "7450 MB/s", "Escrita": "6900 MB/s" } },
-        { name: "SSD WD Black SN850X 2TB", brand: "Western Digital", model: "SN850X 2TB", price: 1399.00, specs: { "Capacidade": "2TB", "Interface": "NVMe PCIe 4.0", "Leitura": "7300 MB/s", "Escrita": "6600 MB/s" } },
-        { name: "SSD Crucial T700 2TB", brand: "Crucial", model: "T700 2TB", price: 1899.00, specs: { "Capacidade": "2TB", "Interface": "NVMe PCIe 5.0", "Leitura": "12400 MB/s", "Escrita": "11800 MB/s" } },
-        { name: "SSD Samsung 980 Pro 1TB", brand: "Samsung", model: "980 Pro 1TB", price: 799.00, specs: { "Capacidade": "1TB", "Interface": "NVMe PCIe 4.0", "Leitura": "7000 MB/s", "Escrita": "5100 MB/s" } },
-        { name: "SSD Kingston KC3000 2TB", brand: "Kingston", model: "KC3000 2TB", price: 1299.00, specs: { "Capacidade": "2TB", "Interface": "NVMe PCIe 4.0", "Leitura": "7000 MB/s", "Escrita": "7000 MB/s" } },
-        { name: "SSD Seagate FireCuda 530 1TB", brand: "Seagate", model: "FireCuda 530 1TB", price: 899.00, specs: { "Capacidade": "1TB", "Interface": "NVMe PCIe 4.0", "Leitura": "7300 MB/s", "Escrita": "6000 MB/s" } },
-        { name: "SSD Corsair MP600 Pro XT 2TB", brand: "Corsair", model: "MP600 Pro XT 2TB", price: 1599.00, specs: { "Capacidade": "2TB", "Interface": "NVMe PCIe 4.0", "Leitura": "7100 MB/s", "Heatsink": "Sim" } },
-        { name: "SSD Sabrent Rocket 4 Plus 2TB", brand: "Sabrent", model: "Rocket 4 Plus 2TB", price: 1199.00, specs: { "Capacidade": "2TB", "Interface": "NVMe PCIe 4.0", "Leitura": "7100 MB/s", "Escrita": "6600 MB/s" } },
-        { name: "SSD ADATA Legend 960 1TB", brand: "ADATA", model: "Legend 960 1TB", price: 699.00, specs: { "Capacidade": "1TB", "Interface": "NVMe PCIe 4.0", "Leitura": "7400 MB/s", "Escrita": "6800 MB/s" } },
-        { name: "SSD Gigabyte AORUS Gen5 2TB", brand: "Gigabyte", model: "AORUS Gen5 2TB", price: 2199.00, specs: { "Capacidade": "2TB", "Interface": "NVMe PCIe 5.0", "Leitura": "12400 MB/s", "Heatsink": "Sim" } },
-      ],
-      gpu: [
-        { name: "Placa de Vídeo NVIDIA RTX 4090", brand: "NVIDIA", model: "GeForce RTX 4090", price: 12999.00, specs: { "VRAM": "24GB GDDR6X", "CUDA Cores": "16384", "Boost Clock": "2.52 GHz", "TDP": "450W" } },
-        { name: "Placa de Vídeo NVIDIA RTX 4080 Super", brand: "NVIDIA", model: "GeForce RTX 4080 Super", price: 8999.00, specs: { "VRAM": "16GB GDDR6X", "CUDA Cores": "10240", "Boost Clock": "2.55 GHz", "TDP": "320W" } },
-        { name: "Placa de Vídeo NVIDIA RTX 4070 Ti Super", brand: "NVIDIA", model: "GeForce RTX 4070 Ti Super", price: 6499.00, specs: { "VRAM": "16GB GDDR6X", "CUDA Cores": "8448", "Boost Clock": "2.61 GHz", "TDP": "285W" } },
-        { name: "Placa de Vídeo AMD RX 7900 XTX", brand: "AMD", model: "Radeon RX 7900 XTX", price: 7999.00, specs: { "VRAM": "24GB GDDR6", "Stream Processors": "6144", "Boost Clock": "2.5 GHz", "TDP": "355W" } },
-        { name: "Placa de Vídeo NVIDIA RTX 4070 Super", brand: "NVIDIA", model: "GeForce RTX 4070 Super", price: 4999.00, specs: { "VRAM": "12GB GDDR6X", "CUDA Cores": "7168", "Boost Clock": "2.48 GHz", "TDP": "220W" } },
-        { name: "Placa de Vídeo AMD RX 7800 XT", brand: "AMD", model: "Radeon RX 7800 XT", price: 3999.00, specs: { "VRAM": "16GB GDDR6", "Stream Processors": "3840", "Boost Clock": "2.43 GHz", "TDP": "263W" } },
-        { name: "Placa de Vídeo NVIDIA RTX 4060 Ti", brand: "NVIDIA", model: "GeForce RTX 4060 Ti", price: 3299.00, specs: { "VRAM": "8GB GDDR6", "CUDA Cores": "4352", "Boost Clock": "2.54 GHz", "TDP": "160W" } },
-        { name: "Placa de Vídeo AMD RX 7700 XT", brand: "AMD", model: "Radeon RX 7700 XT", price: 2999.00, specs: { "VRAM": "12GB GDDR6", "Stream Processors": "3456", "Boost Clock": "2.54 GHz", "TDP": "245W" } },
-        { name: "Placa de Vídeo NVIDIA RTX 4060", brand: "NVIDIA", model: "GeForce RTX 4060", price: 2499.00, specs: { "VRAM": "8GB GDDR6", "CUDA Cores": "3072", "Boost Clock": "2.46 GHz", "TDP": "115W" } },
-        { name: "Placa de Vídeo AMD RX 7600", brand: "AMD", model: "Radeon RX 7600", price: 1999.00, specs: { "VRAM": "8GB GDDR6", "Stream Processors": "2048", "Boost Clock": "2.66 GHz", "TDP": "165W" } },
-      ],
-      watercooler: [
-        { name: "Watercooler NZXT Kraken Z73 RGB", brand: "NZXT", model: "Kraken Z73 RGB", price: 1899.00, specs: { "Radiador": "360mm", "Display LCD": "2.36\" LCD", "RGB": "Sim", "Compatibilidade": "Intel/AMD" } },
-        { name: "Watercooler Corsair iCUE H170i Elite", brand: "Corsair", model: "iCUE H170i Elite", price: 1699.00, specs: { "Radiador": "420mm", "Fans": "3x 140mm", "RGB": "Sim", "Software": "iCUE" } },
-        { name: "Watercooler ASUS ROG Ryujin III 360", brand: "ASUS", model: "ROG Ryujin III 360", price: 2199.00, specs: { "Radiador": "360mm", "Display OLED": "3.5\"", "RGB": "Sim", "VRM Fan": "Sim" } },
-        { name: "Watercooler Lian Li Galahad II 360", brand: "Lian Li", model: "Galahad II 360", price: 1299.00, specs: { "Radiador": "360mm", "Fans": "3x 120mm", "RGB": "Sim", "Infinity Mirror": "Sim" } },
-        { name: "Watercooler DeepCool LT720 WH", brand: "DeepCool", model: "LT720 WH", price: 999.00, specs: { "Radiador": "360mm", "Fans": "3x 120mm", "RGB": "ARGB", "Cor": "Branco" } },
-        { name: "Watercooler Cooler Master MasterLiquid 360", brand: "Cooler Master", model: "MasterLiquid 360 Atmos", price: 899.00, specs: { "Radiador": "360mm", "Fans": "3x 120mm", "RGB": "ARGB", "Dual Chamber": "Sim" } },
-        { name: "Watercooler Arctic Liquid Freezer II 280", brand: "Arctic", model: "Liquid Freezer II 280", price: 799.00, specs: { "Radiador": "280mm", "Fans": "2x 140mm", "VRM Fan": "Integrado", "Silencioso": "Sim" } },
-        { name: "Watercooler EK-AIO Elite 360 D-RGB", brand: "EK", model: "AIO Elite 360 D-RGB", price: 1399.00, specs: { "Radiador": "360mm", "Fans": "3x 120mm", "RGB": "D-RGB", "Vardar Fans": "Sim" } },
-        { name: "Watercooler be quiet! Silent Loop 2 360", brand: "be quiet!", model: "Silent Loop 2 360", price: 1199.00, specs: { "Radiador": "360mm", "Fans": "3x 120mm", "RGB": "ARGB", "Silencioso": "36dB" } },
-        { name: "Watercooler Thermaltake TH360 ARGB", brand: "Thermaltake", model: "TH360 ARGB Sync", price: 699.00, specs: { "Radiador": "360mm", "Fans": "3x 120mm", "RGB": "ARGB", "Sync": "Motherboard" } },
-      ],
-      psu: [
-        { name: "Fonte Corsair RM1000x 1000W", brand: "Corsair", model: "RM1000x", price: 1299.00, specs: { "Potência": "1000W", "Certificação": "80 Plus Gold", "Modular": "Full", "ATX 3.0": "Sim" } },
-        { name: "Fonte Seasonic PRIME TX-1000 1000W", brand: "Seasonic", model: "PRIME TX-1000", price: 1899.00, specs: { "Potência": "1000W", "Certificação": "80 Plus Titanium", "Modular": "Full", "Garantia": "12 anos" } },
-        { name: "Fonte EVGA SuperNOVA 1000 G7", brand: "EVGA", model: "SuperNOVA 1000 G7", price: 1199.00, specs: { "Potência": "1000W", "Certificação": "80 Plus Gold", "Modular": "Full", "Eco Mode": "Sim" } },
-        { name: "Fonte Corsair HX1200 1200W", brand: "Corsair", model: "HX1200", price: 1599.00, specs: { "Potência": "1200W", "Certificação": "80 Plus Platinum", "Modular": "Full", "Zero RPM": "Sim" } },
-        { name: "Fonte be quiet! Dark Power 13 850W", brand: "be quiet!", model: "Dark Power 13 850W", price: 1399.00, specs: { "Potência": "850W", "Certificação": "80 Plus Titanium", "Modular": "Full", "ATX 3.0": "Sim" } },
-        { name: "Fonte Cooler Master V850 SFX Gold", brand: "Cooler Master", model: "V850 SFX Gold", price: 999.00, specs: { "Potência": "850W", "Certificação": "80 Plus Gold", "Form Factor": "SFX", "Modular": "Full" } },
-        { name: "Fonte MSI MEG Ai1000P PCIE5", brand: "MSI", model: "MEG Ai1000P PCIE5", price: 1799.00, specs: { "Potência": "1000W", "Certificação": "80 Plus Platinum", "ATX 3.0": "Sim", "PCIe 5.0": "Sim" } },
-        { name: "Fonte ASUS ROG Thor 1000P2", brand: "ASUS", model: "ROG Thor 1000P2", price: 1999.00, specs: { "Potência": "1000W", "Certificação": "80 Plus Platinum", "OLED Display": "Sim", "RGB": "Aura Sync" } },
-        { name: "Fonte Thermaltake Toughpower GF3 850W", brand: "Thermaltake", model: "Toughpower GF3 850W", price: 899.00, specs: { "Potência": "850W", "Certificação": "80 Plus Gold", "ATX 3.0": "Sim", "PCIe 5.0": "Sim" } },
-        { name: "Fonte XPG Core Reactor II 850W", brand: "XPG", model: "Core Reactor II 850W", price: 799.00, specs: { "Potência": "850W", "Certificação": "80 Plus Gold", "Modular": "Full", "Compacta": "Sim" } },
-      ],
-      case: [
-        { name: "Gabinete Lian Li O11 Dynamic EVO", brand: "Lian Li", model: "O11 Dynamic EVO", price: 1299.00, specs: { "Form Factor": "Mid-Tower", "Vidro": "Temperado", "Slots GPU": "420mm", "Radiador": "360mm x2" } },
-        { name: "Gabinete NZXT H9 Elite", brand: "NZXT", model: "H9 Elite", price: 1599.00, specs: { "Form Factor": "Mid-Tower", "Vidro": "Dual Tempered", "Fans": "4x 120mm RGB", "USB-C": "Sim" } },
-        { name: "Gabinete Corsair 5000D Airflow", brand: "Corsair", model: "5000D Airflow", price: 999.00, specs: { "Form Factor": "Mid-Tower", "Airflow": "Alto", "Fans": "2x 120mm", "Slots SSD": "4" } },
-        { name: "Gabinete Phanteks Evolv X2", brand: "Phanteks", model: "Evolv X2", price: 1899.00, specs: { "Form Factor": "Mid-Tower", "Vidro": "Temperado", "RGB": "D-RGB", "E-ATX": "Sim" } },
-        { name: "Gabinete Fractal Design Torrent", brand: "Fractal Design", model: "Torrent", price: 1199.00, specs: { "Form Factor": "Mid-Tower", "Airflow": "Máximo", "Fans": "5x 180mm", "Open Front": "Sim" } },
-        { name: "Gabinete be quiet! Dark Base Pro 901", brand: "be quiet!", model: "Dark Base Pro 901", price: 1799.00, specs: { "Form Factor": "Full Tower", "Silencioso": "Sim", "Inversível": "Sim", "Wireless Charging": "Sim" } },
-        { name: "Gabinete ASUS ROG Hyperion GR701", brand: "ASUS", model: "ROG Hyperion GR701", price: 2499.00, specs: { "Form Factor": "Full Tower", "E-ATX": "Sim", "GPU Holder": "Integrado", "RGB": "Aura Sync" } },
-        { name: "Gabinete Cooler Master HAF 700 EVO", brand: "Cooler Master", model: "HAF 700 EVO", price: 2199.00, specs: { "Form Factor": "Full Tower", "Display LCD": "Sim", "Fans": "200mm x2", "Edge Lit": "Sim" } },
-        { name: "Gabinete Thermaltake View 51 TG ARGB", brand: "Thermaltake", model: "View 51 TG ARGB", price: 1099.00, specs: { "Form Factor": "Full Tower", "Vidro": "3x Temperado", "Vertical GPU": "Sim", "RGB": "ARGB" } },
-        { name: "Gabinete MSI MEG Prospect 700R", brand: "MSI", model: "MEG Prospect 700R", price: 1699.00, specs: { "Form Factor": "Full Tower", "Vidro": "Touch Display", "E-ATX": "Sim", "RGB": "Mystic Light" } },
-      ],
-    };
-
-    let totalSuccess = 0;
-    let totalError = 0;
-
-    for (const [category, items] of Object.entries(testData)) {
-      for (const item of items) {
-        const success = await api.createHardware({
-          ...item,
-          image: "",
-          category: category as HardwareCategory,
-        });
-        if (success) totalSuccess++;
-        else totalError++;
-      }
-    }
-
-    toast({
-      title: "Dados de teste criados!",
-      description: `${totalSuccess} itens adicionados, ${totalError} erros`,
-    });
-    
-    fetchHardwareData();
   }
 
   // Login Screen
@@ -802,13 +711,6 @@ export default function Admin() {
                     className="hidden"
                   />
                 </label>
-                <button
-                  onClick={populateTestData}
-                  className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700"
-                >
-                  <Plus className="h-4 w-4" />
-                  Popular Dados de Teste
-                </button>
               </div>
 
               {/* Hardware Category Tabs */}
@@ -1303,6 +1205,109 @@ export default function Admin() {
                 </div>
               </div>
 
+              {/* Compatibility Fields */}
+              {(hardwareFormData.category === 'processor' || hardwareFormData.category === 'motherboard' || hardwareFormData.category === 'watercooler') && (
+                <div className="rounded-lg border border-primary/30 bg-primary/5 p-4">
+                  <h3 className="mb-4 text-sm font-semibold text-primary">🔗 Campos de Compatibilidade</h3>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div>
+                      <label className="mb-2 block text-sm font-medium text-foreground">Socket *</label>
+                      <select
+                        value={hardwareFormData.socket || ""}
+                        onChange={(e) => setHardwareFormData(prev => ({ ...prev, socket: e.target.value }))}
+                        className="w-full rounded-lg border border-border bg-background px-4 py-3 text-foreground focus:border-primary focus:outline-none"
+                      >
+                        <option value="">Selecione o socket</option>
+                        {socketOptions.map(opt => (
+                          <option key={opt.value} value={opt.value}>{opt.label}</option>
+                        ))}
+                      </select>
+                    </div>
+                    {hardwareFormData.category === 'processor' && (
+                      <div>
+                        <label className="mb-2 block text-sm font-medium text-foreground">TDP (Watts)</label>
+                        <input
+                          type="number"
+                          value={hardwareFormData.tdp || ""}
+                          onChange={(e) => setHardwareFormData(prev => ({ ...prev, tdp: parseInt(e.target.value) || 0 }))}
+                          className="w-full rounded-lg border border-border bg-background px-4 py-3 text-foreground focus:border-primary focus:outline-none"
+                          placeholder="Ex: 125"
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {hardwareFormData.category === 'motherboard' && (
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-foreground">Tipo de Memória *</label>
+                    <select
+                      value={hardwareFormData.memoryType || ""}
+                      onChange={(e) => setHardwareFormData(prev => ({ ...prev, memoryType: e.target.value }))}
+                      className="w-full rounded-lg border border-border bg-background px-4 py-3 text-foreground focus:border-primary focus:outline-none"
+                    >
+                      <option value="">Selecione</option>
+                      {memoryTypeOptions.map(opt => (
+                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-foreground">Form Factor *</label>
+                    <select
+                      value={hardwareFormData.formFactor || ""}
+                      onChange={(e) => setHardwareFormData(prev => ({ ...prev, formFactor: e.target.value }))}
+                      className="w-full rounded-lg border border-border bg-background px-4 py-3 text-foreground focus:border-primary focus:outline-none"
+                    >
+                      <option value="">Selecione</option>
+                      {formFactorOptions.map(opt => (
+                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              )}
+
+              {hardwareFormData.category === 'memory' && (
+                <div className="rounded-lg border border-primary/30 bg-primary/5 p-4">
+                  <h3 className="mb-4 text-sm font-semibold text-primary">🔗 Campos de Compatibilidade</h3>
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-foreground">Tipo de Memória *</label>
+                    <select
+                      value={hardwareFormData.memoryType || ""}
+                      onChange={(e) => setHardwareFormData(prev => ({ ...prev, memoryType: e.target.value }))}
+                      className="w-full rounded-lg border border-border bg-background px-4 py-3 text-foreground focus:border-primary focus:outline-none"
+                    >
+                      <option value="">Selecione</option>
+                      {memoryTypeOptions.map(opt => (
+                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              )}
+
+              {hardwareFormData.category === 'case' && (
+                <div className="rounded-lg border border-primary/30 bg-primary/5 p-4">
+                  <h3 className="mb-4 text-sm font-semibold text-primary">🔗 Campos de Compatibilidade</h3>
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-foreground">Form Factors Suportados *</label>
+                    <select
+                      value={hardwareFormData.formFactor || ""}
+                      onChange={(e) => setHardwareFormData(prev => ({ ...prev, formFactor: e.target.value }))}
+                      className="w-full rounded-lg border border-border bg-background px-4 py-3 text-foreground focus:border-primary focus:outline-none"
+                    >
+                      <option value="">Selecione</option>
+                      {formFactorOptions.map(opt => (
+                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                      ))}
+                    </select>
+                    <p className="mt-1 text-xs text-muted-foreground">Gabinetes maiores suportam placas menores (ATX suporta Micro-ATX e Mini-ITX)</p>
+                  </div>
+                </div>
+              )}
 
               {/* Specs */}
               <div>
