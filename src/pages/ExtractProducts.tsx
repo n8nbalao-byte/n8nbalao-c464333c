@@ -98,9 +98,17 @@ const ExtractProducts = () => {
       });
     } catch (error) {
       console.error('Extraction error:', error);
+      
+      let errorMessage = 'Erro desconhecido';
+      if (error instanceof TypeError && error.message === 'Failed to fetch') {
+        errorMessage = 'Não foi possível conectar ao servidor. Verifique se o arquivo extract.php foi enviado para a pasta /api do Hostinger.';
+      } else if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+      
       toast({
         title: 'Erro na extração',
-        description: error instanceof Error ? error.message : 'Erro desconhecido',
+        description: errorMessage,
         variant: 'destructive',
       });
     } finally {
