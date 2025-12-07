@@ -100,7 +100,7 @@ export default function MonteVoceMesmo() {
     if (phase === 'hardware') {
       loadHardwareForStep();
     }
-  }, [currentStep, phase]);
+  }, [currentStep, phase, selectedHardware]);
 
   async function fetchData() {
     setLoading(true);
@@ -138,15 +138,27 @@ export default function MonteVoceMesmo() {
     const motherboardValue = selectedHardware['motherboard'];
     const motherboard = Array.isArray(motherboardValue) ? motherboardValue[0] : motherboardValue;
 
+    console.log('Filtering for category:', category);
+    console.log('Processor socket:', processor?.socket);
+    console.log('Motherboard memoryType:', motherboard?.memoryType);
+
     return items.filter(item => {
       // Motherboard must match processor socket
       if (category === 'motherboard' && processor?.socket) {
-        if (item.socket && item.socket !== processor.socket) return false;
+        // If motherboard has socket defined, it must match processor
+        // If motherboard has no socket defined, exclude it (safer approach)
+        if (!item.socket || item.socket !== processor.socket) {
+          console.log('Filtered out motherboard:', item.brand, item.model, 'socket:', item.socket);
+          return false;
+        }
       }
 
       // Memory must match motherboard memory type
       if (category === 'memory' && motherboard?.memoryType) {
-        if (item.memoryType && item.memoryType !== motherboard.memoryType) return false;
+        if (!item.memoryType || item.memoryType !== motherboard.memoryType) {
+          console.log('Filtered out memory:', item.brand, item.model, 'memoryType:', item.memoryType);
+          return false;
+        }
       }
 
       return true;
