@@ -8,6 +8,7 @@ import { Plus, Pencil, Trash2, Save, X, Upload, Play, Image, Cpu, CircuitBoard, 
 import * as XLSX from "xlsx";
 import { availableIcons, getIconFromKey } from "@/lib/icons";
 import { HardwareCard } from "@/components/HardwareCard";
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 
 // Simple auth - for demo purposes only
 const ADMIN_USER = "n8nbalao";
@@ -2169,23 +2170,53 @@ export default function Admin() {
                               if (!selected) return null;
                               
                               return (
-                                <div
-                                  key={step.key}
-                                  onClick={() => selectComponent(step.key, undefined)}
-                                  className="flex cursor-pointer items-center justify-between rounded-lg border border-border bg-card p-3 transition-colors hover:border-destructive hover:bg-destructive/10"
-                                >
-                                  <div className="flex items-center gap-3">
-                                    <Icon className="h-5 w-5 text-primary" />
-                                    <div>
-                                      <p className="text-sm font-medium text-foreground">{step.label}</p>
-                                      <p className="text-sm text-muted-foreground">{selected.brand} {selected.model}</p>
-                                    </div>
-                                  </div>
-                                  <div className="flex items-center gap-3">
-                                    <span className="font-semibold text-primary">{formatPrice(selected.price)}</span>
-                                    <X className="h-4 w-4 text-muted-foreground" />
-                                  </div>
-                                </div>
+                                <TooltipProvider key={step.key}>
+                                  <Tooltip delayDuration={100}>
+                                    <TooltipTrigger asChild>
+                                      <div
+                                        onClick={() => selectComponent(step.key, undefined)}
+                                        className="flex cursor-pointer items-center justify-between rounded-lg border border-border bg-card p-3 transition-colors hover:border-destructive hover:bg-destructive/10"
+                                      >
+                                        <div className="flex items-center gap-3">
+                                          {/* Thumbnail */}
+                                          <div className="w-10 h-10 rounded-lg bg-muted flex-shrink-0 overflow-hidden flex items-center justify-center">
+                                            {selected.image ? (
+                                              <img 
+                                                src={selected.image} 
+                                                alt={selected.name}
+                                                className="w-full h-full object-cover"
+                                              />
+                                            ) : (
+                                              <Icon className="h-5 w-5 text-primary" />
+                                            )}
+                                          </div>
+                                          <div>
+                                            <p className="text-sm font-medium text-foreground">{step.label}</p>
+                                            <p className="text-sm text-muted-foreground">{selected.brand} {selected.model}</p>
+                                          </div>
+                                        </div>
+                                        <div className="flex items-center gap-3">
+                                          <span className="font-semibold text-primary">{formatPrice(selected.price)}</span>
+                                          <X className="h-4 w-4 text-muted-foreground" />
+                                        </div>
+                                      </div>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="left" className="w-48 p-2 bg-popover">
+                                      {selected.image ? (
+                                        <img 
+                                          src={selected.image} 
+                                          alt={`${selected.brand} ${selected.model}`}
+                                          className="w-full h-32 object-contain rounded-lg bg-muted"
+                                        />
+                                      ) : (
+                                        <div className="w-full h-32 bg-muted rounded-lg flex items-center justify-center">
+                                          <Package className="h-12 w-12 text-muted-foreground" />
+                                        </div>
+                                      )}
+                                      <p className="font-semibold text-sm mt-2 text-center">{selected.brand} {selected.model}</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
                               );
                             })}
                           </div>
@@ -2217,22 +2248,52 @@ export default function Admin() {
                         ) : (
                           <div className="space-y-2 max-h-96 overflow-y-auto pr-2">
                             {items.map((item, idx) => (
-                              <div
-                                key={item.id}
-                                onClick={() => selectComponent(currentStep.key, item)}
-                                className="flex cursor-pointer items-center justify-between rounded-lg border border-border bg-background p-4 transition-all hover:border-primary hover:bg-primary/5"
-                              >
-                                <div className="flex items-center gap-4">
-                                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-secondary text-xs text-muted-foreground">
-                                    {idx + 1}
-                                  </span>
-                                  <div>
-                                    <p className="font-medium text-foreground">{item.name}</p>
-                                    <p className="text-sm text-muted-foreground">{item.brand} {item.model}</p>
-                                  </div>
-                                </div>
-                                <span className="text-lg font-bold text-primary">{formatPrice(item.price)}</span>
-                              </div>
+                              <TooltipProvider key={item.id}>
+                                <Tooltip delayDuration={100}>
+                                  <TooltipTrigger asChild>
+                                    <div
+                                      onClick={() => selectComponent(currentStep.key, item)}
+                                      className="flex cursor-pointer items-center justify-between rounded-lg border border-border bg-background p-4 transition-all hover:border-primary hover:bg-primary/5"
+                                    >
+                                      <div className="flex items-center gap-4">
+                                        {/* Thumbnail */}
+                                        <div className="w-10 h-10 rounded-lg bg-muted flex-shrink-0 overflow-hidden flex items-center justify-center">
+                                          {item.image ? (
+                                            <img 
+                                              src={item.image} 
+                                              alt={item.name}
+                                              className="w-full h-full object-cover"
+                                            />
+                                          ) : (
+                                            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-secondary text-xs text-muted-foreground">
+                                              {idx + 1}
+                                            </span>
+                                          )}
+                                        </div>
+                                        <div>
+                                          <p className="font-medium text-foreground">{item.name}</p>
+                                          <p className="text-sm text-muted-foreground">{item.brand} {item.model}</p>
+                                        </div>
+                                      </div>
+                                      <span className="text-lg font-bold text-primary">{formatPrice(item.price)}</span>
+                                    </div>
+                                  </TooltipTrigger>
+                                  <TooltipContent side="left" className="w-48 p-2 bg-popover">
+                                    {item.image ? (
+                                      <img 
+                                        src={item.image} 
+                                        alt={`${item.brand} ${item.model}`}
+                                        className="w-full h-32 object-contain rounded-lg bg-muted"
+                                      />
+                                    ) : (
+                                      <div className="w-full h-32 bg-muted rounded-lg flex items-center justify-center">
+                                        <Package className="h-12 w-12 text-muted-foreground" />
+                                      </div>
+                                    )}
+                                    <p className="font-semibold text-sm mt-2 text-center">{item.brand} {item.model}</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
                             ))}
                           </div>
                         )}
@@ -2248,16 +2309,46 @@ export default function Admin() {
                                 if (!selected) return null;
                                 
                                 return (
-                                  <div
-                                    key={step.key}
-                                    onClick={() => selectComponent(step.key, undefined)}
-                                    className="flex cursor-pointer items-center gap-2 rounded-lg bg-secondary px-3 py-2 text-sm transition-colors hover:bg-destructive/20"
-                                  >
-                                    <StepIcon className="h-4 w-4 text-primary" />
-                                    <span className="text-foreground">{selected.brand} {selected.model}</span>
-                                    <span className="text-primary">{formatPrice(selected.price)}</span>
-                                    <X className="h-3 w-3 text-muted-foreground" />
-                                  </div>
+                                  <TooltipProvider key={step.key}>
+                                    <Tooltip delayDuration={100}>
+                                      <TooltipTrigger asChild>
+                                        <div
+                                          onClick={() => selectComponent(step.key, undefined)}
+                                          className="flex cursor-pointer items-center gap-2 rounded-lg bg-secondary px-3 py-2 text-sm transition-colors hover:bg-destructive/20"
+                                        >
+                                          {/* Mini Thumbnail */}
+                                          <div className="w-6 h-6 rounded bg-muted flex-shrink-0 overflow-hidden flex items-center justify-center">
+                                            {selected.image ? (
+                                              <img 
+                                                src={selected.image} 
+                                                alt={selected.name}
+                                                className="w-full h-full object-cover"
+                                              />
+                                            ) : (
+                                              <StepIcon className="h-4 w-4 text-primary" />
+                                            )}
+                                          </div>
+                                          <span className="text-foreground">{selected.brand} {selected.model}</span>
+                                          <span className="text-primary">{formatPrice(selected.price)}</span>
+                                          <X className="h-3 w-3 text-muted-foreground" />
+                                        </div>
+                                      </TooltipTrigger>
+                                      <TooltipContent side="top" className="w-48 p-2 bg-popover">
+                                        {selected.image ? (
+                                          <img 
+                                            src={selected.image} 
+                                            alt={`${selected.brand} ${selected.model}`}
+                                            className="w-full h-32 object-contain rounded-lg bg-muted"
+                                          />
+                                        ) : (
+                                          <div className="w-full h-32 bg-muted rounded-lg flex items-center justify-center">
+                                            <Package className="h-12 w-12 text-muted-foreground" />
+                                          </div>
+                                        )}
+                                        <p className="font-semibold text-sm mt-2 text-center">{selected.brand} {selected.model}</p>
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  </TooltipProvider>
                                 );
                               })}
                             </div>
