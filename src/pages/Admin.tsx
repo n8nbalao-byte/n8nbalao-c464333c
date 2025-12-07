@@ -205,7 +205,7 @@ export default function Admin() {
   const [inlineNewCategoryLabel, setInlineNewCategoryLabel] = useState("");
   const [inlineNewCategoryIcon, setInlineNewCategoryIcon] = useState("tag");
   const [extraProductCategory, setExtraProductCategory] = useState<string | null>(null);
-
+  const [isGeneratingAI, setIsGeneratingAI] = useState(false);
 
   // Merge base categories with custom categories
   const productTypes = [
@@ -296,6 +296,62 @@ export default function Admin() {
     reader.readAsDataURL(file);
   }
 
+  async function generateProductInfoWithAI() {
+    if (!productFormData.title) {
+      toast({ title: "Erro", description: "Digite o nome do produto primeiro", variant: "destructive" });
+      return;
+    }
+    
+    const apiKey = localStorage.getItem('openai_api_key');
+    if (!apiKey) {
+      toast({ 
+        title: "API Key necessária", 
+        description: "Configure sua chave OpenAI na página de Extração IA primeiro", 
+        variant: "destructive" 
+      });
+      return;
+    }
+    
+    setIsGeneratingAI(true);
+    
+    try {
+      const response = await fetch('https://n8nbalao.com/api/generate.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          productName: productFormData.title,
+          productType: productFormData.productType,
+          apiKey
+        }),
+      });
+      
+      const result = await response.json();
+      
+      if (!result.success) {
+        throw new Error(result.error || 'Erro ao gerar informações');
+      }
+      
+      const { data } = result;
+      
+      setProductFormData(prev => ({
+        ...prev,
+        subtitle: data.subtitle || prev.subtitle,
+        description: data.description || prev.description,
+        specs: data.specs || prev.specs,
+      }));
+      
+      toast({ title: "Sucesso!", description: "Informações geradas com IA" });
+    } catch (error) {
+      console.error('AI generation error:', error);
+      toast({ 
+        title: "Erro", 
+        description: error instanceof Error ? error.message : "Erro ao gerar informações", 
+        variant: "destructive" 
+      });
+    } finally {
+      setIsGeneratingAI(false);
+    }
+  }
 
   function handleLogin(e: React.FormEvent) {
     e.preventDefault();
@@ -1997,13 +2053,29 @@ export default function Admin() {
               <div className="grid gap-6 md:grid-cols-2">
                 <div>
                   <label className="mb-2 block text-sm font-medium text-foreground">Título *</label>
-                  <input
-                    type="text"
-                    value={productFormData.title}
-                    onChange={(e) => setProductFormData(prev => ({ ...prev, title: e.target.value }))}
-                    className="w-full rounded-lg border border-border bg-background px-4 py-3 text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                    placeholder="Nome do produto"
-                  />
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={productFormData.title}
+                      onChange={(e) => setProductFormData(prev => ({ ...prev, title: e.target.value }))}
+                      className="flex-1 rounded-lg border border-border bg-background px-4 py-3 text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                      placeholder="Nome do produto"
+                    />
+                    <button
+                      type="button"
+                      onClick={generateProductInfoWithAI}
+                      disabled={isGeneratingAI || !productFormData.title}
+                      className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-purple-600 to-pink-600 px-4 py-3 font-medium text-white transition-all hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                      title="Gerar descrição e specs com IA"
+                    >
+                      {isGeneratingAI ? (
+                        <Sparkles className="h-5 w-5 animate-spin" />
+                      ) : (
+                        <Sparkles className="h-5 w-5" />
+                      )}
+                      <span className="hidden sm:inline">IA</span>
+                    </button>
+                  </div>
                 </div>
                 <div>
                   <label className="mb-2 block text-sm font-medium text-foreground">Subtítulo</label>
