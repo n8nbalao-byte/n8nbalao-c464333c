@@ -750,6 +750,60 @@ export default function Admin() {
     ],
   };
 
+  // Test product images by category (placeholder images from picsum.photos)
+  const testProductImages: Record<ProductCategory, string[]> = {
+    pc: [],
+    kit: [],
+    notebook: [
+      "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1525547719571-a2d4ac8945e2?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1593642632559-0c6d3fc62b89?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1531297484001-80022131f5a1?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1504707748692-419802cf939d?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1544099858-75feeb57f01b?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1629131726692-1accd0c53ce0?w=800&h=600&fit=crop",
+    ],
+    software: [
+      "https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1461749280684-dccba630e2f6?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1542831371-29b0f74f9713?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1607799279861-4dd421887fb3?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1516116216624-53e697fedbea?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1587620962725-abab7fe55159?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=800&h=600&fit=crop",
+    ],
+    automacao: [
+      "https://images.unsplash.com/photo-1531746790731-6c087fecd65a?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1485827404703-89b55fcc595e?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1535378917042-10a22c95931a?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1518770660439-4636190af475?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1555255707-c07966088b7b?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1620712943543-bcc4688e7485?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1677442136019-21780ecad995?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1639322537228-f710d846310a?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1675557009875-436f7a5c6f9e?w=800&h=600&fit=crop",
+    ],
+    acessorio: [
+      "https://images.unsplash.com/photo-1527814050087-3793815479db?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1595225476474-87563907a212?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1583394838336-acd977736f90?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1615663245857-ac93bb7c39e7?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1587826080692-f439cd0b70da?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1593359677879-a4bb92f829d1?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1558089687-f282ffcbc126?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1545454675-3531b543be5d?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1625794084867-8ddd239946b1?w=800&h=600&fit=crop",
+    ],
+  };
+
   // Test data by product category
   const testProductData: Record<ProductCategory, Array<{ title: string; subtitle: string; totalPrice: number; downloadUrl?: string }>> = {
     pc: [],
@@ -833,13 +887,20 @@ export default function Admin() {
   // Add test product data for specific category
   async function addTestProductData(category: ProductCategory) {
     const categoryData = testProductData[category];
+    const categoryImages = testProductImages[category];
+    
     if (!categoryData || categoryData.length === 0) {
       toast({ title: "Erro", description: "Nenhum dado de teste disponível para esta categoria", variant: "destructive" });
       return;
     }
 
     let successCount = 0;
-    for (const product of categoryData) {
+    for (let i = 0; i < categoryData.length; i++) {
+      const product = categoryData[i];
+      const imageUrl = categoryImages[i % categoryImages.length];
+      
+      const media: MediaItem[] = imageUrl ? [{ type: 'image', url: imageUrl }] : [];
+      
       const success = await api.createProduct({
         title: product.title,
         subtitle: product.subtitle,
@@ -847,7 +908,7 @@ export default function Admin() {
         productType: category,
         downloadUrl: product.downloadUrl || "",
         categories: [category],
-        media: [],
+        media: media,
         specs: {},
         components: {},
       });
