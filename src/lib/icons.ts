@@ -6,21 +6,34 @@ import {
   MessageSquare, Phone, Video, Music, Film, BookOpen, FileText, Folder, 
   Database, Server, Terminal, Settings, Wrench, Hammer, PenTool, Scissors, 
   Paintbrush, Palette, Monitor, Laptop, Cpu, Box, Package, LucideIcon,
-  Joystick, Tv, Key, Code, Bot, Armchair, Zap, HardDrive, MemoryStick, CircuitBoard, Droplets
+  Joystick, Tv, Key, Code, Bot, Armchair, Zap, HardDrive, MemoryStick, CircuitBoard, Droplets,
+  Gamepad, MonitorPlay, Disc, Disc3, Radio, Cable, Usb, Power, Bluetooth, 
+  Router, Airplay, Cast, ScreenShare, PcCase, Component, Microchip, Binary, 
+  Glasses, Eye, Target, Crosshair, Swords, Trophy, Medal, Dumbbell
 } from "lucide-react";
 
 // Mapping of icon keys to Lucide icon components
 export const iconMap: Record<string, LucideIcon> = {
   'tag': Tag,
   'gamepad2': Gamepad2,
+  'gamepad': Gamepad,
   'joystick': Joystick,
+  'monitor-play': MonitorPlay,
+  'disc': Disc,
+  'disc3': Disc3,
   'headphones': Headphones,
   'keyboard': Keyboard,
   'mouse': Mouse,
   'printer': Printer,
   'wifi': Wifi,
+  'bluetooth': Bluetooth,
+  'router': Router,
+  'cable': Cable,
+  'usb': Usb,
+  'power': Power,
   'camera': Camera,
   'speaker': Speaker,
+  'radio': Radio,
   'smartphone': Smartphone,
   'watch': Watch,
   'shopping-bag': ShoppingBag,
@@ -82,6 +95,21 @@ export const iconMap: Record<string, LucideIcon> = {
   'memory-stick': MemoryStick,
   'circuit-board': CircuitBoard,
   'droplets': Droplets,
+  'airplay': Airplay,
+  'cast': Cast,
+  'screen-share': ScreenShare,
+  'pc-case': PcCase,
+  'component': Component,
+  'microchip': Microchip,
+  'binary': Binary,
+  'glasses': Glasses,
+  'eye': Eye,
+  'target': Target,
+  'crosshair': Crosshair,
+  'swords': Swords,
+  'trophy': Trophy,
+  'medal': Medal,
+  'dumbbell': Dumbbell,
 };
 
 // Get icon component from key, defaults to Tag

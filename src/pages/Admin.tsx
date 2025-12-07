@@ -4,20 +4,31 @@ import { Footer } from "@/components/Footer";
 import { Sidebar } from "@/components/Sidebar";
 import { api, type Product, type HardwareItem, type MediaItem, type ProductComponents, type CompanyData, type ProductCategory, type HardwareCategory, getCustomCategories, addCustomCategory, removeCustomCategory, saveCustomCategories } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Pencil, Trash2, Save, X, Upload, Play, Image, Cpu, CircuitBoard, MemoryStick, HardDrive, Monitor, Zap, Box, Package, Download, Droplets, Building2, Laptop, Bot, Code, Wrench, Key, Tv, Armchair, Tag, Gamepad2, Headphones, Keyboard, Mouse, Printer, Wifi, Camera, Speaker, Smartphone, Watch, ShoppingBag, Gift, Star, Heart, Award, Crown, Shield, Rocket, Sparkles, Flame, Leaf, Sun, Moon, Cloud, Umbrella, Anchor, Compass, Map, Globe, Flag, Bookmark, Briefcase, Clock, Calendar, Bell, Mail, MessageSquare, Phone, Video, Music, Film, BookOpen, FileText, Folder, Database, Server, Terminal, Settings, Hammer, PenTool, Scissors, Paintbrush, Palette, LucideIcon } from "lucide-react";
+import { Plus, Pencil, Trash2, Save, X, Upload, Play, Image, Cpu, CircuitBoard, MemoryStick, HardDrive, Monitor, Zap, Box, Package, Download, Droplets, Building2, Laptop, Bot, Code, Wrench, Key, Tv, Armchair, Tag, Gamepad2, Headphones, Keyboard, Mouse, Printer, Wifi, Camera, Speaker, Smartphone, Watch, ShoppingBag, Gift, Star, Heart, Award, Crown, Shield, Rocket, Sparkles, Flame, Leaf, Sun, Moon, Cloud, Umbrella, Anchor, Compass, Map, Globe, Flag, Bookmark, Briefcase, Clock, Calendar, Bell, Mail, MessageSquare, Phone, Video, Music, Film, BookOpen, FileText, Folder, Database, Server, Terminal, Settings, Hammer, PenTool, Scissors, Paintbrush, Palette, LucideIcon, Gamepad, MonitorPlay, Disc, Disc3, Radio, Cable, Usb, Power, Bluetooth, Router, Airplay, Cast, ScreenShare, PcCase, Component, Microchip, Binary, Glasses, Eye, Target, Crosshair, Swords, Trophy, Medal, Dumbbell, Joystick, Search } from "lucide-react";
 import * as XLSX from "xlsx";
 
 // Available icons for custom categories
 const availableIcons: { key: string; icon: LucideIcon }[] = [
   { key: 'tag', icon: Tag },
   { key: 'gamepad2', icon: Gamepad2 },
+  { key: 'gamepad', icon: Gamepad },
+  { key: 'joystick', icon: Joystick },
+  { key: 'monitor-play', icon: MonitorPlay },
+  { key: 'disc', icon: Disc },
+  { key: 'disc3', icon: Disc3 },
   { key: 'headphones', icon: Headphones },
   { key: 'keyboard', icon: Keyboard },
   { key: 'mouse', icon: Mouse },
   { key: 'printer', icon: Printer },
   { key: 'wifi', icon: Wifi },
+  { key: 'bluetooth', icon: Bluetooth },
+  { key: 'router', icon: Router },
+  { key: 'cable', icon: Cable },
+  { key: 'usb', icon: Usb },
+  { key: 'power', icon: Power },
   { key: 'camera', icon: Camera },
   { key: 'speaker', icon: Speaker },
+  { key: 'radio', icon: Radio },
   { key: 'smartphone', icon: Smartphone },
   { key: 'watch', icon: Watch },
   { key: 'shopping-bag', icon: ShoppingBag },
@@ -69,6 +80,31 @@ const availableIcons: { key: string; icon: LucideIcon }[] = [
   { key: 'cpu', icon: Cpu },
   { key: 'box', icon: Box },
   { key: 'package', icon: Package },
+  { key: 'tv', icon: Tv },
+  { key: 'key', icon: Key },
+  { key: 'code', icon: Code },
+  { key: 'bot', icon: Bot },
+  { key: 'armchair', icon: Armchair },
+  { key: 'zap', icon: Zap },
+  { key: 'hard-drive', icon: HardDrive },
+  { key: 'memory-stick', icon: MemoryStick },
+  { key: 'circuit-board', icon: CircuitBoard },
+  { key: 'droplets', icon: Droplets },
+  { key: 'airplay', icon: Airplay },
+  { key: 'cast', icon: Cast },
+  { key: 'screen-share', icon: ScreenShare },
+  { key: 'pc-case', icon: PcCase },
+  { key: 'component', icon: Component },
+  { key: 'microchip', icon: Microchip },
+  { key: 'binary', icon: Binary },
+  { key: 'glasses', icon: Glasses },
+  { key: 'eye', icon: Eye },
+  { key: 'target', icon: Target },
+  { key: 'crosshair', icon: Crosshair },
+  { key: 'swords', icon: Swords },
+  { key: 'trophy', icon: Trophy },
+  { key: 'medal', icon: Medal },
+  { key: 'dumbbell', icon: Dumbbell },
 ];
 import { HardwareCard } from "@/components/HardwareCard";
 
@@ -78,6 +114,13 @@ const ADMIN_PASS = "Balao2025";
 
 type AdminTab = 'products' | 'hardware' | 'company';
 
+interface ExtraProduct {
+  id: string;
+  title: string;
+  price: number;
+  category: string;
+}
+
 interface ProductFormData {
   title: string;
   subtitle: string;
@@ -85,6 +128,7 @@ interface ProductFormData {
   media: MediaItem[];
   specs: Record<string, string>;
   components: ProductComponents;
+  extraProducts: ExtraProduct[];
   totalPrice: number;
   productType: ProductCategory;
   downloadUrl: string;
@@ -132,6 +176,7 @@ const defaultProductFormData: ProductFormData = {
   media: [],
   specs: {},
   components: {},
+  extraProducts: [],
   totalPrice: 0,
   productType: "pc",
   downloadUrl: "",
@@ -537,6 +582,7 @@ export default function Admin() {
         media: product.media || [],
         specs: product.specs || {},
         components: product.components || {},
+        extraProducts: (product as any).extraProducts || [],
         totalPrice: product.totalPrice,
         productType: product.productType || "pc",
         downloadUrl: product.downloadUrl || "",
@@ -2151,6 +2197,127 @@ export default function Admin() {
                       </div>
                     );
                   })()}
+                </div>
+              )}
+
+              {/* Extra Products for PC/Kit - Add products from other categories */}
+              {(productFormData.productType === 'pc' || productFormData.productType === 'kit') && (
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-foreground">Produtos Extras (Opcional)</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Adicione produtos de outras categorias para compor este {productFormData.productType === 'pc' ? 'PC montado' : 'Kit'}
+                  </p>
+                  
+                  {/* Search and add products */}
+                  <div className="rounded-xl border border-border bg-card p-4">
+                    <div className="relative mb-4">
+                      <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                      <input
+                        type="text"
+                        placeholder="Buscar produtos para adicionar..."
+                        className="w-full rounded-lg border border-border bg-background py-2 pl-10 pr-4 text-foreground"
+                        onChange={(e) => {
+                          const searchValue = e.target.value.toLowerCase();
+                          // Filter products list in the UI
+                          const filtered = products.filter(p => 
+                            p.title.toLowerCase().includes(searchValue) &&
+                            p.productType !== 'pc' && 
+                            p.productType !== 'kit'
+                          );
+                          // Store in a data attribute for rendering
+                          e.target.dataset.filtered = JSON.stringify(filtered.slice(0, 10).map(p => p.id));
+                        }}
+                      />
+                    </div>
+                    
+                    {/* Available products to add */}
+                    <div className="max-h-48 overflow-y-auto space-y-2">
+                      {products
+                        .filter(p => p.productType !== 'pc' && p.productType !== 'kit')
+                        .slice(0, 10)
+                        .map(product => {
+                          const isAdded = productFormData.extraProducts.some(ep => ep.id === product.id);
+                          return (
+                            <div
+                              key={product.id}
+                              onClick={() => {
+                                if (!isAdded) {
+                                  setProductFormData(prev => ({
+                                    ...prev,
+                                    extraProducts: [...prev.extraProducts, {
+                                      id: product.id,
+                                      title: product.title,
+                                      price: product.totalPrice,
+                                      category: product.productType || ''
+                                    }],
+                                    totalPrice: prev.totalPrice + product.totalPrice
+                                  }));
+                                }
+                              }}
+                              className={`flex cursor-pointer items-center justify-between rounded-lg border p-3 transition-colors ${
+                                isAdded 
+                                  ? 'border-primary bg-primary/10 opacity-50 cursor-not-allowed' 
+                                  : 'border-border hover:border-primary hover:bg-primary/5'
+                              }`}
+                            >
+                              <div className="flex items-center gap-3">
+                                {product.media?.[0]?.url && (
+                                  <img src={product.media[0].url} alt="" className="h-10 w-10 rounded object-cover" />
+                                )}
+                                <div>
+                                  <p className="text-sm font-medium text-foreground">{product.title}</p>
+                                  <p className="text-xs text-muted-foreground">{product.productType}</p>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span className="font-semibold text-primary">{formatPrice(product.totalPrice)}</span>
+                                {isAdded ? (
+                                  <span className="text-xs text-primary">Adicionado</span>
+                                ) : (
+                                  <Plus className="h-4 w-4 text-muted-foreground" />
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                    </div>
+                  </div>
+                  
+                  {/* Selected extra products */}
+                  {productFormData.extraProducts.length > 0 && (
+                    <div className="rounded-xl border border-primary bg-primary/5 p-4">
+                      <h4 className="mb-3 font-medium text-foreground">Produtos Adicionados:</h4>
+                      <div className="space-y-2">
+                        {productFormData.extraProducts.map((extra, index) => (
+                          <div
+                            key={`${extra.id}-${index}`}
+                            className="flex items-center justify-between rounded-lg bg-card border border-border p-3"
+                          >
+                            <div>
+                              <p className="text-sm font-medium text-foreground">{extra.title}</p>
+                              <p className="text-xs text-muted-foreground">{extra.category}</p>
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <span className="font-semibold text-primary">{formatPrice(extra.price)}</span>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setProductFormData(prev => ({
+                                    ...prev,
+                                    extraProducts: prev.extraProducts.filter((_, i) => i !== index),
+                                    totalPrice: prev.totalPrice - extra.price
+                                  }));
+                                }}
+                                className="text-destructive hover:text-destructive/80"
+                              >
+                                <X className="h-4 w-4" />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
