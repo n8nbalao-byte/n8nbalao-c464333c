@@ -87,7 +87,7 @@ const defaultHardwareFormData: HardwareFormData = {
   tdp: 0,
 };
 
-// PC component steps (hardware)
+// PC component steps (hardware) - all 8 components
 const componentSteps = [
   { key: 'processor', label: 'Processador', icon: Cpu },
   { key: 'motherboard', label: 'Placa-Mãe', icon: CircuitBoard },
@@ -97,6 +97,13 @@ const componentSteps = [
   { key: 'cooler', label: 'Cooler', icon: Droplets },
   { key: 'psu', label: 'Fonte', icon: Zap },
   { key: 'case', label: 'Gabinete', icon: Box },
+] as const;
+
+// Kit component steps - only processor, motherboard, memory
+const kitComponentSteps = [
+  { key: 'processor', label: 'Processador', icon: Cpu },
+  { key: 'motherboard', label: 'Placa-Mãe', icon: CircuitBoard },
+  { key: 'memory', label: 'Memória RAM', icon: MemoryStick },
 ] as const;
 
 // Hardware categories (PC components only)
@@ -394,7 +401,7 @@ export default function Admin() {
       return;
     }
 
-    // Only validate components for PC type
+    // Validate components for PC type
     if (productFormData.productType === 'pc') {
       const missingComponents = componentSteps.filter(
         step => !productFormData.components[step.key as keyof ProductComponents]
@@ -410,8 +417,24 @@ export default function Admin() {
       }
     }
 
-    // For non-PC products, ensure price is set
-    if (productFormData.productType !== 'pc' && productFormData.totalPrice <= 0) {
+    // Validate components for Kit type (only processor, motherboard, memory)
+    if (productFormData.productType === 'kit') {
+      const missingComponents = kitComponentSteps.filter(
+        step => !productFormData.components[step.key as keyof ProductComponents]
+      );
+
+      if (missingComponents.length > 0) {
+        toast({
+          title: "Componentes obrigatórios",
+          description: `Selecione: ${missingComponents.map(c => c.label).join(", ")}`,
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
+    // For non-PC/Kit products, ensure price is set
+    if (!['pc', 'kit'].includes(productFormData.productType) && productFormData.totalPrice <= 0) {
       toast({ title: "Erro", description: "Defina o preço do produto", variant: "destructive" });
       return;
     }
@@ -668,8 +691,21 @@ export default function Admin() {
       { title: "Automação Financeira", subtitle: "Cobranças e notificações", totalPrice: 0, productType: "automacao" as ProductCategory, downloadUrl: "https://example.com/download/financeiro" },
     ];
 
+    const testAcessorios = [
+      { title: "Mouse Gamer RGB", subtitle: "16000 DPI, 7 botões programáveis", totalPrice: 199, productType: "acessorio" as ProductCategory },
+      { title: "Teclado Mecânico", subtitle: "Switch Blue, RGB, ABNT2", totalPrice: 349, productType: "acessorio" as ProductCategory },
+      { title: "Headset Gamer 7.1", subtitle: "Surround, microfone retrátil", totalPrice: 279, productType: "acessorio" as ProductCategory },
+      { title: "Mousepad XXL", subtitle: "90x40cm, base antiderrapante", totalPrice: 89, productType: "acessorio" as ProductCategory },
+      { title: "Webcam Full HD", subtitle: "1080p, microfone integrado", totalPrice: 249, productType: "acessorio" as ProductCategory },
+      { title: "Hub USB 3.0", subtitle: "7 portas, com fonte", totalPrice: 129, productType: "acessorio" as ProductCategory },
+      { title: "Suporte Monitor Articulado", subtitle: "Até 32 polegadas, VESA", totalPrice: 189, productType: "acessorio" as ProductCategory },
+      { title: "Fone Bluetooth Premium", subtitle: "ANC, 40h bateria", totalPrice: 399, productType: "acessorio" as ProductCategory },
+      { title: "Caixa de Som 2.1", subtitle: "50W RMS, subwoofer", totalPrice: 299, productType: "acessorio" as ProductCategory },
+      { title: "Kit Teclado + Mouse Wireless", subtitle: "Silencioso, pilhas inclusas", totalPrice: 149, productType: "acessorio" as ProductCategory },
+    ];
+
     let successCount = 0;
-    const allProducts = [...testNotebooks, ...testSoftwares, ...testAutomacoes];
+    const allProducts = [...testNotebooks, ...testSoftwares, ...testAutomacoes, ...testAcessorios];
 
     for (const product of allProducts) {
       const success = await api.createProduct({
@@ -687,6 +723,93 @@ export default function Admin() {
       description: `${successCount} produtos criados com sucesso!`,
     });
     fetchProductsData();
+  }
+
+  // Bulk upload products
+  function downloadProductExcelTemplate() {
+    const templateData = [
+      {
+        titulo: "Produto Exemplo",
+        subtitulo: "Descrição curta",
+        preco: 999.99,
+        tipo: "notebook", // pc, kit, notebook, automacao, software, acessorio
+        download_url: "", // apenas para automações
+        spec_1_chave: "Processador",
+        spec_1_valor: "Intel Core i7",
+        spec_2_chave: "RAM",
+        spec_2_valor: "16GB",
+      },
+    ];
+
+    const ws = XLSX.utils.json_to_sheet(templateData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Produtos");
+
+    ws["!cols"] = [
+      { wch: 30 }, { wch: 30 }, { wch: 12 }, { wch: 15 }, { wch: 40 },
+      { wch: 15 }, { wch: 20 }, { wch: 15 }, { wch: 20 },
+    ];
+
+    XLSX.writeFile(wb, `template_produtos.xlsx`);
+    toast({ title: "Download iniciado", description: "Use este modelo para envio em massa de produtos" });
+  }
+
+  async function handleProductBulkUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      const data = new Uint8Array(event.target?.result as ArrayBuffer);
+      const workbook = XLSX.read(data, { type: "array" });
+      const sheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
+      const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+      let successCount = 0;
+      let errorCount = 0;
+
+      for (const row of jsonData as any[]) {
+        const specs: Record<string, string> = {};
+        
+        for (let i = 1; i <= 10; i++) {
+          const key = row[`spec_${i}_chave`];
+          const value = row[`spec_${i}_valor`];
+          if (key && value) {
+            specs[key] = String(value);
+          }
+        }
+
+        const productType = (row.tipo || "notebook") as ProductCategory;
+        const product = {
+          title: row.titulo || "",
+          subtitle: row.subtitulo || "",
+          totalPrice: parseFloat(row.preco) || 0,
+          productType,
+          downloadUrl: row.download_url || "",
+          categories: [productType],
+          media: [],
+          specs,
+          components: {},
+        };
+
+        if (product.title) {
+          const success = await api.createProduct(product);
+          if (success) successCount++;
+          else errorCount++;
+        } else {
+          errorCount++;
+        }
+      }
+
+      toast({
+        title: "Upload concluído",
+        description: `${successCount} produtos criados, ${errorCount} erros`,
+      });
+      fetchProductsData();
+    };
+    reader.readAsArrayBuffer(file);
+    e.target.value = "";
   }
 
   // Login Screen
@@ -822,6 +945,27 @@ export default function Admin() {
           {/* Products Tab */}
           {activeTab === 'products' && (
             <>
+              {/* Bulk actions for products */}
+              <div className="mb-4 flex gap-2">
+                <button
+                  onClick={downloadProductExcelTemplate}
+                  className="inline-flex items-center gap-2 rounded-lg bg-secondary px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-secondary/80"
+                >
+                  <Download className="h-4 w-4" />
+                  Baixar Template Excel
+                </button>
+                <label className="cursor-pointer inline-flex items-center gap-2 rounded-lg bg-secondary px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-secondary/80">
+                  <Upload className="h-4 w-4" />
+                  Importar Produtos (Excel)
+                  <input
+                    type="file"
+                    accept=".xlsx,.xls"
+                    onChange={handleProductBulkUpload}
+                    className="hidden"
+                  />
+                </label>
+              </div>
+
               {loading ? (
                 <div className="h-64 animate-pulse rounded-xl bg-card" />
               ) : (
@@ -1220,8 +1364,8 @@ export default function Admin() {
                 </div>
               </div>
 
-              {/* Price for non-PC products */}
-              {productFormData.productType !== 'pc' && (
+              {/* Price for products without component selection (not PC or Kit) */}
+              {!['pc', 'kit'].includes(productFormData.productType) && (
                 <div className="grid gap-6 md:grid-cols-2">
                   <div>
                     <label className="mb-2 block text-sm font-medium text-foreground">Preço (R$) *</label>
@@ -1314,17 +1458,20 @@ export default function Admin() {
                 </div>
               </div>
 
-              {/* Component Selection - Only for PC type */}
-              {productFormData.productType === 'pc' && (
+              {/* Component Selection - For PC and Kit types */}
+              {(productFormData.productType === 'pc' || productFormData.productType === 'kit') && (
                 <div className="space-y-6">
-                  <h3 className="text-lg font-semibold text-foreground">Componentes Obrigatórios</h3>
+                  <h3 className="text-lg font-semibold text-foreground">
+                    {productFormData.productType === 'kit' ? 'Componentes do Kit' : 'Componentes Obrigatórios'}
+                  </h3>
                   
                   {/* Progress indicators */}
                   <div className="flex flex-wrap gap-2">
-                    {componentSteps.map((step, index) => {
+                    {(productFormData.productType === 'kit' ? kitComponentSteps : componentSteps).map((step, index) => {
                       const Icon = step.icon;
                       const isCompleted = !!productFormData.components[step.key as keyof ProductComponents];
-                      const currentStepIndex = componentSteps.findIndex(
+                      const steps = productFormData.productType === 'kit' ? kitComponentSteps : componentSteps;
+                      const currentStepIndex = steps.findIndex(
                         s => !productFormData.components[s.key as keyof ProductComponents]
                       );
                       const isCurrent = index === currentStepIndex;
@@ -1347,10 +1494,10 @@ export default function Admin() {
                       );
                     })}
                   </div>
-
                   {/* Current step selection */}
                   {(() => {
-                    const currentStepIndex = componentSteps.findIndex(
+                    const steps = productFormData.productType === 'kit' ? kitComponentSteps : componentSteps;
+                    const currentStepIndex = steps.findIndex(
                       s => !productFormData.components[s.key as keyof ProductComponents]
                     );
                     
@@ -1365,7 +1512,7 @@ export default function Admin() {
                           
                           {/* Show all selected components for editing */}
                           <div className="mt-4 space-y-3 text-left">
-                            {componentSteps.map(step => {
+                            {steps.map(step => {
                               const Icon = step.icon;
                               const selected = productFormData.components[step.key as keyof ProductComponents];
                               if (!selected) return null;
@@ -1395,7 +1542,7 @@ export default function Admin() {
                       );
                     }
                     
-                    const currentStep = componentSteps[currentStepIndex];
+                    const currentStep = steps[currentStepIndex];
                     const Icon = currentStep.icon;
                     const items = (hardware[currentStep.key] || []).sort((a, b) => a.price - b.price);
                     
@@ -1408,7 +1555,7 @@ export default function Admin() {
                           <Icon className="h-5 w-5 text-primary" />
                           <h4 className="font-medium text-foreground">Selecione o {currentStep.label}</h4>
                           <span className="ml-auto text-sm text-muted-foreground">
-                            Passo {currentStepIndex + 1} de {componentSteps.length}
+                            Passo {currentStepIndex + 1} de {steps.length}
                           </span>
                         </div>
 
@@ -1444,7 +1591,7 @@ export default function Admin() {
                           <div className="mt-4 border-t border-border pt-4">
                             <p className="mb-2 text-xs font-medium text-muted-foreground">Já selecionados:</p>
                             <div className="flex flex-wrap gap-2">
-                              {componentSteps.slice(0, currentStepIndex).map(step => {
+                              {steps.slice(0, currentStepIndex).map(step => {
                                 const StepIcon = step.icon;
                                 const selected = productFormData.components[step.key as keyof ProductComponents];
                                 if (!selected) return null;
