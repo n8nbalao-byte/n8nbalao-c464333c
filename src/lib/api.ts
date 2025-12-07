@@ -3,7 +3,7 @@ const API_BASE_URL = 'https://www.n8nbalao.com/api';
 
 export type ProductCategory = 'pc' | 'kit' | 'notebook' | 'automacao' | 'software' | 'acessorio' | 'licenca' | 'monitor' | 'cadeira_gamer';
 
-// Custom categories stored in database
+// Custom categories stored in localStorage (persistent in browser)
 export interface CustomCategory {
   key: string;
   label: string;
@@ -11,38 +11,37 @@ export interface CustomCategory {
   type?: 'product_type' | 'product_category';
 }
 
-// Fetch custom categories from database
+// Fetch custom categories from localStorage
 export async function getCustomCategories(): Promise<CustomCategory[]> {
   try {
-    const response = await fetch(`${API_BASE_URL}/categories.php?type=product_type`);
-    if (!response.ok) return [];
-    return await response.json();
+    const stored = localStorage.getItem('custom_product_types');
+    return stored ? JSON.parse(stored) : [];
   } catch {
     return [];
   }
 }
 
-// Save category to database
+// Save category to localStorage
 export async function addCustomCategory(key: string, label: string, icon?: string): Promise<boolean> {
   try {
-    const response = await fetch(`${API_BASE_URL}/categories.php`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ key, label, icon, type: 'product_type' }),
-    });
-    return response.ok;
+    const categories = await getCustomCategories();
+    if (!categories.find(c => c.key === key)) {
+      categories.push({ key, label, icon, type: 'product_type' });
+      localStorage.setItem('custom_product_types', JSON.stringify(categories));
+    }
+    return true;
   } catch {
     return false;
   }
 }
 
-// Remove category from database
+// Remove category from localStorage
 export async function removeCustomCategory(key: string): Promise<boolean> {
   try {
-    const response = await fetch(`${API_BASE_URL}/categories.php?key=${key}`, {
-      method: 'DELETE',
-    });
-    return response.ok;
+    const categories = await getCustomCategories();
+    const filtered = categories.filter(c => c.key !== key);
+    localStorage.setItem('custom_product_types', JSON.stringify(filtered));
+    return true;
   } catch {
     return false;
   }
