@@ -277,22 +277,77 @@ export default function Admin() {
     sessionStorage.removeItem("admin_auth");
   }
 
+  // Compress image to reduce size
+  function compressImage(file: File, maxWidth: number = 800, quality: number = 0.7): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      const img = new window.Image();
+      
+      img.onload = () => {
+        let { width, height } = img;
+        
+        if (width > maxWidth) {
+          height = (height * maxWidth) / width;
+          width = maxWidth;
+        }
+        
+        canvas.width = width;
+        canvas.height = height;
+        ctx?.drawImage(img, 0, 0, width, height);
+        
+        const dataUrl = canvas.toDataURL('image/jpeg', quality);
+        resolve(dataUrl);
+      };
+      
+      img.onerror = reject;
+      img.src = URL.createObjectURL(file);
+    });
+  }
+
   // Product functions
-  function handleMediaUpload(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handleMediaUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const files = e.target.files;
     if (!files) return;
 
-    Array.from(files).forEach(file => {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const type: 'image' | 'video' = file.type.startsWith('video/') ? 'video' : 'image';
-        setProductFormData(prev => ({
-          ...prev,
-          media: [...prev.media, { type, url: reader.result as string }],
-        }));
-      };
-      reader.readAsDataURL(file);
-    });
+    for (const file of Array.from(files)) {
+      try {
+        if (file.type.startsWith('video/')) {
+          // Check video size - max 5MB for base64 videos
+          if (file.size > 5 * 1024 * 1024) {
+            toast({
+              title: "Vídeo muito grande",
+              description: "Vídeos devem ter no máximo 5MB. Use URL do YouTube para vídeos maiores.",
+              variant: "destructive"
+            });
+            continue;
+          }
+          
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            setProductFormData(prev => ({
+              ...prev,
+              media: [...prev.media, { type: 'video', url: reader.result as string }],
+            }));
+          };
+          reader.readAsDataURL(file);
+        } else {
+          // Compress images
+          const compressedUrl = await compressImage(file);
+          setProductFormData(prev => ({
+            ...prev,
+            media: [...prev.media, { type: 'image', url: compressedUrl }],
+          }));
+        }
+      } catch (error) {
+        console.error('Error processing media:', error);
+        toast({
+          title: "Erro ao processar mídia",
+          description: "Não foi possível processar o arquivo.",
+          variant: "destructive"
+        });
+      }
+    }
   }
 
   const [videoUrlInput, setVideoUrlInput] = useState("");
@@ -323,15 +378,21 @@ export default function Admin() {
   }
 
   // Hardware image upload
-  function handleHardwareImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handleHardwareImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setHardwareFormData(prev => ({ ...prev, image: reader.result as string }));
-    };
-    reader.readAsDataURL(file);
+    try {
+      const compressedUrl = await compressImage(file);
+      setHardwareFormData(prev => ({ ...prev, image: compressedUrl }));
+    } catch (error) {
+      console.error('Error compressing hardware image:', error);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setHardwareFormData(prev => ({ ...prev, image: reader.result as string }));
+      };
+      reader.readAsDataURL(file);
+    }
   }
 
   function removeMedia(index: number) {
