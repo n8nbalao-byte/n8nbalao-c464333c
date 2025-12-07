@@ -30,6 +30,7 @@ const componentIcons: Record<string, React.ElementType> = {
 };
 
 const componentCategories = ['processor', 'motherboard', 'memory', 'storage', 'gpu', 'psu', 'case', 'cooler'];
+const kitComponentCategories = ['processor', 'motherboard', 'memory'];
 
 export default function Produto() {
   const { id } = useParams<{ id: string }>();
@@ -44,9 +45,10 @@ export default function Produto() {
         setProduct(data);
         
         // If we have component IDs (strings), fetch the full hardware details
-        if (data?.components && data.productType === 'pc') {
+        if (data?.components && (data.productType === 'pc' || data.productType === 'kit')) {
+          const categoriesToFetch = data.productType === 'kit' ? kitComponentCategories : componentCategories;
           const allHardware = await Promise.all(
-            componentCategories.map(cat => api.getHardware(cat))
+            categoriesToFetch.map(cat => api.getHardware(cat))
           );
           
           // Create a map of all hardware by ID

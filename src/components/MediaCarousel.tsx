@@ -46,17 +46,39 @@ export function MediaCarousel({ media, className = "" }: MediaCarouselProps) {
 
   const currentMedia = media[currentIndex];
 
-  // Check if it's a YouTube embed URL
-  const isYouTubeEmbed = (url: string) => url.includes('youtube.com/embed');
+  // Check if it's a YouTube URL and convert to embed format
+  const isYouTubeUrl = (url: string) => 
+    url.includes('youtube.com') || url.includes('youtu.be');
+  
+  const getYouTubeEmbedUrl = (url: string): string => {
+    // Already embed format
+    if (url.includes('youtube.com/embed/')) {
+      return url + '?autoplay=1&mute=1';
+    }
+    
+    // Regular youtube.com/watch?v= format
+    const watchMatch = url.match(/youtube\.com\/watch\?v=([^&]+)/);
+    if (watchMatch) {
+      return `https://www.youtube.com/embed/${watchMatch[1]}?autoplay=1&mute=1`;
+    }
+    
+    // Short youtu.be format
+    const shortMatch = url.match(/youtu\.be\/([^?]+)/);
+    if (shortMatch) {
+      return `https://www.youtube.com/embed/${shortMatch[1]}?autoplay=1&mute=1`;
+    }
+    
+    return url;
+  };
 
   return (
     <div className={`relative overflow-hidden rounded-2xl bg-secondary ${className}`}>
       {/* Media Display */}
       <div className="relative aspect-square">
         {currentMedia.type === 'video' ? (
-          isYouTubeEmbed(currentMedia.url) ? (
+          isYouTubeUrl(currentMedia.url) ? (
             <iframe
-              src={currentMedia.url}
+              src={getYouTubeEmbedUrl(currentMedia.url)}
               className="h-full w-full"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               allowFullScreen
