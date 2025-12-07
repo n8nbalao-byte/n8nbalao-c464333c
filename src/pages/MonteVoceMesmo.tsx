@@ -3,47 +3,32 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { StarryBackground } from "@/components/StarryBackground";
 
-import { api, type HardwareItem, type CompanyData } from "@/lib/api";
+import { api, type Product, type CompanyData, getCustomCategories } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
-import { Cpu, CircuitBoard, MemoryStick, HardDrive, Monitor, Zap, Box, Droplets, Check, Printer, ShoppingCart, ArrowLeft, ArrowRight, Headphones, FileText, Key, Armchair, Plus, X } from "lucide-react";
+import { Check, Printer, ShoppingCart, ArrowLeft, Plus, X, Search, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 
-const componentSteps = [
-  { key: 'processor', label: 'Processador', icon: Cpu },
-  { key: 'motherboard', label: 'Placa-Mãe', icon: CircuitBoard },
-  { key: 'memory', label: 'Memória RAM', icon: MemoryStick },
-  { key: 'storage', label: 'Armazenamento', icon: HardDrive },
-  { key: 'gpu', label: 'Placa de Vídeo', icon: Monitor },
-  { key: 'cooler', label: 'Cooler', icon: Droplets },
-  { key: 'psu', label: 'Fonte', icon: Zap },
-  { key: 'case', label: 'Gabinete', icon: Box },
-] as const;
+// All product categories
+const defaultCategories = [
+  { key: 'pc', label: 'PCs' },
+  { key: 'kit', label: 'Kits' },
+  { key: 'notebook', label: 'Notebooks' },
+  { key: 'acessorio', label: 'Acessórios' },
+  { key: 'software', label: 'Softwares' },
+  { key: 'automacao', label: 'Automações' },
+  { key: 'licenca', label: 'Licenças' },
+  { key: 'monitor', label: 'Monitores' },
+  { key: 'cadeira_gamer', label: 'Cadeiras Gamer' },
+];
 
-const optionalCategories = [
-  { key: 'acessorio', label: 'Acessórios', icon: Headphones },
-  { key: 'software', label: 'Softwares', icon: FileText },
-  { key: 'licenca', label: 'Licenças', icon: Key },
-  { key: 'cadeira_gamer', label: 'Cadeira Gamer', icon: Armchair },
-] as const;
-
-type ComponentKey = typeof componentSteps[number]['key'];
-type OptionalCategoryKey = typeof optionalCategories[number]['key'];
-
-interface SelectedComponents {
-  [key: string]: HardwareItem | null;
-}
-
-interface OptionalItem {
-  id: number | string;
-  title?: string;
-  brand?: string;
-  model?: string;
+interface SelectedProduct {
+  id: string;
+  title: string;
   price: number;
-}
-
-interface SelectedOptionalItems {
-  [key: string]: OptionalItem[];
+  category: string;
+  imageUrl?: string;
 }
 
 function formatPrice(price: number): string {
@@ -61,78 +46,14 @@ function formatDate(date: Date): string {
   }).format(date);
 }
 
-// Compatibility helper functions
-function getFormFactorHierarchy(formFactor: string): number {
-  const hierarchy: Record<string, number> = {
-    'E-ATX': 4,
-    'ATX': 3,
-    'Micro-ATX': 2,
-    'Mini-ITX': 1,
-  };
-  return hierarchy[formFactor] || 0;
-}
-
-function isFormFactorCompatible(caseFormFactor: string, motherboardFormFactor: string): boolean {
-  // Larger cases can fit smaller motherboards
-  return getFormFactorHierarchy(caseFormFactor) >= getFormFactorHierarchy(motherboardFormFactor);
-}
-
-function checkCompatibility(
-  item: HardwareItem,
-  category: string,
-  selectedComponents: SelectedComponents
-): { compatible: boolean; issues: string[] } {
-  const issues: string[] = [];
-  
-  const selectedProcessor = selectedComponents['processor'];
-  const selectedMotherboard = selectedComponents['motherboard'];
-  
-  // Motherboard compatibility check (socket must match processor)
-  if (category === 'motherboard' && selectedProcessor) {
-    if (item.socket && selectedProcessor.socket && item.socket !== selectedProcessor.socket) {
-      issues.push(`Socket incompatível: ${item.socket} ≠ ${selectedProcessor.socket} (processador)`);
-    }
-  }
-  
-  // Memory compatibility check (DDR type must match motherboard)
-  if (category === 'memory' && selectedMotherboard) {
-    if (item.memoryType && selectedMotherboard.memoryType && item.memoryType !== selectedMotherboard.memoryType) {
-      issues.push(`Tipo incompatível: ${item.memoryType} ≠ ${selectedMotherboard.memoryType} (placa-mãe)`);
-    }
-  }
-  
-  // Cooler compatibility check (socket must match processor)
-  if (category === 'cooler' && selectedProcessor) {
-    if (item.socket && selectedProcessor.socket && item.socket !== selectedProcessor.socket) {
-      issues.push(`Socket incompatível: ${item.socket} ≠ ${selectedProcessor.socket} (processador)`);
-    }
-  }
-  
-  // Case compatibility check (form factor must fit motherboard)
-  if (category === 'case' && selectedMotherboard) {
-    if (item.formFactor && selectedMotherboard.formFactor) {
-      if (!isFormFactorCompatible(item.formFactor, selectedMotherboard.formFactor)) {
-        issues.push(`Gabinete ${item.formFactor} não suporta placa-mãe ${selectedMotherboard.formFactor}`);
-      }
-    }
-  }
-  
-  return {
-    compatible: issues.length === 0,
-    issues
-  };
-}
-
 export default function MonteVoceMesmo() {
   const { toast } = useToast();
-  const [currentStep, setCurrentStep] = useState(0);
-  const [hardware, setHardware] = useState<Record<string, HardwareItem[]>>({});
-  const [selectedComponents, setSelectedComponents] = useState<SelectedComponents>({});
-  const [selectedOptionalItems, setSelectedOptionalItems] = useState<SelectedOptionalItems>({});
-  const [optionalProducts, setOptionalProducts] = useState<Record<string, any[]>>({});
-  const [showOptionalSection, setShowOptionalSection] = useState(false);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [selectedProducts, setSelectedProducts] = useState<SelectedProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [showQuote, setShowQuote] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [companyData, setCompanyData] = useState<CompanyData>({
     name: '',
     address: '',
@@ -145,6 +66,9 @@ export default function MonteVoceMesmo() {
   });
   const quoteRef = useRef<HTMLDivElement>(null);
 
+  // Get all categories (default + custom)
+  const allCategories = [...defaultCategories, ...getCustomCategories()];
+
   useEffect(() => {
     fetchData();
   }, []);
@@ -152,101 +76,50 @@ export default function MonteVoceMesmo() {
   async function fetchData() {
     setLoading(true);
     try {
-      const [hardwareData, company, productsData] = await Promise.all([
-        Promise.all(componentSteps.map(step => api.getHardware(step.key))),
-        api.getCompany(),
-        api.getProducts()
+      const [productsData, company] = await Promise.all([
+        api.getProducts(),
+        api.getCompany()
       ]);
       
-      const hardwareByCategory: Record<string, HardwareItem[]> = {};
-      componentSteps.forEach((step, i) => {
-        hardwareByCategory[step.key] = hardwareData[i].sort((a, b) => a.price - b.price);
-      });
-      setHardware(hardwareByCategory);
+      setProducts(productsData.sort((a, b) => a.totalPrice - b.totalPrice));
       setCompanyData(company);
-      
-      // Filter products by optional categories
-      const optionalByCategory: Record<string, any[]> = {};
-      optionalCategories.forEach(cat => {
-        optionalByCategory[cat.key] = productsData
-          .filter((p: any) => p.categories === cat.key)
-          .sort((a: any, b: any) => a.totalPrice - b.totalPrice);
-      });
-      setOptionalProducts(optionalByCategory);
     } catch (error) {
       toast({ title: "Erro", description: "Falha ao carregar dados", variant: "destructive" });
     }
     setLoading(false);
   }
 
-  function selectComponent(item: HardwareItem) {
-    const currentKey = componentSteps[currentStep].key;
-    setSelectedComponents(prev => ({ ...prev, [currentKey]: item }));
+  function addProduct(product: Product) {
+    // Check if already added
+    if (selectedProducts.some(p => p.id === product.id)) {
+      toast({ title: "Atenção", description: "Este produto já foi adicionado ao orçamento", variant: "destructive" });
+      return;
+    }
+
+    const imageUrl = product.media?.[0]?.url || '';
     
-    // Auto-advance to next step after selection
-    if (currentStep < componentSteps.length - 1) {
-      setTimeout(() => {
-        setCurrentStep(currentStep + 1);
-      }, 300);
-    }
+    setSelectedProducts(prev => [...prev, {
+      id: product.id,
+      title: product.title,
+      price: product.totalPrice,
+      category: product.categories?.[0] || product.productType || 'outro',
+      imageUrl
+    }]);
+
+    toast({ title: "Adicionado!", description: `${product.title} foi adicionado ao orçamento` });
   }
 
-  function goToNextStep() {
-    if (currentStep < componentSteps.length - 1) {
-      setCurrentStep(currentStep + 1);
-    }
-  }
-
-  function goToPreviousStep() {
-    if (currentStep > 0) {
-      setCurrentStep(currentStep - 1);
-    }
+  function removeProduct(productId: string) {
+    setSelectedProducts(prev => prev.filter(p => p.id !== productId));
   }
 
   function calculateTotal(): number {
-    const componentsTotal = Object.values(selectedComponents).reduce((sum, item) => {
-      return sum + (item?.price || 0);
-    }, 0);
-    
-    const optionalTotal = Object.values(selectedOptionalItems).reduce((sum, items) => {
-      return sum + items.reduce((itemSum, item) => itemSum + (item.price || 0), 0);
-    }, 0);
-    
-    return componentsTotal + optionalTotal;
-  }
-
-  function addOptionalItem(category: string, item: any) {
-    setSelectedOptionalItems(prev => {
-      const existing = prev[category] || [];
-      // Check if already added
-      if (existing.some(i => i.id === item.id)) return prev;
-      return { ...prev, [category]: [...existing, { ...item, price: item.totalPrice }] };
-    });
-  }
-
-  function removeOptionalItem(category: string, itemId: number | string) {
-    setSelectedOptionalItems(prev => {
-      const existing = prev[category] || [];
-      return { ...prev, [category]: existing.filter(i => String(i.id) !== String(itemId)) };
-    });
-  }
-
-  function getOptionalItemsCount(): number {
-    return Object.values(selectedOptionalItems).reduce((sum, items) => sum + items.length, 0);
-  }
-
-  function isStepComplete(stepIndex: number): boolean {
-    const key = componentSteps[stepIndex].key;
-    return !!selectedComponents[key];
-  }
-
-  function allStepsComplete(): boolean {
-    return componentSteps.every((step) => !!selectedComponents[step.key]);
+    return selectedProducts.reduce((sum, item) => sum + item.price, 0);
   }
 
   function generateQuote() {
-    if (!allStepsComplete()) {
-      toast({ title: "Atenção", description: "Selecione todos os componentes antes de gerar o orçamento", variant: "destructive" });
+    if (selectedProducts.length === 0) {
+      toast({ title: "Atenção", description: "Adicione pelo menos um produto ao orçamento", variant: "destructive" });
       return;
     }
     setShowQuote(true);
@@ -300,16 +173,24 @@ export default function MonteVoceMesmo() {
     });
   }
 
-  const currentStepData = componentSteps[currentStep];
-  const currentHardwareAll = hardware[currentStepData?.key] || [];
-  
-  // Filter out incompatible items - they won't appear in the list
-  const currentHardware = currentHardwareAll.filter(item => {
-    const compatibility = checkCompatibility(item, currentStepData?.key || '', selectedComponents);
-    return compatibility.compatible;
+  // Filter products based on search and category
+  const filteredProducts = products.filter(product => {
+    const matchesSearch = !searchTerm || 
+      product.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      product.subtitle?.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const productCategory = product.categories?.[0] || product.productType || '';
+    const matchesCategory = !activeCategory || productCategory === activeCategory;
+    
+    return matchesSearch && matchesCategory;
   });
-  
-  const selectedItem = selectedComponents[currentStepData?.key];
+
+  // Get category label
+  function getCategoryLabel(key: string): string {
+    const found = allCategories.find(c => c.key === key);
+    return found?.label || key;
+  }
+
   const emissionDate = new Date();
   const validityDate = new Date(emissionDate);
   validityDate.setDate(validityDate.getDate() + 7);
@@ -380,7 +261,7 @@ export default function MonteVoceMesmo() {
 
                 {/* Quote Title */}
                 <h2 className="quote-title text-2xl font-bold text-center mb-4">
-                  ORÇAMENTO DE COMPUTADOR
+                  ORÇAMENTO
                 </h2>
 
                 {/* Date */}
@@ -388,38 +269,23 @@ export default function MonteVoceMesmo() {
                   Data de Emissão: {formatDate(emissionDate)}
                 </div>
 
-                {/* Components Table */}
+                {/* Products Table */}
                 <table className="components-table w-full border-collapse mb-6">
                   <thead>
                     <tr>
-                      <th className="bg-primary text-primary-foreground p-3 text-left">Componente</th>
-                      <th className="bg-primary text-primary-foreground p-3 text-left">Descrição</th>
+                      <th className="bg-primary text-primary-foreground p-3 text-left">Categoria</th>
+                      <th className="bg-primary text-primary-foreground p-3 text-left">Produto</th>
                       <th className="bg-primary text-primary-foreground p-3 text-right">Valor</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {componentSteps.map((step) => {
-                      const item = selectedComponents[step.key];
-                      if (!item) return null;
-                      return (
-                        <tr key={step.key} className="border-b border-border">
-                          <td className="p-3 font-medium">{step.label}</td>
-                          <td className="p-3">{item.brand} {item.model}</td>
-                          <td className="p-3 text-right">{formatPrice(item.price)}</td>
-                        </tr>
-                      );
-                    })}
-                    {/* Optional Items */}
-                    {optionalCategories.map(cat => {
-                      const items = selectedOptionalItems[cat.key] || [];
-                      return items.map((item, idx) => (
-                        <tr key={`${cat.key}-${idx}`} className="border-b border-border bg-secondary/30">
-                          <td className="p-3 font-medium">{cat.label}</td>
-                          <td className="p-3">{item.title || `${item.brand} ${item.model}`}</td>
-                          <td className="p-3 text-right">{formatPrice(item.price)}</td>
-                        </tr>
-                      ));
-                    })}
+                    {selectedProducts.map((item) => (
+                      <tr key={item.id} className="border-b border-border">
+                        <td className="p-3 font-medium">{getCategoryLabel(item.category)}</td>
+                        <td className="p-3">{item.title}</td>
+                        <td className="p-3 text-right">{formatPrice(item.price)}</td>
+                      </tr>
+                    ))}
                     <tr className="total-row bg-primary/10 font-bold text-lg">
                       <td className="p-4" colSpan={2}>TOTAL</td>
                       <td className="p-4 text-right text-primary">{formatPrice(calculateTotal())}</td>
@@ -465,281 +331,185 @@ export default function MonteVoceMesmo() {
           {/* Title */}
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold text-foreground mb-2">Monte Você Mesmo</h1>
-            <p className="text-muted-foreground">Selecione os componentes para montar seu PC personalizado</p>
+            <p className="text-muted-foreground">Escolha produtos de qualquer categoria para montar seu orçamento personalizado</p>
           </div>
 
-          {/* Progress Steps */}
-          <div className="flex items-center justify-center gap-2 mb-8 overflow-x-auto pb-2">
-            {componentSteps.map((step, index) => {
-              const Icon = step.icon;
-              const isComplete = isStepComplete(index);
-              const isCurrent = index === currentStep;
-              return (
-                <button
-                  key={step.key}
-                  onClick={() => setCurrentStep(index)}
-                  className={`flex flex-col items-center p-3 rounded-lg transition-all min-w-[80px] ${
-                    isCurrent 
-                      ? 'bg-primary text-primary-foreground scale-105' 
-                      : isComplete 
-                        ? 'bg-green-500/20 text-green-600' 
-                        : 'bg-muted text-muted-foreground hover:bg-muted/80'
-                  }`}
-                >
-                  <div className="relative">
-                    <Icon className="h-6 w-6" />
-                    {isComplete && !isCurrent && (
-                      <Check className="absolute -top-1 -right-1 h-4 w-4 bg-green-500 text-white rounded-full p-0.5" />
-                    )}
-                  </div>
-                  <span className="text-xs mt-1 font-medium whitespace-nowrap">{step.label}</span>
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Current Step Header */}
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-3">
-              {currentStepData && (
-                <>
-                  <currentStepData.icon className="h-8 w-8 text-primary" />
-                  <div>
-                    <h2 className="text-xl font-bold">
-                      Passo {currentStep + 1} de {componentSteps.length}: {currentStepData.label}
-                    </h2>
-                    <p className="text-sm text-muted-foreground">
-                      {currentHardware.length} opções disponíveis - ordenados do mais barato ao mais caro
-                    </p>
-                  </div>
-                </>
-              )}
+          {/* Search and Filters */}
+          <div className="mb-6 space-y-4">
+            {/* Search Input */}
+            <div className="relative max-w-md mx-auto">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar produtos..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
             </div>
-            <div className="text-right">
-              <p className="text-sm text-muted-foreground">Total Parcial</p>
-              <p className="text-2xl font-bold text-primary">{formatPrice(calculateTotal())}</p>
-            </div>
-          </div>
 
-          {/* Component Selection Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
-            {currentHardware.map((item) => {
-              const isSelected = selectedItem?.id === item.id;
-              
-              return (
-                <Card
-                  key={item.id}
-                  onClick={() => selectComponent(item)}
-                  className={`p-4 cursor-pointer transition-all hover:shadow-lg ${
-                    isSelected 
-                      ? 'ring-2 ring-primary bg-primary/5' 
-                      : 'hover:ring-1 hover:ring-primary/50'
-                  }`}
-                >
-                  <div className="flex items-start gap-4">
-                    <div className="flex-shrink-0 w-16 h-16 bg-muted rounded-lg flex items-center justify-center">
-                      {item.image ? (
-                        <img 
-                          src={item.image} 
-                          alt={item.name} 
-                          className="w-full h-full object-cover rounded-lg"
-                          onError={(e) => {
-                            const target = e.target as HTMLImageElement;
-                            target.style.display = 'none';
-                          }}
-                        />
-                      ) : (
-                        <currentStepData.icon className="h-8 w-8 text-muted-foreground" />
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between gap-2">
-                        <div>
-                          <p className="font-semibold text-sm line-clamp-1">{item.name}</p>
-                          <p className="text-xs text-muted-foreground">{item.brand} - {item.model}</p>
-                        </div>
-                        {isSelected && (
-                          <Check className="h-5 w-5 text-primary flex-shrink-0" />
-                        )}
-                      </div>
-                      {/* Show compatibility info */}
-                      {(item.socket || item.memoryType || item.formFactor) && (
-                        <div className="flex flex-wrap gap-1 mt-1">
-                          {item.socket && (
-                            <span className="text-xs bg-secondary px-1.5 py-0.5 rounded">{item.socket}</span>
-                          )}
-                          {item.memoryType && (
-                            <span className="text-xs bg-secondary px-1.5 py-0.5 rounded">{item.memoryType}</span>
-                          )}
-                          {item.formFactor && (
-                            <span className="text-xs bg-secondary px-1.5 py-0.5 rounded">{item.formFactor}</span>
-                          )}
-                        </div>
-                      )}
-                      <p className="text-lg font-bold text-primary mt-2">
-                        {formatPrice(item.price)}
-                      </p>
-                    </div>
-                  </div>
-                </Card>
-              );
-            })}
-          </div>
-
-          {/* Navigation Buttons */}
-          <div className="flex justify-between items-center">
-            <Button 
-              variant="outline" 
-              onClick={goToPreviousStep}
-              disabled={currentStep === 0}
-            >
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Anterior
-            </Button>
-
-            <div className="flex gap-3">
-              {currentStep === componentSteps.length - 1 ? (
-                <>
-                  <Button
-                    variant="outline"
-                    onClick={() => setShowOptionalSection(!showOptionalSection)}
-                  >
-                    <Plus className="mr-2 h-4 w-4" />
-                    Adicionais ({getOptionalItemsCount()})
-                  </Button>
-                  <Button 
-                    onClick={generateQuote}
-                    disabled={!allStepsComplete()}
-                    className="bg-green-600 hover:bg-green-700"
-                  >
-                    Gerar Orçamento
-                  </Button>
-                </>
-              ) : (
-                <Button 
-                  onClick={goToNextStep}
-                  disabled={!isStepComplete(currentStep)}
-                >
-                  Próximo
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              )}
-            </div>
-          </div>
-
-          {/* Optional Items Section */}
-          {showOptionalSection && (
-            <div className="mt-8 p-6 bg-muted/30 rounded-lg border border-border">
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h3 className="text-xl font-bold">Itens Adicionais (Opcionais)</h3>
-                  <p className="text-sm text-muted-foreground">Adicione acessórios, softwares, licenças ou uma cadeira gamer ao seu pedido</p>
-                </div>
-                <Button variant="ghost" size="icon" onClick={() => setShowOptionalSection(false)}>
-                  <X className="h-5 w-5" />
-                </Button>
-              </div>
-
-              {optionalCategories.map(cat => {
-                const Icon = cat.icon;
-                const products = optionalProducts[cat.key] || [];
-                const selectedItems = selectedOptionalItems[cat.key] || [];
-                
-                if (products.length === 0) return null;
-                
+            {/* Category Filters */}
+            <div className="flex flex-wrap justify-center gap-2">
+              <Button
+                variant={activeCategory === null ? "default" : "outline"}
+                size="sm"
+                onClick={() => setActiveCategory(null)}
+              >
+                Todos
+              </Button>
+              {allCategories.map(cat => {
+                const count = products.filter(p => 
+                  (p.categories?.[0] || p.productType) === cat.key
+                ).length;
+                if (count === 0) return null;
                 return (
-                  <div key={cat.key} className="mb-6">
-                    <div className="flex items-center gap-2 mb-3">
-                      <Icon className="h-5 w-5 text-primary" />
-                      <h4 className="font-semibold">{cat.label}</h4>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                      {products.map((product: any) => {
-                        const isSelected = selectedItems.some(i => String(i.id) === String(product.id));
-                        return (
-                          <Card
-                            key={product.id}
-                            className={`p-3 cursor-pointer transition-all ${
-                              isSelected 
-                                ? 'ring-2 ring-green-500 bg-green-500/10' 
-                                : 'hover:ring-1 hover:ring-primary/50'
-                            }`}
-                            onClick={() => {
-                              if (isSelected) {
-                                removeOptionalItem(cat.key, product.id);
-                              } else {
-                                addOptionalItem(cat.key, product);
-                              }
-                            }}
-                          >
-                            <div className="flex items-center gap-3">
-                              <div className="flex-shrink-0 w-12 h-12 bg-muted rounded-lg flex items-center justify-center overflow-hidden">
-                                {product.media?.[0]?.url ? (
-                                  <img src={product.media[0].url} alt={product.title} className="w-full h-full object-cover" />
-                                ) : (
-                                  <Icon className="h-6 w-6 text-muted-foreground" />
-                                )}
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <p className="font-medium text-sm truncate">{product.title}</p>
-                                <p className="text-primary font-bold">{formatPrice(product.totalPrice)}</p>
-                              </div>
-                              {isSelected && <Check className="h-5 w-5 text-green-500 flex-shrink-0" />}
-                            </div>
-                          </Card>
-                        );
-                      })}
-                    </div>
-                  </div>
+                  <Button
+                    key={cat.key}
+                    variant={activeCategory === cat.key ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setActiveCategory(cat.key)}
+                  >
+                    {cat.label} ({count})
+                  </Button>
                 );
               })}
+            </div>
+          </div>
 
-              {/* Selected Optional Items Summary */}
-              {getOptionalItemsCount() > 0 && (
-                <div className="mt-4 p-4 bg-background rounded-lg border border-border">
-                  <h4 className="font-semibold mb-2">Itens adicionais selecionados:</h4>
-                  <div className="flex flex-wrap gap-2">
-                    {optionalCategories.map(cat => {
-                      const items = selectedOptionalItems[cat.key] || [];
-                      return items.map((item, idx) => (
-                        <div key={`${cat.key}-${idx}`} className="flex items-center gap-2 bg-muted px-3 py-1.5 rounded-full text-sm">
-                          <span>{item.title || `${item.brand} ${item.model}`}</span>
-                          <span className="text-primary font-semibold">{formatPrice(item.price)}</span>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              removeOptionalItem(cat.key, item.id);
-                            }}
-                            className="text-muted-foreground hover:text-destructive"
-                          >
-                            <X className="h-4 w-4" />
-                          </button>
-                        </div>
-                      ));
-                    })}
+          {/* Selected Products Bar */}
+          {selectedProducts.length > 0 && (
+            <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm border border-border rounded-lg p-4 mb-6 shadow-lg">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2">
+                    <ShoppingCart className="h-5 w-5 text-primary" />
+                    <span className="font-semibold">{selectedProducts.length} produto(s) selecionado(s)</span>
+                  </div>
+                  <div className="hidden md:flex flex-wrap gap-2 max-w-2xl">
+                    {selectedProducts.slice(0, 5).map((item) => (
+                      <div key={item.id} className="flex items-center gap-1 bg-muted px-2 py-1 rounded-full text-xs">
+                        <span className="truncate max-w-[100px]">{item.title}</span>
+                        <button
+                          onClick={() => removeProduct(item.id)}
+                          className="text-muted-foreground hover:text-destructive"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ))}
+                    {selectedProducts.length > 5 && (
+                      <span className="text-xs text-muted-foreground">+{selectedProducts.length - 5} mais</span>
+                    )}
                   </div>
                 </div>
-              )}
+                <div className="flex items-center gap-4">
+                  <div className="text-right">
+                    <p className="text-xs text-muted-foreground">Total</p>
+                    <p className="text-lg font-bold text-primary">{formatPrice(calculateTotal())}</p>
+                  </div>
+                  <Button onClick={generateQuote} className="bg-green-600 hover:bg-green-700">
+                    Gerar Orçamento
+                  </Button>
+                </div>
+              </div>
             </div>
           )}
 
-          {/* Selected Components Summary */}
-          {Object.keys(selectedComponents).length > 0 && (
-            <div className="mt-8 p-4 bg-muted/50 rounded-lg">
-              <h3 className="font-semibold mb-3">Componentes Selecionados:</h3>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                {componentSteps.map((step) => {
-                  const item = selectedComponents[step.key];
-                  if (!item) return null;
-                  return (
-                    <div key={step.key} className="text-sm">
-                      <p className="text-muted-foreground">{step.label}:</p>
-                      <p className="font-medium truncate">{item.brand} {item.model}</p>
-                      <p className="text-primary font-semibold">{formatPrice(item.price)}</p>
+          {/* Products Grid */}
+          {filteredProducts.length === 0 ? (
+            <div className="text-center py-12">
+              <Package className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+              <p className="text-muted-foreground">Nenhum produto encontrado</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {filteredProducts.map((product) => {
+                const isSelected = selectedProducts.some(p => p.id === product.id);
+                const imageUrl = product.media?.[0]?.url || '';
+                const productCategory = product.categories?.[0] || product.productType || '';
+                
+                return (
+                  <Card
+                    key={product.id}
+                    className={`p-4 cursor-pointer transition-all hover:shadow-lg ${
+                      isSelected 
+                        ? 'ring-2 ring-green-500 bg-green-500/10' 
+                        : 'hover:ring-1 hover:ring-primary/50'
+                    }`}
+                    onClick={() => isSelected ? removeProduct(product.id) : addProduct(product)}
+                  >
+                    <div className="flex items-start gap-4">
+                      <div className="flex-shrink-0 w-20 h-20 bg-muted rounded-lg flex items-center justify-center overflow-hidden">
+                        {imageUrl ? (
+                          <img 
+                            src={imageUrl} 
+                            alt={product.title} 
+                            className="w-full h-full object-cover rounded-lg"
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              target.style.display = 'none';
+                            }}
+                          />
+                        ) : (
+                          <Package className="h-8 w-8 text-muted-foreground" />
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1 min-w-0">
+                            <span className="text-xs bg-secondary px-2 py-0.5 rounded-full text-muted-foreground">
+                              {getCategoryLabel(productCategory)}
+                            </span>
+                            <p className="font-semibold text-sm line-clamp-2 mt-1">{product.title}</p>
+                            {product.subtitle && (
+                              <p className="text-xs text-muted-foreground line-clamp-1">{product.subtitle}</p>
+                            )}
+                          </div>
+                          {isSelected && (
+                            <Check className="h-5 w-5 text-green-500 flex-shrink-0" />
+                          )}
+                        </div>
+                        <p className="text-lg font-bold text-primary mt-2">
+                          {formatPrice(product.totalPrice)}
+                        </p>
+                      </div>
                     </div>
-                  );
-                })}
-              </div>
+                    <div className="mt-3">
+                      <Button 
+                        variant={isSelected ? "outline" : "default"} 
+                        size="sm" 
+                        className="w-full"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          isSelected ? removeProduct(product.id) : addProduct(product);
+                        }}
+                      >
+                        {isSelected ? (
+                          <>
+                            <X className="mr-1 h-4 w-4" />
+                            Remover
+                          </>
+                        ) : (
+                          <>
+                            <Plus className="mr-1 h-4 w-4" />
+                            Adicionar
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Empty Cart Message */}
+          {selectedProducts.length === 0 && (
+            <div className="mt-8 p-6 bg-muted/30 rounded-lg border border-border text-center">
+              <ShoppingCart className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+              <h3 className="text-lg font-semibold mb-2">Seu orçamento está vazio</h3>
+              <p className="text-muted-foreground">
+                Clique nos produtos acima para adicionar ao seu orçamento personalizado.
+              </p>
             </div>
           )}
         </div>
