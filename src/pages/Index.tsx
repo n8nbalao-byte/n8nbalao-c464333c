@@ -4,7 +4,7 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Sidebar } from "@/components/Sidebar";
 import { StarryBackground } from "@/components/StarryBackground";
-import { FloatingRobot } from "@/components/FloatingRobot";
+
 import { BenefitsCarousel } from "@/components/BenefitsCarousel";
 import { TestimonialsCarousel } from "@/components/TestimonialsCarousel";
 import { IntegrationsCarousel } from "@/components/IntegrationsCarousel";
@@ -63,7 +63,7 @@ export default function Index() {
       <StarryBackground />
       <Header />
       <Sidebar />
-      <FloatingRobot />
+      
 
       {/* Hero Section */}
       <section className="relative overflow-hidden py-20 lg:py-32">

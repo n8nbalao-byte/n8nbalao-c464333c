@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { StarryBackground } from "@/components/StarryBackground";
-import { FloatingRobot } from "@/components/FloatingRobot";
+
 import { api, type HardwareItem, type CompanyData } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { Cpu, CircuitBoard, MemoryStick, HardDrive, Monitor, Zap, Box, Droplets, Check, Printer, ShoppingCart, ArrowLeft, ArrowRight, Headphones, FileText, Key, Armchair, Plus, X } from "lucide-react";
@@ -459,7 +459,6 @@ export default function MonteVoceMesmo() {
   return (
     <div className="min-h-screen flex flex-col relative">
       <StarryBackground />
-      <FloatingRobot />
       <Header />
       <main className="flex-1 container py-8">
         <div className="max-w-6xl mx-auto">
