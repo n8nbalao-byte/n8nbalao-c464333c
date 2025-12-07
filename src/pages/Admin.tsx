@@ -291,6 +291,7 @@ export default function Admin() {
   const [inlineNewCategoryKey, setInlineNewCategoryKey] = useState("");
   const [inlineNewCategoryLabel, setInlineNewCategoryLabel] = useState("");
   const [inlineNewCategoryIcon, setInlineNewCategoryIcon] = useState("tag");
+  const [extraProductCategory, setExtraProductCategory] = useState<string | null>(null);
 
   // Helper to get icon component from key
   const getIconFromKey = (iconKey: string): React.ElementType => {
@@ -2205,88 +2206,110 @@ export default function Admin() {
                 <div className="space-y-4">
                   <h3 className="text-lg font-semibold text-foreground">Produtos Extras (Opcional)</h3>
                   <p className="text-sm text-muted-foreground">
-                    Adicione produtos de outras categorias para compor este {productFormData.productType === 'pc' ? 'PC montado' : 'Kit'}
+                    Selecione uma categoria e adicione produtos para compor este {productFormData.productType === 'pc' ? 'PC montado' : 'Kit'}
                   </p>
                   
-                  {/* Search and add products */}
+                  {/* Category Selection */}
                   <div className="rounded-xl border border-border bg-card p-4">
-                    <div className="relative mb-4">
-                      <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                      <input
-                        type="text"
-                        placeholder="Buscar produtos para adicionar..."
-                        className="w-full rounded-lg border border-border bg-background py-2 pl-10 pr-4 text-foreground"
-                        onChange={(e) => {
-                          const searchValue = e.target.value.toLowerCase();
-                          // Filter products list in the UI
-                          const filtered = products.filter(p => 
-                            p.title.toLowerCase().includes(searchValue) &&
-                            p.productType !== 'pc' && 
-                            p.productType !== 'kit'
-                          );
-                          // Store in a data attribute for rendering
-                          e.target.dataset.filtered = JSON.stringify(filtered.slice(0, 10).map(p => p.id));
-                        }}
-                      />
-                    </div>
-                    
-                    {/* Available products to add */}
-                    <div className="max-h-48 overflow-y-auto space-y-2">
-                      {products
-                        .filter(p => p.productType !== 'pc' && p.productType !== 'kit')
-                        .slice(0, 10)
-                        .map(product => {
-                          const isAdded = productFormData.extraProducts.some(ep => ep.id === product.id);
+                    <p className="mb-3 text-sm font-medium text-foreground">Selecione a categoria:</p>
+                    <div className="flex flex-wrap gap-2 mb-4">
+                      {productTypes
+                        .filter(t => t.key !== 'pc' && t.key !== 'kit')
+                        .map((type) => {
+                          const Icon = type.icon;
+                          const productCount = products.filter(p => p.productType === type.key).length;
                           return (
-                            <div
-                              key={product.id}
-                              onClick={() => {
-                                if (!isAdded) {
-                                  setProductFormData(prev => ({
-                                    ...prev,
-                                    extraProducts: [...prev.extraProducts, {
-                                      id: product.id,
-                                      title: product.title,
-                                      price: product.totalPrice,
-                                      category: product.productType || ''
-                                    }],
-                                    totalPrice: prev.totalPrice + product.totalPrice
-                                  }));
-                                }
-                              }}
-                              className={`flex cursor-pointer items-center justify-between rounded-lg border p-3 transition-colors ${
-                                isAdded 
-                                  ? 'border-primary bg-primary/10 opacity-50 cursor-not-allowed' 
-                                  : 'border-border hover:border-primary hover:bg-primary/5'
+                            <button
+                              key={type.key}
+                              type="button"
+                              onClick={() => setExtraProductCategory(extraProductCategory === type.key ? null : type.key)}
+                              className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                                extraProductCategory === type.key
+                                  ? "bg-primary text-primary-foreground"
+                                  : "bg-secondary text-foreground hover:bg-secondary/80"
                               }`}
                             >
-                              <div className="flex items-center gap-3">
-                                {product.media?.[0]?.url && (
-                                  <img src={product.media[0].url} alt="" className="h-10 w-10 rounded object-cover" />
-                                )}
-                                <div>
-                                  <p className="text-sm font-medium text-foreground">{product.title}</p>
-                                  <p className="text-xs text-muted-foreground">{product.productType}</p>
-                                </div>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <span className="font-semibold text-primary">{formatPrice(product.totalPrice)}</span>
-                                {isAdded ? (
-                                  <span className="text-xs text-primary">Adicionado</span>
-                                ) : (
-                                  <Plus className="h-4 w-4 text-muted-foreground" />
-                                )}
-                              </div>
-                            </div>
+                              <Icon className="h-4 w-4" />
+                              {type.label}
+                              {productCount > 0 && (
+                                <span className="ml-1 rounded-full bg-background/20 px-1.5 py-0.5 text-xs">
+                                  {productCount}
+                                </span>
+                              )}
+                            </button>
                           );
                         })}
                     </div>
+                    
+                    {/* Products from selected category */}
+                    {extraProductCategory && (
+                      <div className="border-t border-border pt-4">
+                        <p className="mb-3 text-sm font-medium text-foreground">
+                          Produtos em {productTypes.find(t => t.key === extraProductCategory)?.label || extraProductCategory}:
+                        </p>
+                        <div className="max-h-64 overflow-y-auto space-y-2">
+                          {products
+                            .filter(p => p.productType === extraProductCategory)
+                            .sort((a, b) => a.totalPrice - b.totalPrice)
+                            .map(product => {
+                              const isAdded = productFormData.extraProducts.some(ep => ep.id === product.id);
+                              return (
+                                <div
+                                  key={product.id}
+                                  onClick={() => {
+                                    if (!isAdded) {
+                                      setProductFormData(prev => ({
+                                        ...prev,
+                                        extraProducts: [...prev.extraProducts, {
+                                          id: product.id,
+                                          title: product.title,
+                                          price: product.totalPrice,
+                                          category: product.productType || ''
+                                        }],
+                                        totalPrice: prev.totalPrice + product.totalPrice
+                                      }));
+                                    }
+                                  }}
+                                  className={`flex cursor-pointer items-center justify-between rounded-lg border p-3 transition-colors ${
+                                    isAdded 
+                                      ? 'border-primary bg-primary/10' 
+                                      : 'border-border hover:border-primary hover:bg-primary/5'
+                                  }`}
+                                >
+                                  <div className="flex items-center gap-3">
+                                    {product.media?.[0]?.url && (
+                                      <img src={product.media[0].url} alt="" className="h-10 w-10 rounded object-cover" />
+                                    )}
+                                    <div>
+                                      <p className="text-sm font-medium text-foreground">{product.title}</p>
+                                      <p className="text-xs text-muted-foreground">{product.subtitle}</p>
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-semibold text-primary">{formatPrice(product.totalPrice)}</span>
+                                    {isAdded ? (
+                                      <span className="text-xs bg-primary text-primary-foreground px-2 py-1 rounded">✓ Adicionado</span>
+                                    ) : (
+                                      <Plus className="h-5 w-5 text-muted-foreground" />
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          {products.filter(p => p.productType === extraProductCategory).length === 0 && (
+                            <p className="text-sm text-muted-foreground text-center py-4">
+                              Nenhum produto nesta categoria
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
                   
                   {/* Selected extra products */}
                   {productFormData.extraProducts.length > 0 && (
                     <div className="rounded-xl border border-primary bg-primary/5 p-4">
-                      <h4 className="mb-3 font-medium text-foreground">Produtos Adicionados:</h4>
+                      <h4 className="mb-3 font-medium text-foreground">Produtos Adicionados ({productFormData.extraProducts.length}):</h4>
                       <div className="space-y-2">
                         {productFormData.extraProducts.map((extra, index) => (
                           <div
@@ -2295,7 +2318,9 @@ export default function Admin() {
                           >
                             <div>
                               <p className="text-sm font-medium text-foreground">{extra.title}</p>
-                              <p className="text-xs text-muted-foreground">{extra.category}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {productTypes.find(t => t.key === extra.category)?.label || extra.category}
+                              </p>
                             </div>
                             <div className="flex items-center gap-3">
                               <span className="font-semibold text-primary">{formatPrice(extra.price)}</span>
