@@ -93,12 +93,26 @@ export default function MonteVoceMesmo() {
   });
   const quoteRef = useRef<HTMLDivElement>(null);
 
-  // Reload custom categories when entering extras phase
+  // Reload categories when products are loaded - include custom categories AND categories from products
   useEffect(() => {
-    if (phase === 'extras') {
-      setAllCategories([...defaultCategories, ...getCustomCategories()]);
+    if (phase === 'extras' && products.length > 0) {
+      const customCats = getCustomCategories();
+      const defaultKeys = defaultCategories.map(c => c.key);
+      const customKeys = customCats.map(c => c.key);
+      
+      // Extract unique categories from products that aren't in defaults or custom
+      const productCategories = products
+        .map(p => p.categories?.[0] || p.productType || '')
+        .filter(cat => cat && !defaultKeys.includes(cat) && !customKeys.includes(cat));
+      
+      const uniqueProductCats = [...new Set(productCategories)].map(key => ({
+        key,
+        label: key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, ' ')
+      }));
+      
+      setAllCategories([...defaultCategories, ...customCats, ...uniqueProductCats]);
     }
-  }, [phase]);
+  }, [phase, products]);
 
   useEffect(() => {
     fetchData();
