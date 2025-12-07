@@ -10,6 +10,7 @@ import Admin from "./pages/Admin";
 import MonteVoceMesmo from "./pages/MonteVoceMesmo";
 import ImportHardware from "./pages/ImportHardware";
 import ImportProducts from "./pages/ImportProducts";
+import ExtractProducts from "./pages/ExtractProducts";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -28,6 +29,7 @@ const App = () => (
           <Route path="/monte-voce-mesmo" element={<MonteVoceMesmo />} />
           <Route path="/import-hardware" element={<ImportHardware />} />
           <Route path="/import-products" element={<ImportProducts />} />
+          <Route path="/extract-products" element={<ExtractProducts />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
