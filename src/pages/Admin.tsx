@@ -4,108 +4,9 @@ import { Footer } from "@/components/Footer";
 import { Sidebar } from "@/components/Sidebar";
 import { api, type Product, type HardwareItem, type MediaItem, type ProductComponents, type CompanyData, type ProductCategory, type HardwareCategory, getCustomCategories, addCustomCategory, removeCustomCategory } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Pencil, Trash2, Save, X, Upload, Play, Image, Cpu, CircuitBoard, MemoryStick, HardDrive, Monitor, Zap, Box, Package, Download, Droplets, Building2, Laptop, Bot, Code, Wrench, Key, Tv, Armchair, Tag, Gamepad2, Headphones, Keyboard, Mouse, Printer, Wifi, Camera, Speaker, Smartphone, Watch, ShoppingBag, Gift, Star, Heart, Award, Crown, Shield, Rocket, Sparkles, Flame, Leaf, Sun, Moon, Cloud, Umbrella, Anchor, Compass, Map, Globe, Flag, Bookmark, Briefcase, Clock, Calendar, Bell, Mail, MessageSquare, Phone, Video, Music, Film, BookOpen, FileText, Folder, Database, Server, Terminal, Settings, Hammer, PenTool, Scissors, Paintbrush, Palette, LucideIcon, Gamepad, MonitorPlay, Disc, Disc3, Radio, Cable, Usb, Power, Bluetooth, Router, Airplay, Cast, ScreenShare, PcCase, Component, Microchip, Binary, Glasses, Eye, Target, Crosshair, Swords, Trophy, Medal, Dumbbell, Joystick, Search } from "lucide-react";
+import { Plus, Pencil, Trash2, Save, X, Upload, Play, Image, Cpu, CircuitBoard, MemoryStick, HardDrive, Monitor, Zap, Box, Package, Download, Droplets, Building2, Laptop, Bot, Code, Wrench, Key, Tv, Armchair, Tag, LucideIcon, Search } from "lucide-react";
 import * as XLSX from "xlsx";
-
-// Available icons for custom categories
-const availableIcons: { key: string; icon: LucideIcon }[] = [
-  { key: 'tag', icon: Tag },
-  { key: 'gamepad2', icon: Gamepad2 },
-  { key: 'gamepad', icon: Gamepad },
-  { key: 'joystick', icon: Joystick },
-  { key: 'monitor-play', icon: MonitorPlay },
-  { key: 'disc', icon: Disc },
-  { key: 'disc3', icon: Disc3 },
-  { key: 'headphones', icon: Headphones },
-  { key: 'keyboard', icon: Keyboard },
-  { key: 'mouse', icon: Mouse },
-  { key: 'printer', icon: Printer },
-  { key: 'wifi', icon: Wifi },
-  { key: 'bluetooth', icon: Bluetooth },
-  { key: 'router', icon: Router },
-  { key: 'cable', icon: Cable },
-  { key: 'usb', icon: Usb },
-  { key: 'power', icon: Power },
-  { key: 'camera', icon: Camera },
-  { key: 'speaker', icon: Speaker },
-  { key: 'radio', icon: Radio },
-  { key: 'smartphone', icon: Smartphone },
-  { key: 'watch', icon: Watch },
-  { key: 'shopping-bag', icon: ShoppingBag },
-  { key: 'gift', icon: Gift },
-  { key: 'star', icon: Star },
-  { key: 'heart', icon: Heart },
-  { key: 'award', icon: Award },
-  { key: 'crown', icon: Crown },
-  { key: 'shield', icon: Shield },
-  { key: 'rocket', icon: Rocket },
-  { key: 'sparkles', icon: Sparkles },
-  { key: 'flame', icon: Flame },
-  { key: 'leaf', icon: Leaf },
-  { key: 'sun', icon: Sun },
-  { key: 'moon', icon: Moon },
-  { key: 'cloud', icon: Cloud },
-  { key: 'umbrella', icon: Umbrella },
-  { key: 'anchor', icon: Anchor },
-  { key: 'compass', icon: Compass },
-  { key: 'map', icon: Map },
-  { key: 'globe', icon: Globe },
-  { key: 'flag', icon: Flag },
-  { key: 'bookmark', icon: Bookmark },
-  { key: 'briefcase', icon: Briefcase },
-  { key: 'clock', icon: Clock },
-  { key: 'calendar', icon: Calendar },
-  { key: 'bell', icon: Bell },
-  { key: 'mail', icon: Mail },
-  { key: 'message-square', icon: MessageSquare },
-  { key: 'phone', icon: Phone },
-  { key: 'video', icon: Video },
-  { key: 'music', icon: Music },
-  { key: 'film', icon: Film },
-  { key: 'book-open', icon: BookOpen },
-  { key: 'file-text', icon: FileText },
-  { key: 'folder', icon: Folder },
-  { key: 'database', icon: Database },
-  { key: 'server', icon: Server },
-  { key: 'terminal', icon: Terminal },
-  { key: 'settings', icon: Settings },
-  { key: 'wrench', icon: Wrench },
-  { key: 'hammer', icon: Hammer },
-  { key: 'pen-tool', icon: PenTool },
-  { key: 'scissors', icon: Scissors },
-  { key: 'paintbrush', icon: Paintbrush },
-  { key: 'palette', icon: Palette },
-  { key: 'monitor', icon: Monitor },
-  { key: 'laptop', icon: Laptop },
-  { key: 'cpu', icon: Cpu },
-  { key: 'box', icon: Box },
-  { key: 'package', icon: Package },
-  { key: 'tv', icon: Tv },
-  { key: 'key', icon: Key },
-  { key: 'code', icon: Code },
-  { key: 'bot', icon: Bot },
-  { key: 'armchair', icon: Armchair },
-  { key: 'zap', icon: Zap },
-  { key: 'hard-drive', icon: HardDrive },
-  { key: 'memory-stick', icon: MemoryStick },
-  { key: 'circuit-board', icon: CircuitBoard },
-  { key: 'droplets', icon: Droplets },
-  { key: 'airplay', icon: Airplay },
-  { key: 'cast', icon: Cast },
-  { key: 'screen-share', icon: ScreenShare },
-  { key: 'pc-case', icon: PcCase },
-  { key: 'component', icon: Component },
-  { key: 'microchip', icon: Microchip },
-  { key: 'binary', icon: Binary },
-  { key: 'glasses', icon: Glasses },
-  { key: 'eye', icon: Eye },
-  { key: 'target', icon: Target },
-  { key: 'crosshair', icon: Crosshair },
-  { key: 'swords', icon: Swords },
-  { key: 'trophy', icon: Trophy },
-  { key: 'medal', icon: Medal },
-  { key: 'dumbbell', icon: Dumbbell },
-];
+import { availableIcons, getIconFromKey } from "@/lib/icons";
 import { HardwareCard } from "@/components/HardwareCard";
 
 // Simple auth - for demo purposes only
@@ -293,11 +194,6 @@ export default function Admin() {
   const [inlineNewCategoryIcon, setInlineNewCategoryIcon] = useState("tag");
   const [extraProductCategory, setExtraProductCategory] = useState<string | null>(null);
 
-  // Helper to get icon component from key
-  const getIconFromKey = (iconKey: string): React.ElementType => {
-    const found = availableIcons.find(i => i.key === iconKey);
-    return found ? found.icon : Tag;
-  };
 
   // Merge base categories with custom categories
   const productTypes = [
