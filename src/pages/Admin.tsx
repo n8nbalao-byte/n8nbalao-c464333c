@@ -1624,36 +1624,41 @@ export default function Admin() {
                 <p className="text-4xl font-bold text-primary">{formatPrice(productFormData.totalPrice)}</p>
               </div>
 
-              {/* Categories */}
+              {/* Categories as Tags */}
               <div>
-                <label className="mb-2 block text-sm font-medium text-foreground">Categorias Adicionais</label>
-                <div className="mb-2 flex flex-wrap gap-2">
-                  {productFormData.categories.map((cat, i) => (
-                    <span key={i} className="inline-flex items-center gap-1 rounded-full bg-primary/20 px-3 py-1 text-sm text-primary">
-                      {cat}
-                      <button type="button" onClick={() => removeCategory(i)} className="hover:text-destructive">
-                        <X className="h-3 w-3" />
+                <label className="mb-2 block text-sm font-medium text-foreground">Categorias (clique para selecionar onde o produto aparece)</label>
+                <div className="flex flex-wrap gap-2">
+                  {productTypes.map((type) => {
+                    const Icon = type.icon;
+                    const isSelected = productFormData.categories.includes(type.key);
+                    return (
+                      <button
+                        key={type.key}
+                        type="button"
+                        onClick={() => {
+                          setProductFormData(prev => ({
+                            ...prev,
+                            categories: isSelected
+                              ? prev.categories.filter(c => c !== type.key)
+                              : [...prev.categories, type.key]
+                          }));
+                        }}
+                        className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-all ${
+                          isSelected
+                            ? "bg-primary text-primary-foreground shadow-glow"
+                            : "bg-secondary text-muted-foreground hover:bg-secondary/80 hover:text-foreground"
+                        }`}
+                      >
+                        <Icon className="h-4 w-4" />
+                        {type.label}
+                        {isSelected && <span className="ml-1">✓</span>}
                       </button>
-                    </span>
-                  ))}
+                    );
+                  })}
                 </div>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={newCategory}
-                    onChange={(e) => setNewCategory(e.target.value)}
-                    className="flex-1 rounded-lg border border-border bg-background px-4 py-2 text-foreground focus:border-primary focus:outline-none"
-                    placeholder="Nova categoria"
-                    onKeyPress={(e) => e.key === "Enter" && (e.preventDefault(), addCategory())}
-                  />
-                  <button
-                    type="button"
-                    onClick={addCategory}
-                    className="rounded-lg bg-secondary px-4 py-2 text-foreground transition-colors hover:bg-secondary/80"
-                  >
-                    <Plus className="h-5 w-5" />
-                  </button>
-                </div>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Selecione em quais categorias este produto deve aparecer na loja
+                </p>
               </div>
 
               {/* Specs */}
