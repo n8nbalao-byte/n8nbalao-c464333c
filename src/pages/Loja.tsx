@@ -4,12 +4,23 @@ import { Footer } from "@/components/Footer";
 import { StarryBackground } from "@/components/StarryBackground";
 import { ProductCard } from "@/components/ProductCard";
 import { api, type Product } from "@/lib/api";
-import { Search, ArrowUpDown } from "lucide-react";
+import { Search, ArrowUpDown, Monitor, Package, Laptop, Bot } from "lucide-react";
+
+type ProductType = 'all' | 'pc' | 'kits' | 'notebook' | 'automacoes';
+
+const productTypes: { key: ProductType; label: string; icon: React.ElementType }[] = [
+  { key: 'all', label: 'Todos', icon: Package },
+  { key: 'pc', label: 'PCs', icon: Monitor },
+  { key: 'kits', label: 'Kits', icon: Package },
+  { key: 'notebook', label: 'Notebooks', icon: Laptop },
+  { key: 'automacoes', label: 'Automações', icon: Bot },
+];
 
 export default function Loja() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [selectedType, setSelectedType] = useState<ProductType>("all");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
 
@@ -32,7 +43,12 @@ export default function Loja() {
       const matchesCategory =
         selectedCategory === "all" ||
         product.categories?.includes(selectedCategory);
-      return matchesSearch && matchesCategory;
+      
+      // Filter by product type
+      const matchesType = selectedType === "all" || 
+        product.categories?.some(cat => cat.toLowerCase() === selectedType.toLowerCase());
+      
+      return matchesSearch && matchesCategory && matchesType;
     })
     .sort((a, b) => {
       if (sortOrder === "asc") {
@@ -52,8 +68,29 @@ export default function Loja() {
           <div className="mb-8">
             <h1 className="text-4xl font-bold text-foreground">Nossa Loja</h1>
             <p className="mt-2 text-muted-foreground">
-              Escolha o plano ideal para automatizar seu atendimento
+              Escolha o produto ideal para suas necessidades
             </p>
+          </div>
+
+          {/* Product Type Tabs */}
+          <div className="mb-6 flex flex-wrap gap-2">
+            {productTypes.map((type) => {
+              const Icon = type.icon;
+              return (
+                <button
+                  key={type.key}
+                  onClick={() => setSelectedType(type.key)}
+                  className={`inline-flex items-center gap-2 rounded-lg px-5 py-3 font-medium transition-colors ${
+                    selectedType === type.key
+                      ? "bg-primary text-primary-foreground shadow-glow"
+                      : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                  }`}
+                >
+                  <Icon className="h-5 w-5" />
+                  {type.label}
+                </button>
+              );
+            })}
           </div>
 
           {/* Filters */}
