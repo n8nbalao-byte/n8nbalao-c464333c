@@ -9,6 +9,7 @@ const navLinks = [
   { href: "/#testimonials", label: "Depoimentos" },
   { href: "/loja", label: "Loja" },
   { href: "/monte-voce-mesmo", label: "Monte Você Mesmo" },
+  { href: "/admin", label: "Admin" },
 ];
 
 export function Header() {
