@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 
 // Hardware steps with icons for PC assembly
 const hardwareSteps: { key: HardwareCategory; label: string; required: boolean; allowMultiple: boolean; icon: React.ElementType }[] = [
@@ -770,86 +770,88 @@ export default function MonteVoceMesmo() {
                 const isSelected = count > 0;
                 
                 return (
-                  <HoverCard key={item.id} openDelay={200} closeDelay={100}>
-                    <HoverCardTrigger asChild>
-                      <div
-                        className={`p-4 rounded-lg border-2 transition-all cursor-pointer ${
-                          isSelected 
-                            ? 'border-green-500 bg-green-500/10' 
-                            : 'border-border hover:border-primary/50'
-                        }`}
-                      >
-                        <div className="flex items-start justify-between gap-4">
-                          <div className="flex items-center gap-3 flex-1 min-w-0">
-                            {/* Thumbnail */}
-                            <div className="w-12 h-12 rounded-lg bg-muted flex-shrink-0 overflow-hidden flex items-center justify-center">
-                              {item.image ? (
-                                <img 
-                                  src={item.image} 
-                                  alt={item.name}
-                                  className="w-full h-full object-cover"
-                                  onError={(e) => {
-                                    (e.target as HTMLImageElement).style.display = 'none';
-                                    (e.target as HTMLImageElement).parentElement!.innerHTML = '<svg class="h-6 w-6 text-muted-foreground" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>';
-                                  }}
-                                />
-                              ) : (
-                                <Package className="h-6 w-6 text-muted-foreground" />
-                              )}
+                  <TooltipProvider key={item.id}>
+                    <Tooltip delayDuration={100}>
+                      <TooltipTrigger asChild>
+                        <div
+                          className={`p-4 rounded-lg border-2 transition-all cursor-pointer ${
+                            isSelected 
+                              ? 'border-green-500 bg-green-500/10' 
+                              : 'border-border hover:border-primary/50'
+                          }`}
+                        >
+                          <div className="flex items-start justify-between gap-4">
+                            <div className="flex items-center gap-3 flex-1 min-w-0">
+                              {/* Thumbnail */}
+                              <div className="w-12 h-12 rounded-lg bg-muted flex-shrink-0 overflow-hidden flex items-center justify-center">
+                                {item.image ? (
+                                  <img 
+                                    src={item.image} 
+                                    alt={item.name}
+                                    className="w-full h-full object-cover"
+                                    onError={(e) => {
+                                      (e.target as HTMLImageElement).style.display = 'none';
+                                      (e.target as HTMLImageElement).parentElement!.innerHTML = '<svg class="h-6 w-6 text-muted-foreground" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>';
+                                    }}
+                                  />
+                                ) : (
+                                  <Package className="h-6 w-6 text-muted-foreground" />
+                                )}
+                              </div>
+                              <div className="min-w-0">
+                                <p className="font-medium">{item.brand} {item.model}</p>
+                                <p className="text-sm text-muted-foreground truncate">{item.name}</p>
+                                <p className="text-lg font-bold text-primary mt-1">{formatPrice(item.price)}</p>
+                              </div>
                             </div>
-                            <div className="min-w-0">
-                              <p className="font-medium">{item.brand} {item.model}</p>
-                              <p className="text-sm text-muted-foreground truncate">{item.name}</p>
-                              <p className="text-lg font-bold text-primary mt-1">{formatPrice(item.price)}</p>
-                            </div>
-                          </div>
-                          
-                          {activeStep.allowMultiple ? (
-                            <div className="flex items-center gap-2">
+                            
+                            {activeStep.allowMultiple ? (
+                              <div className="flex items-center gap-2">
+                                <Button
+                                  variant="outline"
+                                  size="icon"
+                                  onClick={(e) => { e.stopPropagation(); removeOneHardwareItem(activeStep.key, item.id); }}
+                                  disabled={count === 0}
+                                >
+                                  <Minus className="h-4 w-4" />
+                                </Button>
+                                <span className="font-bold w-8 text-center">{count}</span>
+                                <Button
+                                  variant="default"
+                                  size="icon"
+                                  onClick={(e) => { e.stopPropagation(); selectHardware(item); }}
+                                >
+                                  <Plus className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            ) : (
                               <Button
-                                variant="outline"
-                                size="icon"
-                                onClick={(e) => { e.stopPropagation(); removeOneHardwareItem(activeStep.key, item.id); }}
-                                disabled={count === 0}
-                              >
-                                <Minus className="h-4 w-4" />
-                              </Button>
-                              <span className="font-bold w-8 text-center">{count}</span>
-                              <Button
-                                variant="default"
-                                size="icon"
+                                variant={isSelected ? "secondary" : "default"}
                                 onClick={(e) => { e.stopPropagation(); selectHardware(item); }}
                               >
-                                <Plus className="h-4 w-4" />
+                                {isSelected ? <Check className="h-4 w-4 mr-1" /> : null}
+                                {isSelected ? 'Selecionado' : 'Selecionar'}
                               </Button>
-                            </div>
-                          ) : (
-                            <Button
-                              variant={isSelected ? "secondary" : "default"}
-                              onClick={(e) => { e.stopPropagation(); selectHardware(item); }}
-                            >
-                              {isSelected ? <Check className="h-4 w-4 mr-1" /> : null}
-                              {isSelected ? 'Selecionado' : 'Selecionar'}
-                            </Button>
-                          )}
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    </HoverCardTrigger>
-                    <HoverCardContent side="left" className="w-48 p-2">
-                      {item.image ? (
-                        <img 
-                          src={item.image} 
-                          alt={`${item.brand} ${item.model}`}
-                          className="w-full h-32 object-contain rounded-lg bg-muted"
-                        />
-                      ) : (
-                        <div className="w-full h-32 bg-muted rounded-lg flex items-center justify-center">
-                          <Package className="h-12 w-12 text-muted-foreground" />
-                        </div>
-                      )}
-                      <p className="font-semibold text-sm mt-2 text-center">{item.brand} {item.model}</p>
-                    </HoverCardContent>
-                  </HoverCard>
+                      </TooltipTrigger>
+                      <TooltipContent side="left" className="w-48 p-2 bg-popover">
+                        {item.image ? (
+                          <img 
+                            src={item.image} 
+                            alt={`${item.brand} ${item.model}`}
+                            className="w-full h-32 object-contain rounded-lg bg-muted"
+                          />
+                        ) : (
+                          <div className="w-full h-32 bg-muted rounded-lg flex items-center justify-center">
+                            <Package className="h-12 w-12 text-muted-foreground" />
+                          </div>
+                        )}
+                        <p className="font-semibold text-sm mt-2 text-center">{item.brand} {item.model}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 );
               })}
               
@@ -876,77 +878,79 @@ export default function MonteVoceMesmo() {
                 
                 const productImage = product.media?.[0]?.url;
                 return (
-                  <HoverCard key={product.id} openDelay={200} closeDelay={100}>
-                    <HoverCardTrigger asChild>
-                      <div
-                        className={`p-4 rounded-lg border-2 transition-all cursor-pointer ${
-                          isSelected 
-                            ? 'border-green-500 bg-green-500/10' 
-                            : 'border-border hover:border-primary/50'
-                        }`}
-                      >
-                        <div className="flex items-start justify-between gap-4">
-                          <div className="flex items-center gap-3 flex-1 min-w-0">
-                            {/* Thumbnail */}
-                            <div className="w-12 h-12 rounded-lg bg-muted flex-shrink-0 overflow-hidden flex items-center justify-center">
-                              {productImage ? (
-                                <img 
-                                  src={productImage} 
-                                  alt={product.title}
-                                  className="w-full h-full object-cover"
-                                  onError={(e) => {
-                                    (e.target as HTMLImageElement).style.display = 'none';
-                                  }}
-                                />
-                              ) : (
-                                <Package className="h-6 w-6 text-muted-foreground" />
-                              )}
+                  <TooltipProvider key={product.id}>
+                    <Tooltip delayDuration={100}>
+                      <TooltipTrigger asChild>
+                        <div
+                          className={`p-4 rounded-lg border-2 transition-all cursor-pointer ${
+                            isSelected 
+                              ? 'border-green-500 bg-green-500/10' 
+                              : 'border-border hover:border-primary/50'
+                          }`}
+                        >
+                          <div className="flex items-start justify-between gap-4">
+                            <div className="flex items-center gap-3 flex-1 min-w-0">
+                              {/* Thumbnail */}
+                              <div className="w-12 h-12 rounded-lg bg-muted flex-shrink-0 overflow-hidden flex items-center justify-center">
+                                {productImage ? (
+                                  <img 
+                                    src={productImage} 
+                                    alt={product.title}
+                                    className="w-full h-full object-cover"
+                                    onError={(e) => {
+                                      (e.target as HTMLImageElement).style.display = 'none';
+                                    }}
+                                  />
+                                ) : (
+                                  <Package className="h-6 w-6 text-muted-foreground" />
+                                )}
+                              </div>
+                              <div className="min-w-0">
+                                <p className="font-medium">{product.title}</p>
+                                {product.subtitle && (
+                                  <p className="text-sm text-muted-foreground truncate">{product.subtitle}</p>
+                                )}
+                                <p className="text-lg font-bold text-primary mt-1">{formatPrice(product.totalPrice)}</p>
+                              </div>
                             </div>
-                            <div className="min-w-0">
-                              <p className="font-medium">{product.title}</p>
-                              {product.subtitle && (
-                                <p className="text-sm text-muted-foreground truncate">{product.subtitle}</p>
-                              )}
-                              <p className="text-lg font-bold text-primary mt-1">{formatPrice(product.totalPrice)}</p>
+                            
+                            <div className="flex items-center gap-2">
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                onClick={(e) => { e.stopPropagation(); removeOneProduct(product.id); }}
+                                disabled={count === 0}
+                              >
+                                <Minus className="h-4 w-4" />
+                              </Button>
+                              <span className="font-bold w-8 text-center">{count}</span>
+                              <Button
+                                variant="default"
+                                size="icon"
+                                onClick={(e) => { e.stopPropagation(); addProduct(product); }}
+                              >
+                                <Plus className="h-4 w-4" />
+                              </Button>
                             </div>
                           </div>
-                          
-                          <div className="flex items-center gap-2">
-                            <Button
-                              variant="outline"
-                              size="icon"
-                              onClick={(e) => { e.stopPropagation(); removeOneProduct(product.id); }}
-                              disabled={count === 0}
-                            >
-                              <Minus className="h-4 w-4" />
-                            </Button>
-                            <span className="font-bold w-8 text-center">{count}</span>
-                            <Button
-                              variant="default"
-                              size="icon"
-                              onClick={(e) => { e.stopPropagation(); addProduct(product); }}
-                            >
-                              <Plus className="h-4 w-4" />
-                            </Button>
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent side="left" className="w-48 p-2 bg-popover">
+                        {productImage ? (
+                          <img 
+                            src={productImage} 
+                            alt={product.title}
+                            className="w-full h-32 object-contain rounded-lg bg-muted"
+                          />
+                        ) : (
+                          <div className="w-full h-32 bg-muted rounded-lg flex items-center justify-center">
+                            <Package className="h-12 w-12 text-muted-foreground" />
                           </div>
-                        </div>
-                      </div>
-                    </HoverCardTrigger>
-                    <HoverCardContent side="left" className="w-48 p-2">
-                      {productImage ? (
-                        <img 
-                          src={productImage} 
-                          alt={product.title}
-                          className="w-full h-32 object-contain rounded-lg bg-muted"
-                        />
-                      ) : (
-                        <div className="w-full h-32 bg-muted rounded-lg flex items-center justify-center">
-                          <Package className="h-12 w-12 text-muted-foreground" />
-                        </div>
-                      )}
-                      <p className="font-semibold text-sm mt-2 text-center">{product.title}</p>
-                    </HoverCardContent>
-                  </HoverCard>
+                        )}
+                        <p className="font-semibold text-sm mt-2 text-center">{product.title}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 );
               })}
               
