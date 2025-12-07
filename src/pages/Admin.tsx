@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Sidebar } from "@/components/Sidebar";
 import { api, type Product, type HardwareItem, type MediaItem, type ProductComponents, type CompanyData, type ProductCategory, type HardwareCategory, getCustomCategories, addCustomCategory, removeCustomCategory } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Pencil, Trash2, Save, X, Upload, Play, Image, Cpu, CircuitBoard, MemoryStick, HardDrive, Monitor, Zap, Box, Package, Download, Droplets, Building2, Laptop, Bot, Code, Wrench, Key, Tv, Armchair, Tag, LucideIcon, Search } from "lucide-react";
+import { Plus, Pencil, Trash2, Save, X, Upload, Play, Image, Cpu, CircuitBoard, MemoryStick, HardDrive, Monitor, Zap, Box, Package, Download, Droplets, Building2, Laptop, Bot, Code, Wrench, Key, Tv, Armchair, Tag, LucideIcon, Search, Sparkles } from "lucide-react";
 import * as XLSX from "xlsx";
 import { availableIcons, getIconFromKey } from "@/lib/icons";
 import { HardwareCard } from "@/components/HardwareCard";
@@ -151,6 +152,7 @@ const baseProductTypes: { key: ProductCategory; label: string; icon: React.Eleme
 
 export default function Admin() {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loginData, setLoginData] = useState({ user: "", pass: "" });
   const [activeTab, setActiveTab] = useState<AdminTab>('products');
@@ -1327,6 +1329,13 @@ export default function Admin() {
               <p className="mt-2 text-muted-foreground">Gerencie produtos e componentes</p>
             </div>
             <div className="flex gap-4">
+              <button
+                onClick={() => navigate('/extract-products')}
+                className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-purple-600 to-pink-600 px-6 py-3 font-semibold text-white shadow-lg transition-all hover:shadow-xl hover:scale-105"
+              >
+                <Sparkles className="h-5 w-5" />
+                Extração IA
+              </button>
               {activeTab === 'products' && (
                   <button
                     onClick={() => openProductEditor()}
