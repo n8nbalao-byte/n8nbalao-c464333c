@@ -5,7 +5,7 @@ import { StarryBackground } from "@/components/StarryBackground";
 import { FloatingRobot } from "@/components/FloatingRobot";
 import { api, type HardwareItem, type CompanyData } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
-import { Cpu, CircuitBoard, MemoryStick, HardDrive, Monitor, Zap, Box, Droplets, Check, Printer, ShoppingCart, ArrowLeft, ArrowRight } from "lucide-react";
+import { Cpu, CircuitBoard, MemoryStick, HardDrive, Monitor, Zap, Box, Droplets, Check, Printer, ShoppingCart, ArrowLeft, ArrowRight, Headphones, FileText, Key, Armchair, Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 
@@ -20,10 +20,30 @@ const componentSteps = [
   { key: 'case', label: 'Gabinete', icon: Box },
 ] as const;
 
+const optionalCategories = [
+  { key: 'acessorio', label: 'Acessórios', icon: Headphones },
+  { key: 'software', label: 'Softwares', icon: FileText },
+  { key: 'licenca', label: 'Licenças', icon: Key },
+  { key: 'cadeira_gamer', label: 'Cadeira Gamer', icon: Armchair },
+] as const;
+
 type ComponentKey = typeof componentSteps[number]['key'];
+type OptionalCategoryKey = typeof optionalCategories[number]['key'];
 
 interface SelectedComponents {
   [key: string]: HardwareItem | null;
+}
+
+interface OptionalItem {
+  id: number | string;
+  title?: string;
+  brand?: string;
+  model?: string;
+  price: number;
+}
+
+interface SelectedOptionalItems {
+  [key: string]: OptionalItem[];
 }
 
 function formatPrice(price: number): string {
@@ -108,6 +128,9 @@ export default function MonteVoceMesmo() {
   const [currentStep, setCurrentStep] = useState(0);
   const [hardware, setHardware] = useState<Record<string, HardwareItem[]>>({});
   const [selectedComponents, setSelectedComponents] = useState<SelectedComponents>({});
+  const [selectedOptionalItems, setSelectedOptionalItems] = useState<SelectedOptionalItems>({});
+  const [optionalProducts, setOptionalProducts] = useState<Record<string, any[]>>({});
+  const [showOptionalSection, setShowOptionalSection] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showQuote, setShowQuote] = useState(false);
   const [companyData, setCompanyData] = useState<CompanyData>({
@@ -129,9 +152,10 @@ export default function MonteVoceMesmo() {
   async function fetchData() {
     setLoading(true);
     try {
-      const [hardwareData, company] = await Promise.all([
+      const [hardwareData, company, productsData] = await Promise.all([
         Promise.all(componentSteps.map(step => api.getHardware(step.key))),
-        api.getCompany()
+        api.getCompany(),
+        api.getProducts()
       ]);
       
       const hardwareByCategory: Record<string, HardwareItem[]> = {};
@@ -140,6 +164,15 @@ export default function MonteVoceMesmo() {
       });
       setHardware(hardwareByCategory);
       setCompanyData(company);
+      
+      // Filter products by optional categories
+      const optionalByCategory: Record<string, any[]> = {};
+      optionalCategories.forEach(cat => {
+        optionalByCategory[cat.key] = productsData
+          .filter((p: any) => p.categories === cat.key)
+          .sort((a: any, b: any) => a.totalPrice - b.totalPrice);
+      });
+      setOptionalProducts(optionalByCategory);
     } catch (error) {
       toast({ title: "Erro", description: "Falha ao carregar dados", variant: "destructive" });
     }
@@ -171,9 +204,35 @@ export default function MonteVoceMesmo() {
   }
 
   function calculateTotal(): number {
-    return Object.values(selectedComponents).reduce((sum, item) => {
+    const componentsTotal = Object.values(selectedComponents).reduce((sum, item) => {
       return sum + (item?.price || 0);
     }, 0);
+    
+    const optionalTotal = Object.values(selectedOptionalItems).reduce((sum, items) => {
+      return sum + items.reduce((itemSum, item) => itemSum + (item.price || 0), 0);
+    }, 0);
+    
+    return componentsTotal + optionalTotal;
+  }
+
+  function addOptionalItem(category: string, item: any) {
+    setSelectedOptionalItems(prev => {
+      const existing = prev[category] || [];
+      // Check if already added
+      if (existing.some(i => i.id === item.id)) return prev;
+      return { ...prev, [category]: [...existing, { ...item, price: item.totalPrice }] };
+    });
+  }
+
+  function removeOptionalItem(category: string, itemId: number | string) {
+    setSelectedOptionalItems(prev => {
+      const existing = prev[category] || [];
+      return { ...prev, [category]: existing.filter(i => String(i.id) !== String(itemId)) };
+    });
+  }
+
+  function getOptionalItemsCount(): number {
+    return Object.values(selectedOptionalItems).reduce((sum, items) => sum + items.length, 0);
   }
 
   function isStepComplete(stepIndex: number): boolean {
@@ -349,6 +408,17 @@ export default function MonteVoceMesmo() {
                           <td className="p-3 text-right">{formatPrice(item.price)}</td>
                         </tr>
                       );
+                    })}
+                    {/* Optional Items */}
+                    {optionalCategories.map(cat => {
+                      const items = selectedOptionalItems[cat.key] || [];
+                      return items.map((item, idx) => (
+                        <tr key={`${cat.key}-${idx}`} className="border-b border-border bg-secondary/30">
+                          <td className="p-3 font-medium">{cat.label}</td>
+                          <td className="p-3">{item.title || `${item.brand} ${item.model}`}</td>
+                          <td className="p-3 text-right">{formatPrice(item.price)}</td>
+                        </tr>
+                      ));
                     })}
                     <tr className="total-row bg-primary/10 font-bold text-lg">
                       <td className="p-4" colSpan={2}>TOTAL</td>
@@ -530,13 +600,22 @@ export default function MonteVoceMesmo() {
 
             <div className="flex gap-3">
               {currentStep === componentSteps.length - 1 ? (
-                <Button 
-                  onClick={generateQuote}
-                  disabled={!allStepsComplete()}
-                  className="bg-green-600 hover:bg-green-700"
-                >
-                  Gerar Orçamento
-                </Button>
+                <>
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowOptionalSection(!showOptionalSection)}
+                  >
+                    <Plus className="mr-2 h-4 w-4" />
+                    Adicionais ({getOptionalItemsCount()})
+                  </Button>
+                  <Button 
+                    onClick={generateQuote}
+                    disabled={!allStepsComplete()}
+                    className="bg-green-600 hover:bg-green-700"
+                  >
+                    Gerar Orçamento
+                  </Button>
+                </>
               ) : (
                 <Button 
                   onClick={goToNextStep}
@@ -548,6 +627,102 @@ export default function MonteVoceMesmo() {
               )}
             </div>
           </div>
+
+          {/* Optional Items Section */}
+          {showOptionalSection && (
+            <div className="mt-8 p-6 bg-muted/30 rounded-lg border border-border">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h3 className="text-xl font-bold">Itens Adicionais (Opcionais)</h3>
+                  <p className="text-sm text-muted-foreground">Adicione acessórios, softwares, licenças ou uma cadeira gamer ao seu pedido</p>
+                </div>
+                <Button variant="ghost" size="icon" onClick={() => setShowOptionalSection(false)}>
+                  <X className="h-5 w-5" />
+                </Button>
+              </div>
+
+              {optionalCategories.map(cat => {
+                const Icon = cat.icon;
+                const products = optionalProducts[cat.key] || [];
+                const selectedItems = selectedOptionalItems[cat.key] || [];
+                
+                if (products.length === 0) return null;
+                
+                return (
+                  <div key={cat.key} className="mb-6">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Icon className="h-5 w-5 text-primary" />
+                      <h4 className="font-semibold">{cat.label}</h4>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {products.map((product: any) => {
+                        const isSelected = selectedItems.some(i => String(i.id) === String(product.id));
+                        return (
+                          <Card
+                            key={product.id}
+                            className={`p-3 cursor-pointer transition-all ${
+                              isSelected 
+                                ? 'ring-2 ring-green-500 bg-green-500/10' 
+                                : 'hover:ring-1 hover:ring-primary/50'
+                            }`}
+                            onClick={() => {
+                              if (isSelected) {
+                                removeOptionalItem(cat.key, product.id);
+                              } else {
+                                addOptionalItem(cat.key, product);
+                              }
+                            }}
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className="flex-shrink-0 w-12 h-12 bg-muted rounded-lg flex items-center justify-center overflow-hidden">
+                                {product.media?.[0]?.url ? (
+                                  <img src={product.media[0].url} alt={product.title} className="w-full h-full object-cover" />
+                                ) : (
+                                  <Icon className="h-6 w-6 text-muted-foreground" />
+                                )}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="font-medium text-sm truncate">{product.title}</p>
+                                <p className="text-primary font-bold">{formatPrice(product.totalPrice)}</p>
+                              </div>
+                              {isSelected && <Check className="h-5 w-5 text-green-500 flex-shrink-0" />}
+                            </div>
+                          </Card>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+
+              {/* Selected Optional Items Summary */}
+              {getOptionalItemsCount() > 0 && (
+                <div className="mt-4 p-4 bg-background rounded-lg border border-border">
+                  <h4 className="font-semibold mb-2">Itens adicionais selecionados:</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {optionalCategories.map(cat => {
+                      const items = selectedOptionalItems[cat.key] || [];
+                      return items.map((item, idx) => (
+                        <div key={`${cat.key}-${idx}`} className="flex items-center gap-2 bg-muted px-3 py-1.5 rounded-full text-sm">
+                          <span>{item.title || `${item.brand} ${item.model}`}</span>
+                          <span className="text-primary font-semibold">{formatPrice(item.price)}</span>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              removeOptionalItem(cat.key, item.id);
+                            }}
+                            className="text-muted-foreground hover:text-destructive"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        </div>
+                      ));
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Selected Components Summary */}
           {Object.keys(selectedComponents).length > 0 && (
