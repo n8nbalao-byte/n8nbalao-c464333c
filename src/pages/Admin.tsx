@@ -211,6 +211,8 @@ export default function Admin() {
   const [newCategory, setNewCategory] = useState("");
   const [newProductSpecKey, setNewProductSpecKey] = useState("");
   const [newProductSpecValue, setNewProductSpecValue] = useState("");
+  const [productSortColumn, setProductSortColumn] = useState<'title' | 'type' | 'price'>('title');
+  const [productSortDirection, setProductSortDirection] = useState<'asc' | 'desc'>('asc');
 
   // Hardware state
   const [activeHardwareCategory, setActiveHardwareCategory] = useState<HardwareCategory>('processor');
@@ -1356,14 +1358,61 @@ export default function Admin() {
                     <thead className="border-b border-border bg-secondary">
                       <tr>
                         <th className="px-6 py-4 text-left text-sm font-semibold text-foreground">Mídia</th>
-                        <th className="px-6 py-4 text-left text-sm font-semibold text-foreground">Título</th>
-                        <th className="px-6 py-4 text-left text-sm font-semibold text-foreground">Tipo</th>
-                        <th className="px-6 py-4 text-left text-sm font-semibold text-foreground">Preço</th>
+                        <th 
+                          className="px-6 py-4 text-left text-sm font-semibold text-foreground cursor-pointer hover:text-primary transition-colors"
+                          onClick={() => {
+                            if (productSortColumn === 'title') {
+                              setProductSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+                            } else {
+                              setProductSortColumn('title');
+                              setProductSortDirection('asc');
+                            }
+                          }}
+                        >
+                          Título {productSortColumn === 'title' && (productSortDirection === 'asc' ? '↑' : '↓')}
+                        </th>
+                        <th 
+                          className="px-6 py-4 text-left text-sm font-semibold text-foreground cursor-pointer hover:text-primary transition-colors"
+                          onClick={() => {
+                            if (productSortColumn === 'type') {
+                              setProductSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+                            } else {
+                              setProductSortColumn('type');
+                              setProductSortDirection('asc');
+                            }
+                          }}
+                        >
+                          Tipo {productSortColumn === 'type' && (productSortDirection === 'asc' ? '↑' : '↓')}
+                        </th>
+                        <th 
+                          className="px-6 py-4 text-left text-sm font-semibold text-foreground cursor-pointer hover:text-primary transition-colors"
+                          onClick={() => {
+                            if (productSortColumn === 'price') {
+                              setProductSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+                            } else {
+                              setProductSortColumn('price');
+                              setProductSortDirection('asc');
+                            }
+                          }}
+                        >
+                          Preço {productSortColumn === 'price' && (productSortDirection === 'asc' ? '↑' : '↓')}
+                        </th>
                         <th className="px-6 py-4 text-right text-sm font-semibold text-foreground">Ações</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border">
-                      {products.map((product) => {
+                      {[...products].sort((a, b) => {
+                        const direction = productSortDirection === 'asc' ? 1 : -1;
+                        if (productSortColumn === 'title') {
+                          return a.title.localeCompare(b.title) * direction;
+                        } else if (productSortColumn === 'type') {
+                          const typeA = a.productType || '';
+                          const typeB = b.productType || '';
+                          return typeA.localeCompare(typeB) * direction;
+                        } else {
+                          return ((a.totalPrice || 0) - (b.totalPrice || 0)) * direction;
+                        }
+                      }).map((product) => {
                         const typeInfo = productTypes.find(t => t.key === product.productType) || productTypes[0];
                         const TypeIcon = typeInfo.icon;
                         return (
