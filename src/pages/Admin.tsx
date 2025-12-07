@@ -76,7 +76,7 @@ import { HardwareCard } from "@/components/HardwareCard";
 const ADMIN_USER = "n8nbalao";
 const ADMIN_PASS = "Balao2025";
 
-type AdminTab = 'products' | 'hardware' | 'company' | 'categories';
+type AdminTab = 'products' | 'hardware' | 'company';
 
 interface ProductFormData {
   title: string;
@@ -1261,29 +1261,6 @@ export default function Admin() {
             </div>
             <div className="flex gap-4">
               {activeTab === 'products' && (
-                <>
-                  <div className="relative group">
-                    <button
-                      className="inline-flex items-center gap-2 rounded-lg bg-secondary px-4 py-3 font-medium text-foreground transition-colors hover:bg-secondary/80"
-                    >
-                      Adicionar Dados de Teste ▼
-                    </button>
-                    <div className="absolute right-0 top-full z-50 hidden w-48 rounded-lg bg-card border border-border shadow-lg group-hover:block">
-                      {productTypes.filter(t => !['pc', 'kit'].includes(t.key)).map(type => {
-                        const Icon = type.icon;
-                        return (
-                          <button
-                            key={type.key}
-                            onClick={() => addTestProductData(type.key)}
-                            className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-foreground hover:bg-secondary/50 first:rounded-t-lg last:rounded-b-lg"
-                          >
-                            <Icon className="h-4 w-4" />
-                            {type.label}s
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
                   <button
                     onClick={() => openProductEditor()}
                     className="inline-flex items-center gap-2 rounded-lg bg-primary px-6 py-3 font-semibold text-primary-foreground shadow-glow transition-colors hover:bg-primary/90"
@@ -1291,16 +1268,8 @@ export default function Admin() {
                     <Plus className="h-5 w-5" />
                     Novo Produto
                   </button>
-                </>
               )}
               {activeTab === 'hardware' && (
-                <>
-                  <button
-                    onClick={() => addTestHardwareData(activeHardwareCategory)}
-                    className="inline-flex items-center gap-2 rounded-lg bg-secondary px-4 py-3 font-medium text-foreground transition-colors hover:bg-secondary/80"
-                  >
-                    Adicionar {hardwareCategories.find(c => c.key === activeHardwareCategory)?.label || 'Dados'} de Teste
-                  </button>
                   <button
                     onClick={() => openHardwareEditor()}
                     className="inline-flex items-center gap-2 rounded-lg bg-primary px-6 py-3 font-semibold text-primary-foreground shadow-glow transition-colors hover:bg-primary/90"
@@ -1308,7 +1277,6 @@ export default function Admin() {
                     <Plus className="h-5 w-5" />
                     Novo Componente
                   </button>
-                </>
               )}
               <button
                 onClick={handleLogout}
@@ -1353,17 +1321,6 @@ export default function Admin() {
             >
               <Building2 className="h-5 w-5" />
               Dados da Empresa
-            </button>
-            <button
-              onClick={() => setActiveTab('categories')}
-              className={`inline-flex items-center gap-2 rounded-lg px-6 py-3 font-medium transition-colors ${
-                activeTab === 'categories'
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-secondary text-foreground hover:bg-secondary/80"
-              }`}
-            >
-              <Tag className="h-5 w-5" />
-              Categorias
             </button>
           </div>
 
@@ -1613,70 +1570,6 @@ export default function Admin() {
                   </div>
                 </div>
               )}
-            </div>
-          )}
-
-          {/* Categories Tab */}
-          {activeTab === 'categories' && (
-            <div className="max-w-2xl">
-              <div className="rounded-xl border border-border bg-card p-6">
-                <h2 className="text-xl font-bold text-foreground mb-6">Gerenciar Categorias</h2>
-                <p className="text-sm text-muted-foreground mb-6">
-                  Visualize e gerencie as categorias dos seus produtos. Novas categorias podem ser criadas no cadastro de produtos.
-                </p>
-
-                {/* Default categories */}
-                <div className="mb-6">
-                  <h3 className="font-semibold text-foreground mb-3">Categorias Padrão</h3>
-                  <div className="flex flex-wrap gap-2">
-                    {baseProductTypes.map((cat) => {
-                      const Icon = cat.icon;
-                      return (
-                        <div
-                          key={cat.key}
-                          className="inline-flex items-center gap-2 rounded-lg bg-secondary px-4 py-2 text-sm font-medium text-foreground"
-                        >
-                          <Icon className="h-4 w-4" />
-                          {cat.label}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* Custom categories */}
-                {customCategoriesList.length > 0 && (
-                  <div>
-                    <h3 className="font-semibold text-foreground mb-3">Categorias Personalizadas</h3>
-                    <div className="space-y-2">
-                      {customCategoriesList.map((cat) => (
-                        <div
-                          key={cat.key}
-                          className="flex items-center justify-between rounded-lg bg-secondary/50 border border-border px-4 py-3"
-                        >
-                          <div className="flex items-center gap-3">
-                            <Tag className="h-4 w-4 text-primary" />
-                            <span className="font-medium text-foreground">{cat.label}</span>
-                            <span className="text-sm text-muted-foreground">({cat.key})</span>
-                          </div>
-                          <button
-                            onClick={() => {
-                              if (confirm(`Remover categoria "${cat.label}"?`)) {
-                                removeCustomCategory(cat.key);
-                                setCustomCategoriesList(getCustomCategories());
-                                toast({ title: "Categoria removida" });
-                              }
-                            }}
-                            className="text-destructive hover:text-destructive/80"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
             </div>
           )}
 
