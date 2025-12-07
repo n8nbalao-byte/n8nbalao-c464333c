@@ -15,7 +15,7 @@ const componentSteps = [
   { key: 'memory', label: 'Memória RAM', icon: MemoryStick },
   { key: 'storage', label: 'Armazenamento', icon: HardDrive },
   { key: 'gpu', label: 'Placa de Vídeo', icon: Monitor },
-  { key: 'watercooler', label: 'Watercooler', icon: Droplets },
+  { key: 'cooler', label: 'Cooler', icon: Droplets },
   { key: 'psu', label: 'Fonte', icon: Zap },
   { key: 'case', label: 'Gabinete', icon: Box },
 ] as const;
@@ -81,8 +81,8 @@ function checkCompatibility(
     }
   }
   
-  // Watercooler compatibility check (socket must match processor)
-  if (category === 'watercooler' && selectedProcessor) {
+  // Cooler compatibility check (socket must match processor)
+  if (category === 'cooler' && selectedProcessor) {
     if (item.socket && selectedProcessor.socket && item.socket !== selectedProcessor.socket) {
       issues.push(`Socket incompatível: ${item.socket} ≠ ${selectedProcessor.socket} (processador)`);
     }
