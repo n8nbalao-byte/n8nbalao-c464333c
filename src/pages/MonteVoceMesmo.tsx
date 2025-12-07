@@ -79,6 +79,7 @@ export default function MonteVoceMesmo() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
+  const [isGridExpanded, setIsGridExpanded] = useState(false);
   const [companyData, setCompanyData] = useState<CompanyData>({
     name: '',
     address: '',
@@ -364,16 +365,18 @@ export default function MonteVoceMesmo() {
     return found?.label || key;
   }
 
-  const filteredProducts = products.filter(product => {
-    const matchesSearch = !searchTerm || 
-      product.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      product.subtitle?.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const productCategory = product.categories?.[0] || product.productType || '';
-    const matchesCategory = !activeCategory || productCategory === activeCategory;
-    
-    return matchesSearch && matchesCategory;
-  });
+  const filteredProducts = products
+    .filter(product => {
+      const matchesSearch = !searchTerm || 
+        product.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        product.subtitle?.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      const productCategory = product.categories?.[0] || product.productType || '';
+      const matchesCategory = !activeCategory || productCategory === activeCategory;
+      
+      return matchesSearch && matchesCategory;
+    })
+    .sort((a, b) => (a.totalPrice || 0) - (b.totalPrice || 0));
 
   const emissionDate = new Date();
   const validityDate = new Date(emissionDate);
@@ -882,16 +885,28 @@ export default function MonteVoceMesmo() {
           {/* Products List (only shown when category is selected) */}
           {activeCategory && (
             <Card className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold">{getCategoryLabel(activeCategory)}</h3>
-                <div className="relative max-w-xs">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Buscar..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10"
-                  />
+              <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
+                <div className="flex items-center gap-3">
+                  <h3 className="text-lg font-semibold">{getCategoryLabel(activeCategory)}</h3>
+                  <span className="text-sm text-muted-foreground">({filteredProducts.length} itens)</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => setIsGridExpanded(!isGridExpanded)}
+                  >
+                    {isGridExpanded ? 'Compactar' : 'Expandir Tudo'}
+                  </Button>
+                  <div className="relative max-w-xs">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Buscar..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -905,7 +920,7 @@ export default function MonteVoceMesmo() {
                   <p>Nenhum produto encontrado</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 max-h-[500px] overflow-y-auto">
+                <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 ${!isGridExpanded ? 'max-h-[600px] overflow-y-auto' : ''}`}>
                   {filteredProducts.map((product) => {
                     const count = getProductCount(product.id);
                     const isSelected = count > 0;
