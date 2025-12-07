@@ -2,10 +2,74 @@ import { useState, useEffect } from "react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Sidebar } from "@/components/Sidebar";
-import { api, type Product, type HardwareItem, type MediaItem, type ProductComponents, type CompanyData, type ProductCategory, type HardwareCategory, getCustomCategories, addCustomCategory, removeCustomCategory } from "@/lib/api";
+import { api, type Product, type HardwareItem, type MediaItem, type ProductComponents, type CompanyData, type ProductCategory, type HardwareCategory, getCustomCategories, addCustomCategory, removeCustomCategory, saveCustomCategories } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Pencil, Trash2, Save, X, Upload, Play, Image, Cpu, CircuitBoard, MemoryStick, HardDrive, Monitor, Zap, Box, Package, Download, Droplets, Building2, Laptop, Bot, Code, Wrench, Key, Tv, Armchair, Tag } from "lucide-react";
+import { Plus, Pencil, Trash2, Save, X, Upload, Play, Image, Cpu, CircuitBoard, MemoryStick, HardDrive, Monitor, Zap, Box, Package, Download, Droplets, Building2, Laptop, Bot, Code, Wrench, Key, Tv, Armchair, Tag, Gamepad2, Headphones, Keyboard, Mouse, Printer, Wifi, Camera, Speaker, Smartphone, Watch, ShoppingBag, Gift, Star, Heart, Award, Crown, Shield, Rocket, Sparkles, Flame, Leaf, Sun, Moon, Cloud, Umbrella, Anchor, Compass, Map, Globe, Flag, Bookmark, Briefcase, Clock, Calendar, Bell, Mail, MessageSquare, Phone, Video, Music, Film, BookOpen, FileText, Folder, Database, Server, Terminal, Settings, Hammer, PenTool, Scissors, Paintbrush, Palette, LucideIcon } from "lucide-react";
 import * as XLSX from "xlsx";
+
+// Available icons for custom categories
+const availableIcons: { key: string; icon: LucideIcon }[] = [
+  { key: 'tag', icon: Tag },
+  { key: 'gamepad2', icon: Gamepad2 },
+  { key: 'headphones', icon: Headphones },
+  { key: 'keyboard', icon: Keyboard },
+  { key: 'mouse', icon: Mouse },
+  { key: 'printer', icon: Printer },
+  { key: 'wifi', icon: Wifi },
+  { key: 'camera', icon: Camera },
+  { key: 'speaker', icon: Speaker },
+  { key: 'smartphone', icon: Smartphone },
+  { key: 'watch', icon: Watch },
+  { key: 'shopping-bag', icon: ShoppingBag },
+  { key: 'gift', icon: Gift },
+  { key: 'star', icon: Star },
+  { key: 'heart', icon: Heart },
+  { key: 'award', icon: Award },
+  { key: 'crown', icon: Crown },
+  { key: 'shield', icon: Shield },
+  { key: 'rocket', icon: Rocket },
+  { key: 'sparkles', icon: Sparkles },
+  { key: 'flame', icon: Flame },
+  { key: 'leaf', icon: Leaf },
+  { key: 'sun', icon: Sun },
+  { key: 'moon', icon: Moon },
+  { key: 'cloud', icon: Cloud },
+  { key: 'umbrella', icon: Umbrella },
+  { key: 'anchor', icon: Anchor },
+  { key: 'compass', icon: Compass },
+  { key: 'map', icon: Map },
+  { key: 'globe', icon: Globe },
+  { key: 'flag', icon: Flag },
+  { key: 'bookmark', icon: Bookmark },
+  { key: 'briefcase', icon: Briefcase },
+  { key: 'clock', icon: Clock },
+  { key: 'calendar', icon: Calendar },
+  { key: 'bell', icon: Bell },
+  { key: 'mail', icon: Mail },
+  { key: 'message-square', icon: MessageSquare },
+  { key: 'phone', icon: Phone },
+  { key: 'video', icon: Video },
+  { key: 'music', icon: Music },
+  { key: 'film', icon: Film },
+  { key: 'book-open', icon: BookOpen },
+  { key: 'file-text', icon: FileText },
+  { key: 'folder', icon: Folder },
+  { key: 'database', icon: Database },
+  { key: 'server', icon: Server },
+  { key: 'terminal', icon: Terminal },
+  { key: 'settings', icon: Settings },
+  { key: 'wrench', icon: Wrench },
+  { key: 'hammer', icon: Hammer },
+  { key: 'pen-tool', icon: PenTool },
+  { key: 'scissors', icon: Scissors },
+  { key: 'paintbrush', icon: Paintbrush },
+  { key: 'palette', icon: Palette },
+  { key: 'monitor', icon: Monitor },
+  { key: 'laptop', icon: Laptop },
+  { key: 'cpu', icon: Cpu },
+  { key: 'box', icon: Box },
+  { key: 'package', icon: Package },
+];
 import { HardwareCard } from "@/components/HardwareCard";
 
 // Simple auth - for demo purposes only
@@ -171,14 +235,26 @@ export default function Admin() {
   const [savingCompany, setSavingCompany] = useState(false);
 
   // Custom categories state
-  const [customCategoriesList, setCustomCategoriesList] = useState<{ key: string; label: string }[]>([]);
+  const [customCategoriesList, setCustomCategoriesList] = useState<{ key: string; label: string; icon?: string }[]>([]);
   const [newCategoryKey, setNewCategoryKey] = useState("");
   const [newCategoryLabel, setNewCategoryLabel] = useState("");
+  const [newCategoryIcon, setNewCategoryIcon] = useState("tag");
+  const [showNewTypeModal, setShowNewTypeModal] = useState(false);
+  const [showNewCategoryModal, setShowNewCategoryModal] = useState(false);
+  const [inlineNewCategoryKey, setInlineNewCategoryKey] = useState("");
+  const [inlineNewCategoryLabel, setInlineNewCategoryLabel] = useState("");
+  const [inlineNewCategoryIcon, setInlineNewCategoryIcon] = useState("tag");
+
+  // Helper to get icon component from key
+  const getIconFromKey = (iconKey: string): React.ElementType => {
+    const found = availableIcons.find(i => i.key === iconKey);
+    return found ? found.icon : Tag;
+  };
 
   // Merge base categories with custom categories
   const productTypes = [
     ...baseProductTypes,
-    ...customCategoriesList.map(c => ({ key: c.key as ProductCategory, label: c.label, icon: Tag }))
+    ...customCategoriesList.map(c => ({ key: c.key as ProductCategory, label: c.label, icon: getIconFromKey(c.icon || 'tag') }))
   ];
 
   // Load custom categories on mount
@@ -730,103 +806,103 @@ export default function Admin() {
     e.target.value = "";
   }
 
-  // Test data by hardware category
-  const testHardwareData: Record<HardwareCategory, Array<{ name: string; brand: string; model: string; price: number; specs: Record<string, string> }>> = {
+  // Test data by hardware category with real images
+  const testHardwareData: Record<HardwareCategory, Array<{ name: string; brand: string; model: string; price: number; specs: Record<string, string>; image: string; socket?: string; memoryType?: string }>> = {
     processor: [
-      { name: "Intel Core i9-14900K", brand: "Intel", model: "i9-14900K", price: 3499, specs: { "Núcleos": "24", "Threads": "32", "Frequência": "3.2GHz" } },
-      { name: "Intel Core i7-14700K", brand: "Intel", model: "i7-14700K", price: 2499, specs: { "Núcleos": "20", "Threads": "28", "Frequência": "3.4GHz" } },
-      { name: "Intel Core i5-14600K", brand: "Intel", model: "i5-14600K", price: 1799, specs: { "Núcleos": "14", "Threads": "20", "Frequência": "3.5GHz" } },
-      { name: "AMD Ryzen 9 7950X", brand: "AMD", model: "Ryzen 9 7950X", price: 3299, specs: { "Núcleos": "16", "Threads": "32", "Frequência": "4.5GHz" } },
-      { name: "AMD Ryzen 7 7800X3D", brand: "AMD", model: "Ryzen 7 7800X3D", price: 2599, specs: { "Núcleos": "8", "Threads": "16", "Frequência": "4.2GHz" } },
-      { name: "AMD Ryzen 5 7600X", brand: "AMD", model: "Ryzen 5 7600X", price: 1399, specs: { "Núcleos": "6", "Threads": "12", "Frequência": "4.7GHz" } },
-      { name: "Intel Core i3-14100", brand: "Intel", model: "i3-14100", price: 899, specs: { "Núcleos": "4", "Threads": "8", "Frequência": "3.5GHz" } },
-      { name: "AMD Ryzen 5 5600G", brand: "AMD", model: "Ryzen 5 5600G", price: 999, specs: { "Núcleos": "6", "Threads": "12", "Frequência": "3.9GHz" } },
-      { name: "Intel Core i5-12400F", brand: "Intel", model: "i5-12400F", price: 1099, specs: { "Núcleos": "6", "Threads": "12", "Frequência": "2.5GHz" } },
-      { name: "AMD Ryzen 9 5900X", brand: "AMD", model: "Ryzen 9 5900X", price: 2199, specs: { "Núcleos": "12", "Threads": "24", "Frequência": "3.7GHz" } },
+      { name: "Intel Core i9-14900K", brand: "Intel", model: "i9-14900K", price: 3499, specs: { "Núcleos": "24", "Threads": "32", "Frequência": "3.2GHz" }, image: "https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=400&h=400&fit=crop", socket: "LGA1700" },
+      { name: "Intel Core i7-14700K", brand: "Intel", model: "i7-14700K", price: 2499, specs: { "Núcleos": "20", "Threads": "28", "Frequência": "3.4GHz" }, image: "https://images.unsplash.com/photo-1555617981-dac3880eac6e?w=400&h=400&fit=crop", socket: "LGA1700" },
+      { name: "Intel Core i5-14600K", brand: "Intel", model: "i5-14600K", price: 1799, specs: { "Núcleos": "14", "Threads": "20", "Frequência": "3.5GHz" }, image: "https://images.unsplash.com/photo-1518770660439-4636190af475?w=400&h=400&fit=crop", socket: "LGA1700" },
+      { name: "AMD Ryzen 9 7950X", brand: "AMD", model: "Ryzen 9 7950X", price: 3299, specs: { "Núcleos": "16", "Threads": "32", "Frequência": "4.5GHz" }, image: "https://images.unsplash.com/photo-1562976540-1502c2145186?w=400&h=400&fit=crop", socket: "AM5" },
+      { name: "AMD Ryzen 7 7800X3D", brand: "AMD", model: "Ryzen 7 7800X3D", price: 2599, specs: { "Núcleos": "8", "Threads": "16", "Frequência": "4.2GHz" }, image: "https://images.unsplash.com/photo-1555617981-dac3880eac6e?w=400&h=400&fit=crop", socket: "AM5" },
+      { name: "AMD Ryzen 5 7600X", brand: "AMD", model: "Ryzen 5 7600X", price: 1399, specs: { "Núcleos": "6", "Threads": "12", "Frequência": "4.7GHz" }, image: "https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=400&h=400&fit=crop", socket: "AM5" },
+      { name: "Intel Core i3-14100", brand: "Intel", model: "i3-14100", price: 899, specs: { "Núcleos": "4", "Threads": "8", "Frequência": "3.5GHz" }, image: "https://images.unsplash.com/photo-1518770660439-4636190af475?w=400&h=400&fit=crop", socket: "LGA1700" },
+      { name: "AMD Ryzen 5 5600G", brand: "AMD", model: "Ryzen 5 5600G", price: 999, specs: { "Núcleos": "6", "Threads": "12", "Frequência": "3.9GHz" }, image: "https://images.unsplash.com/photo-1562976540-1502c2145186?w=400&h=400&fit=crop", socket: "AM4" },
+      { name: "Intel Core i5-12400F", brand: "Intel", model: "i5-12400F", price: 1099, specs: { "Núcleos": "6", "Threads": "12", "Frequência": "2.5GHz" }, image: "https://images.unsplash.com/photo-1555617981-dac3880eac6e?w=400&h=400&fit=crop", socket: "LGA1700" },
+      { name: "AMD Ryzen 9 5900X", brand: "AMD", model: "Ryzen 9 5900X", price: 2199, specs: { "Núcleos": "12", "Threads": "24", "Frequência": "3.7GHz" }, image: "https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=400&h=400&fit=crop", socket: "AM4" },
     ],
     motherboard: [
-      { name: "ASUS ROG Maximus Z790", brand: "ASUS", model: "ROG Maximus Z790", price: 3999, specs: { "Socket": "LGA1700", "Chipset": "Z790", "RAM": "DDR5" } },
-      { name: "ASUS TUF Gaming B760", brand: "ASUS", model: "TUF Gaming B760-Plus", price: 1299, specs: { "Socket": "LGA1700", "Chipset": "B760", "RAM": "DDR5" } },
-      { name: "Gigabyte Z790 Aorus Elite", brand: "Gigabyte", model: "Z790 Aorus Elite", price: 2499, specs: { "Socket": "LGA1700", "Chipset": "Z790", "RAM": "DDR5" } },
-      { name: "MSI MAG B650 Tomahawk", brand: "MSI", model: "MAG B650 Tomahawk", price: 1599, specs: { "Socket": "AM5", "Chipset": "B650", "RAM": "DDR5" } },
-      { name: "ASUS ROG Strix X670E-E", brand: "ASUS", model: "ROG Strix X670E-E", price: 3499, specs: { "Socket": "AM5", "Chipset": "X670E", "RAM": "DDR5" } },
-      { name: "Gigabyte B550 Aorus Pro", brand: "Gigabyte", model: "B550 Aorus Pro V2", price: 999, specs: { "Socket": "AM4", "Chipset": "B550", "RAM": "DDR4" } },
-      { name: "MSI MPG Z790 Carbon", brand: "MSI", model: "MPG Z790 Carbon WiFi", price: 2999, specs: { "Socket": "LGA1700", "Chipset": "Z790", "RAM": "DDR5" } },
-      { name: "ASRock B660M Pro RS", brand: "ASRock", model: "B660M Pro RS", price: 699, specs: { "Socket": "LGA1700", "Chipset": "B660", "RAM": "DDR4" } },
-      { name: "ASUS Prime A520M-K", brand: "ASUS", model: "Prime A520M-K", price: 449, specs: { "Socket": "AM4", "Chipset": "A520", "RAM": "DDR4" } },
-      { name: "Gigabyte X670E Aorus Master", brand: "Gigabyte", model: "X670E Aorus Master", price: 3799, specs: { "Socket": "AM5", "Chipset": "X670E", "RAM": "DDR5" } },
+      { name: "ASUS ROG Maximus Z790", brand: "ASUS", model: "ROG Maximus Z790", price: 3999, specs: { "Socket": "LGA1700", "Chipset": "Z790", "RAM": "DDR5" }, image: "https://images.unsplash.com/photo-1518770660439-4636190af475?w=400&h=400&fit=crop", socket: "LGA1700", memoryType: "DDR5" },
+      { name: "ASUS TUF Gaming B760", brand: "ASUS", model: "TUF Gaming B760-Plus", price: 1299, specs: { "Socket": "LGA1700", "Chipset": "B760", "RAM": "DDR5" }, image: "https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=400&h=400&fit=crop", socket: "LGA1700", memoryType: "DDR5" },
+      { name: "Gigabyte Z790 Aorus Elite", brand: "Gigabyte", model: "Z790 Aorus Elite", price: 2499, specs: { "Socket": "LGA1700", "Chipset": "Z790", "RAM": "DDR5" }, image: "https://images.unsplash.com/photo-1562976540-1502c2145186?w=400&h=400&fit=crop", socket: "LGA1700", memoryType: "DDR5" },
+      { name: "MSI MAG B650 Tomahawk", brand: "MSI", model: "MAG B650 Tomahawk", price: 1599, specs: { "Socket": "AM5", "Chipset": "B650", "RAM": "DDR5" }, image: "https://images.unsplash.com/photo-1555617981-dac3880eac6e?w=400&h=400&fit=crop", socket: "AM5", memoryType: "DDR5" },
+      { name: "ASUS ROG Strix X670E-E", brand: "ASUS", model: "ROG Strix X670E-E", price: 3499, specs: { "Socket": "AM5", "Chipset": "X670E", "RAM": "DDR5" }, image: "https://images.unsplash.com/photo-1518770660439-4636190af475?w=400&h=400&fit=crop", socket: "AM5", memoryType: "DDR5" },
+      { name: "Gigabyte B550 Aorus Pro", brand: "Gigabyte", model: "B550 Aorus Pro V2", price: 999, specs: { "Socket": "AM4", "Chipset": "B550", "RAM": "DDR4" }, image: "https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=400&h=400&fit=crop", socket: "AM4", memoryType: "DDR4" },
+      { name: "MSI MPG Z790 Carbon", brand: "MSI", model: "MPG Z790 Carbon WiFi", price: 2999, specs: { "Socket": "LGA1700", "Chipset": "Z790", "RAM": "DDR5" }, image: "https://images.unsplash.com/photo-1562976540-1502c2145186?w=400&h=400&fit=crop", socket: "LGA1700", memoryType: "DDR5" },
+      { name: "ASRock B660M Pro RS", brand: "ASRock", model: "B660M Pro RS", price: 699, specs: { "Socket": "LGA1700", "Chipset": "B660", "RAM": "DDR4" }, image: "https://images.unsplash.com/photo-1555617981-dac3880eac6e?w=400&h=400&fit=crop", socket: "LGA1700", memoryType: "DDR4" },
+      { name: "ASUS Prime A520M-K", brand: "ASUS", model: "Prime A520M-K", price: 449, specs: { "Socket": "AM4", "Chipset": "A520", "RAM": "DDR4" }, image: "https://images.unsplash.com/photo-1518770660439-4636190af475?w=400&h=400&fit=crop", socket: "AM4", memoryType: "DDR4" },
+      { name: "Gigabyte X670E Aorus Master", brand: "Gigabyte", model: "X670E Aorus Master", price: 3799, specs: { "Socket": "AM5", "Chipset": "X670E", "RAM": "DDR5" }, image: "https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=400&h=400&fit=crop", socket: "AM5", memoryType: "DDR5" },
     ],
     memory: [
-      { name: "Corsair Vengeance DDR5 32GB", brand: "Corsair", model: "CMK32GX5M2B5600C36", price: 899, specs: { "Capacidade": "32GB", "Tipo": "DDR5", "Velocidade": "5600MHz" } },
-      { name: "G.Skill Trident Z5 RGB 32GB", brand: "G.Skill", model: "F5-6000J3038F16GX2", price: 1099, specs: { "Capacidade": "32GB", "Tipo": "DDR5", "Velocidade": "6000MHz" } },
-      { name: "Kingston Fury Beast 16GB", brand: "Kingston", model: "KF560C36BBK2-16", price: 499, specs: { "Capacidade": "16GB", "Tipo": "DDR5", "Velocidade": "6000MHz" } },
-      { name: "Corsair Vengeance DDR4 16GB", brand: "Corsair", model: "CMK16GX4M2B3200C16", price: 349, specs: { "Capacidade": "16GB", "Tipo": "DDR4", "Velocidade": "3200MHz" } },
-      { name: "G.Skill Ripjaws V 32GB", brand: "G.Skill", model: "F4-3600C16D-32GVKC", price: 549, specs: { "Capacidade": "32GB", "Tipo": "DDR4", "Velocidade": "3600MHz" } },
-      { name: "Kingston Fury Beast DDR4 8GB", brand: "Kingston", model: "KF432C16BB/8", price: 189, specs: { "Capacidade": "8GB", "Tipo": "DDR4", "Velocidade": "3200MHz" } },
-      { name: "Corsair Dominator Platinum 64GB", brand: "Corsair", model: "CMT64GX5M2X5600C40", price: 2299, specs: { "Capacidade": "64GB", "Tipo": "DDR5", "Velocidade": "5600MHz" } },
-      { name: "Team T-Force Delta RGB 32GB", brand: "TeamGroup", model: "FF3D532G6000HC38ADC01", price: 799, specs: { "Capacidade": "32GB", "Tipo": "DDR5", "Velocidade": "6000MHz" } },
-      { name: "Crucial DDR4 16GB", brand: "Crucial", model: "CT16G4DFRA32A", price: 279, specs: { "Capacidade": "16GB", "Tipo": "DDR4", "Velocidade": "3200MHz" } },
-      { name: "HyperX Fury 8GB", brand: "HyperX", model: "HX432C16FB3/8", price: 199, specs: { "Capacidade": "8GB", "Tipo": "DDR4", "Velocidade": "3200MHz" } },
+      { name: "Corsair Vengeance DDR5 32GB", brand: "Corsair", model: "CMK32GX5M2B5600C36", price: 899, specs: { "Capacidade": "32GB", "Tipo": "DDR5", "Velocidade": "5600MHz" }, image: "https://images.unsplash.com/photo-1562976540-1502c2145186?w=400&h=400&fit=crop", memoryType: "DDR5" },
+      { name: "G.Skill Trident Z5 RGB 32GB", brand: "G.Skill", model: "F5-6000J3038F16GX2", price: 1099, specs: { "Capacidade": "32GB", "Tipo": "DDR5", "Velocidade": "6000MHz" }, image: "https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=400&h=400&fit=crop", memoryType: "DDR5" },
+      { name: "Kingston Fury Beast 16GB", brand: "Kingston", model: "KF560C36BBK2-16", price: 499, specs: { "Capacidade": "16GB", "Tipo": "DDR5", "Velocidade": "6000MHz" }, image: "https://images.unsplash.com/photo-1518770660439-4636190af475?w=400&h=400&fit=crop", memoryType: "DDR5" },
+      { name: "Corsair Vengeance DDR4 16GB", brand: "Corsair", model: "CMK16GX4M2B3200C16", price: 349, specs: { "Capacidade": "16GB", "Tipo": "DDR4", "Velocidade": "3200MHz" }, image: "https://images.unsplash.com/photo-1555617981-dac3880eac6e?w=400&h=400&fit=crop", memoryType: "DDR4" },
+      { name: "G.Skill Ripjaws V 32GB", brand: "G.Skill", model: "F4-3600C16D-32GVKC", price: 549, specs: { "Capacidade": "32GB", "Tipo": "DDR4", "Velocidade": "3600MHz" }, image: "https://images.unsplash.com/photo-1562976540-1502c2145186?w=400&h=400&fit=crop", memoryType: "DDR4" },
+      { name: "Kingston Fury Beast DDR4 8GB", brand: "Kingston", model: "KF432C16BB/8", price: 189, specs: { "Capacidade": "8GB", "Tipo": "DDR4", "Velocidade": "3200MHz" }, image: "https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=400&h=400&fit=crop", memoryType: "DDR4" },
+      { name: "Corsair Dominator Platinum 64GB", brand: "Corsair", model: "CMT64GX5M2X5600C40", price: 2299, specs: { "Capacidade": "64GB", "Tipo": "DDR5", "Velocidade": "5600MHz" }, image: "https://images.unsplash.com/photo-1518770660439-4636190af475?w=400&h=400&fit=crop", memoryType: "DDR5" },
+      { name: "Team T-Force Delta RGB 32GB", brand: "TeamGroup", model: "FF3D532G6000HC38ADC01", price: 799, specs: { "Capacidade": "32GB", "Tipo": "DDR5", "Velocidade": "6000MHz" }, image: "https://images.unsplash.com/photo-1555617981-dac3880eac6e?w=400&h=400&fit=crop", memoryType: "DDR5" },
+      { name: "Crucial DDR4 16GB", brand: "Crucial", model: "CT16G4DFRA32A", price: 279, specs: { "Capacidade": "16GB", "Tipo": "DDR4", "Velocidade": "3200MHz" }, image: "https://images.unsplash.com/photo-1562976540-1502c2145186?w=400&h=400&fit=crop", memoryType: "DDR4" },
+      { name: "HyperX Fury 8GB", brand: "HyperX", model: "HX432C16FB3/8", price: 199, specs: { "Capacidade": "8GB", "Tipo": "DDR4", "Velocidade": "3200MHz" }, image: "https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=400&h=400&fit=crop", memoryType: "DDR4" },
     ],
     storage: [
-      { name: "Samsung 990 Pro 2TB", brand: "Samsung", model: "MZ-V9P2T0B/AM", price: 1299, specs: { "Capacidade": "2TB", "Tipo": "NVMe SSD", "Leitura": "7450MB/s" } },
-      { name: "Samsung 980 Pro 1TB", brand: "Samsung", model: "MZ-V8P1T0B/AM", price: 699, specs: { "Capacidade": "1TB", "Tipo": "NVMe SSD", "Leitura": "7000MB/s" } },
-      { name: "WD Black SN850X 2TB", brand: "Western Digital", model: "WDS200T2X0E", price: 1199, specs: { "Capacidade": "2TB", "Tipo": "NVMe SSD", "Leitura": "7300MB/s" } },
-      { name: "Kingston NV2 1TB", brand: "Kingston", model: "SNV2S/1000G", price: 399, specs: { "Capacidade": "1TB", "Tipo": "NVMe SSD", "Leitura": "3500MB/s" } },
-      { name: "Crucial P3 Plus 2TB", brand: "Crucial", model: "CT2000P3PSSD8", price: 799, specs: { "Capacidade": "2TB", "Tipo": "NVMe SSD", "Leitura": "5000MB/s" } },
-      { name: "Samsung 870 EVO 1TB", brand: "Samsung", model: "MZ-77E1T0B/AM", price: 499, specs: { "Capacidade": "1TB", "Tipo": "SATA SSD", "Leitura": "560MB/s" } },
-      { name: "Seagate Barracuda 4TB", brand: "Seagate", model: "ST4000DM004", price: 549, specs: { "Capacidade": "4TB", "Tipo": "HDD", "RPM": "5400" } },
-      { name: "WD Blue 1TB SSD", brand: "Western Digital", model: "WDS100T3B0A", price: 399, specs: { "Capacidade": "1TB", "Tipo": "SATA SSD", "Leitura": "560MB/s" } },
-      { name: "Corsair MP600 Pro 2TB", brand: "Corsair", model: "CSSD-F2000GBMP600PRO", price: 1599, specs: { "Capacidade": "2TB", "Tipo": "NVMe SSD", "Leitura": "7100MB/s" } },
-      { name: "Kingston A400 480GB", brand: "Kingston", model: "SA400S37/480G", price: 249, specs: { "Capacidade": "480GB", "Tipo": "SATA SSD", "Leitura": "500MB/s" } },
+      { name: "Samsung 990 Pro 2TB", brand: "Samsung", model: "MZ-V9P2T0B/AM", price: 1299, specs: { "Capacidade": "2TB", "Tipo": "NVMe SSD", "Leitura": "7450MB/s" }, image: "https://images.unsplash.com/photo-1597872200969-2b65d56bd16b?w=400&h=400&fit=crop" },
+      { name: "Samsung 980 Pro 1TB", brand: "Samsung", model: "MZ-V8P1T0B/AM", price: 699, specs: { "Capacidade": "1TB", "Tipo": "NVMe SSD", "Leitura": "7000MB/s" }, image: "https://images.unsplash.com/photo-1628557044797-f21a177c37ec?w=400&h=400&fit=crop" },
+      { name: "WD Black SN850X 2TB", brand: "Western Digital", model: "WDS200T2X0E", price: 1199, specs: { "Capacidade": "2TB", "Tipo": "NVMe SSD", "Leitura": "7300MB/s" }, image: "https://images.unsplash.com/photo-1597872200969-2b65d56bd16b?w=400&h=400&fit=crop" },
+      { name: "Kingston NV2 1TB", brand: "Kingston", model: "SNV2S/1000G", price: 399, specs: { "Capacidade": "1TB", "Tipo": "NVMe SSD", "Leitura": "3500MB/s" }, image: "https://images.unsplash.com/photo-1628557044797-f21a177c37ec?w=400&h=400&fit=crop" },
+      { name: "Crucial P3 Plus 2TB", brand: "Crucial", model: "CT2000P3PSSD8", price: 799, specs: { "Capacidade": "2TB", "Tipo": "NVMe SSD", "Leitura": "5000MB/s" }, image: "https://images.unsplash.com/photo-1597872200969-2b65d56bd16b?w=400&h=400&fit=crop" },
+      { name: "Samsung 870 EVO 1TB", brand: "Samsung", model: "MZ-77E1T0B/AM", price: 499, specs: { "Capacidade": "1TB", "Tipo": "SATA SSD", "Leitura": "560MB/s" }, image: "https://images.unsplash.com/photo-1628557044797-f21a177c37ec?w=400&h=400&fit=crop" },
+      { name: "Seagate Barracuda 4TB", brand: "Seagate", model: "ST4000DM004", price: 549, specs: { "Capacidade": "4TB", "Tipo": "HDD", "RPM": "5400" }, image: "https://images.unsplash.com/photo-1531492746076-161ca9bcad09?w=400&h=400&fit=crop" },
+      { name: "WD Blue 1TB SSD", brand: "Western Digital", model: "WDS100T3B0A", price: 399, specs: { "Capacidade": "1TB", "Tipo": "SATA SSD", "Leitura": "560MB/s" }, image: "https://images.unsplash.com/photo-1597872200969-2b65d56bd16b?w=400&h=400&fit=crop" },
+      { name: "Corsair MP600 Pro 2TB", brand: "Corsair", model: "CSSD-F2000GBMP600PRO", price: 1599, specs: { "Capacidade": "2TB", "Tipo": "NVMe SSD", "Leitura": "7100MB/s" }, image: "https://images.unsplash.com/photo-1628557044797-f21a177c37ec?w=400&h=400&fit=crop" },
+      { name: "Kingston A400 480GB", brand: "Kingston", model: "SA400S37/480G", price: 249, specs: { "Capacidade": "480GB", "Tipo": "SATA SSD", "Leitura": "500MB/s" }, image: "https://images.unsplash.com/photo-1597872200969-2b65d56bd16b?w=400&h=400&fit=crop" },
     ],
     gpu: [
-      { name: "NVIDIA RTX 4090", brand: "NVIDIA", model: "GeForce RTX 4090", price: 12999, specs: { "VRAM": "24GB GDDR6X", "CUDA Cores": "16384", "Boost": "2.52GHz" } },
-      { name: "NVIDIA RTX 4080 Super", brand: "NVIDIA", model: "GeForce RTX 4080 Super", price: 8999, specs: { "VRAM": "16GB GDDR6X", "CUDA Cores": "10240", "Boost": "2.55GHz" } },
-      { name: "NVIDIA RTX 4070 Ti Super", brand: "NVIDIA", model: "GeForce RTX 4070 Ti Super", price: 5999, specs: { "VRAM": "16GB GDDR6X", "CUDA Cores": "8448", "Boost": "2.61GHz" } },
-      { name: "NVIDIA RTX 4070 Super", brand: "NVIDIA", model: "GeForce RTX 4070 Super", price: 4499, specs: { "VRAM": "12GB GDDR6X", "CUDA Cores": "7168", "Boost": "2.48GHz" } },
-      { name: "NVIDIA RTX 4060 Ti", brand: "NVIDIA", model: "GeForce RTX 4060 Ti", price: 2999, specs: { "VRAM": "8GB GDDR6", "CUDA Cores": "4352", "Boost": "2.54GHz" } },
-      { name: "NVIDIA RTX 4060", brand: "NVIDIA", model: "GeForce RTX 4060", price: 2199, specs: { "VRAM": "8GB GDDR6", "CUDA Cores": "3072", "Boost": "2.46GHz" } },
-      { name: "AMD RX 7900 XTX", brand: "AMD", model: "Radeon RX 7900 XTX", price: 7499, specs: { "VRAM": "24GB GDDR6", "Stream Processors": "6144", "Boost": "2.5GHz" } },
-      { name: "AMD RX 7800 XT", brand: "AMD", model: "Radeon RX 7800 XT", price: 3999, specs: { "VRAM": "16GB GDDR6", "Stream Processors": "3840", "Boost": "2.43GHz" } },
-      { name: "AMD RX 7600", brand: "AMD", model: "Radeon RX 7600", price: 1999, specs: { "VRAM": "8GB GDDR6", "Stream Processors": "2048", "Boost": "2.66GHz" } },
-      { name: "NVIDIA RTX 3060", brand: "NVIDIA", model: "GeForce RTX 3060", price: 1899, specs: { "VRAM": "12GB GDDR6", "CUDA Cores": "3584", "Boost": "1.78GHz" } },
+      { name: "NVIDIA RTX 4090", brand: "NVIDIA", model: "GeForce RTX 4090", price: 12999, specs: { "VRAM": "24GB GDDR6X", "CUDA Cores": "16384", "Boost": "2.52GHz" }, image: "https://images.unsplash.com/photo-1591488320449-011701bb6704?w=400&h=400&fit=crop" },
+      { name: "NVIDIA RTX 4080 Super", brand: "NVIDIA", model: "GeForce RTX 4080 Super", price: 8999, specs: { "VRAM": "16GB GDDR6X", "CUDA Cores": "10240", "Boost": "2.55GHz" }, image: "https://images.unsplash.com/photo-1587202372775-e229f172b9d7?w=400&h=400&fit=crop" },
+      { name: "NVIDIA RTX 4070 Ti Super", brand: "NVIDIA", model: "GeForce RTX 4070 Ti Super", price: 5999, specs: { "VRAM": "16GB GDDR6X", "CUDA Cores": "8448", "Boost": "2.61GHz" }, image: "https://images.unsplash.com/photo-1591488320449-011701bb6704?w=400&h=400&fit=crop" },
+      { name: "NVIDIA RTX 4070 Super", brand: "NVIDIA", model: "GeForce RTX 4070 Super", price: 4499, specs: { "VRAM": "12GB GDDR6X", "CUDA Cores": "7168", "Boost": "2.48GHz" }, image: "https://images.unsplash.com/photo-1587202372775-e229f172b9d7?w=400&h=400&fit=crop" },
+      { name: "NVIDIA RTX 4060 Ti", brand: "NVIDIA", model: "GeForce RTX 4060 Ti", price: 2999, specs: { "VRAM": "8GB GDDR6", "CUDA Cores": "4352", "Boost": "2.54GHz" }, image: "https://images.unsplash.com/photo-1591488320449-011701bb6704?w=400&h=400&fit=crop" },
+      { name: "NVIDIA RTX 4060", brand: "NVIDIA", model: "GeForce RTX 4060", price: 2199, specs: { "VRAM": "8GB GDDR6", "CUDA Cores": "3072", "Boost": "2.46GHz" }, image: "https://images.unsplash.com/photo-1587202372775-e229f172b9d7?w=400&h=400&fit=crop" },
+      { name: "AMD RX 7900 XTX", brand: "AMD", model: "Radeon RX 7900 XTX", price: 7499, specs: { "VRAM": "24GB GDDR6", "Stream Processors": "6144", "Boost": "2.5GHz" }, image: "https://images.unsplash.com/photo-1591488320449-011701bb6704?w=400&h=400&fit=crop" },
+      { name: "AMD RX 7800 XT", brand: "AMD", model: "Radeon RX 7800 XT", price: 3999, specs: { "VRAM": "16GB GDDR6", "Stream Processors": "3840", "Boost": "2.43GHz" }, image: "https://images.unsplash.com/photo-1587202372775-e229f172b9d7?w=400&h=400&fit=crop" },
+      { name: "AMD RX 7600", brand: "AMD", model: "Radeon RX 7600", price: 1999, specs: { "VRAM": "8GB GDDR6", "Stream Processors": "2048", "Boost": "2.66GHz" }, image: "https://images.unsplash.com/photo-1591488320449-011701bb6704?w=400&h=400&fit=crop" },
+      { name: "NVIDIA RTX 3060", brand: "NVIDIA", model: "GeForce RTX 3060", price: 1899, specs: { "VRAM": "12GB GDDR6", "CUDA Cores": "3584", "Boost": "1.78GHz" }, image: "https://images.unsplash.com/photo-1587202372775-e229f172b9d7?w=400&h=400&fit=crop" },
     ],
     psu: [
-      { name: "Corsair RM1000x", brand: "Corsair", model: "RM1000x", price: 1199, specs: { "Potência": "1000W", "Certificação": "80+ Gold", "Modular": "Full" } },
-      { name: "Corsair RM850x", brand: "Corsair", model: "RM850x", price: 899, specs: { "Potência": "850W", "Certificação": "80+ Gold", "Modular": "Full" } },
-      { name: "EVGA SuperNOVA 750 G6", brand: "EVGA", model: "SuperNOVA 750 G6", price: 699, specs: { "Potência": "750W", "Certificação": "80+ Gold", "Modular": "Full" } },
-      { name: "Seasonic Focus GX-850", brand: "Seasonic", model: "Focus GX-850", price: 799, specs: { "Potência": "850W", "Certificação": "80+ Gold", "Modular": "Full" } },
-      { name: "Cooler Master V850 Gold", brand: "Cooler Master", model: "V850 Gold V2", price: 749, specs: { "Potência": "850W", "Certificação": "80+ Gold", "Modular": "Full" } },
-      { name: "be quiet! Straight Power 11 750W", brand: "be quiet!", model: "Straight Power 11", price: 699, specs: { "Potência": "750W", "Certificação": "80+ Platinum", "Modular": "Full" } },
-      { name: "ASUS ROG Thor 1200W", brand: "ASUS", model: "ROG Thor 1200P2", price: 2299, specs: { "Potência": "1200W", "Certificação": "80+ Platinum", "Modular": "Full" } },
-      { name: "Corsair CV650", brand: "Corsair", model: "CV650", price: 349, specs: { "Potência": "650W", "Certificação": "80+ Bronze", "Modular": "Não" } },
-      { name: "EVGA 600 BR", brand: "EVGA", model: "600 BR", price: 299, specs: { "Potência": "600W", "Certificação": "80+ Bronze", "Modular": "Não" } },
-      { name: "XPG Core Reactor 750W", brand: "XPG", model: "Core Reactor 750", price: 599, specs: { "Potência": "750W", "Certificação": "80+ Gold", "Modular": "Full" } },
+      { name: "Corsair RM1000x", brand: "Corsair", model: "RM1000x", price: 1199, specs: { "Potência": "1000W", "Certificação": "80+ Gold", "Modular": "Full" }, image: "https://images.unsplash.com/photo-1587202372775-e229f172b9d7?w=400&h=400&fit=crop" },
+      { name: "Corsair RM850x", brand: "Corsair", model: "RM850x", price: 899, specs: { "Potência": "850W", "Certificação": "80+ Gold", "Modular": "Full" }, image: "https://images.unsplash.com/photo-1591488320449-011701bb6704?w=400&h=400&fit=crop" },
+      { name: "EVGA SuperNOVA 750 G6", brand: "EVGA", model: "SuperNOVA 750 G6", price: 699, specs: { "Potência": "750W", "Certificação": "80+ Gold", "Modular": "Full" }, image: "https://images.unsplash.com/photo-1587202372775-e229f172b9d7?w=400&h=400&fit=crop" },
+      { name: "Seasonic Focus GX-850", brand: "Seasonic", model: "Focus GX-850", price: 799, specs: { "Potência": "850W", "Certificação": "80+ Gold", "Modular": "Full" }, image: "https://images.unsplash.com/photo-1591488320449-011701bb6704?w=400&h=400&fit=crop" },
+      { name: "Cooler Master V850 Gold", brand: "Cooler Master", model: "V850 Gold V2", price: 749, specs: { "Potência": "850W", "Certificação": "80+ Gold", "Modular": "Full" }, image: "https://images.unsplash.com/photo-1587202372775-e229f172b9d7?w=400&h=400&fit=crop" },
+      { name: "be quiet! Straight Power 11 750W", brand: "be quiet!", model: "Straight Power 11", price: 699, specs: { "Potência": "750W", "Certificação": "80+ Platinum", "Modular": "Full" }, image: "https://images.unsplash.com/photo-1591488320449-011701bb6704?w=400&h=400&fit=crop" },
+      { name: "ASUS ROG Thor 1200W", brand: "ASUS", model: "ROG Thor 1200P2", price: 2299, specs: { "Potência": "1200W", "Certificação": "80+ Platinum", "Modular": "Full" }, image: "https://images.unsplash.com/photo-1587202372775-e229f172b9d7?w=400&h=400&fit=crop" },
+      { name: "Corsair CV650", brand: "Corsair", model: "CV650", price: 349, specs: { "Potência": "650W", "Certificação": "80+ Bronze", "Modular": "Não" }, image: "https://images.unsplash.com/photo-1591488320449-011701bb6704?w=400&h=400&fit=crop" },
+      { name: "EVGA 600 BR", brand: "EVGA", model: "600 BR", price: 299, specs: { "Potência": "600W", "Certificação": "80+ Bronze", "Modular": "Não" }, image: "https://images.unsplash.com/photo-1587202372775-e229f172b9d7?w=400&h=400&fit=crop" },
+      { name: "XPG Core Reactor 750W", brand: "XPG", model: "Core Reactor 750", price: 599, specs: { "Potência": "750W", "Certificação": "80+ Gold", "Modular": "Full" }, image: "https://images.unsplash.com/photo-1591488320449-011701bb6704?w=400&h=400&fit=crop" },
     ],
     case: [
-      { name: "NZXT H7 Flow", brand: "NZXT", model: "H7 Flow", price: 899, specs: { "Formato": "Mid-Tower", "Cor": "Preto", "Vidro": "Temperado" } },
-      { name: "Corsair 4000D Airflow", brand: "Corsair", model: "4000D Airflow", price: 599, specs: { "Formato": "Mid-Tower", "Cor": "Preto", "Vidro": "Temperado" } },
-      { name: "Lian Li O11 Dynamic", brand: "Lian Li", model: "O11 Dynamic", price: 899, specs: { "Formato": "Mid-Tower", "Cor": "Branco", "Vidro": "Temperado" } },
-      { name: "Fractal Design Meshify 2", brand: "Fractal Design", model: "Meshify 2", price: 999, specs: { "Formato": "Mid-Tower", "Cor": "Preto", "Vidro": "Temperado" } },
-      { name: "Phanteks Eclipse P400A", brand: "Phanteks", model: "Eclipse P400A", price: 449, specs: { "Formato": "Mid-Tower", "Cor": "Preto", "Vidro": "Temperado" } },
-      { name: "Cooler Master MasterBox Q300L", brand: "Cooler Master", model: "MasterBox Q300L", price: 299, specs: { "Formato": "Micro-ATX", "Cor": "Preto", "Vidro": "Acrílico" } },
-      { name: "be quiet! Pure Base 500DX", brand: "be quiet!", model: "Pure Base 500DX", price: 699, specs: { "Formato": "Mid-Tower", "Cor": "Preto", "Vidro": "Temperado" } },
-      { name: "ASUS TUF Gaming GT301", brand: "ASUS", model: "TUF Gaming GT301", price: 499, specs: { "Formato": "Mid-Tower", "Cor": "Preto", "Vidro": "Temperado" } },
-      { name: "Thermaltake Core P3", brand: "Thermaltake", model: "Core P3", price: 799, specs: { "Formato": "Open Frame", "Cor": "Preto", "Vidro": "Temperado" } },
-      { name: "MSI MAG Forge 100R", brand: "MSI", model: "MAG Forge 100R", price: 399, specs: { "Formato": "Mid-Tower", "Cor": "Preto", "Vidro": "Temperado" } },
+      { name: "NZXT H7 Flow", brand: "NZXT", model: "H7 Flow", price: 899, specs: { "Formato": "Mid-Tower", "Cor": "Preto", "Vidro": "Temperado" }, image: "https://images.unsplash.com/photo-1587202372775-e229f172b9d7?w=400&h=400&fit=crop" },
+      { name: "Corsair 4000D Airflow", brand: "Corsair", model: "4000D Airflow", price: 599, specs: { "Formato": "Mid-Tower", "Cor": "Preto", "Vidro": "Temperado" }, image: "https://images.unsplash.com/photo-1591488320449-011701bb6704?w=400&h=400&fit=crop" },
+      { name: "Lian Li O11 Dynamic", brand: "Lian Li", model: "O11 Dynamic", price: 899, specs: { "Formato": "Mid-Tower", "Cor": "Branco", "Vidro": "Temperado" }, image: "https://images.unsplash.com/photo-1587202372775-e229f172b9d7?w=400&h=400&fit=crop" },
+      { name: "Fractal Design Meshify 2", brand: "Fractal Design", model: "Meshify 2", price: 999, specs: { "Formato": "Mid-Tower", "Cor": "Preto", "Vidro": "Temperado" }, image: "https://images.unsplash.com/photo-1591488320449-011701bb6704?w=400&h=400&fit=crop" },
+      { name: "Phanteks Eclipse P400A", brand: "Phanteks", model: "Eclipse P400A", price: 449, specs: { "Formato": "Mid-Tower", "Cor": "Preto", "Vidro": "Temperado" }, image: "https://images.unsplash.com/photo-1587202372775-e229f172b9d7?w=400&h=400&fit=crop" },
+      { name: "Cooler Master MasterBox Q300L", brand: "Cooler Master", model: "MasterBox Q300L", price: 299, specs: { "Formato": "Micro-ATX", "Cor": "Preto", "Vidro": "Acrílico" }, image: "https://images.unsplash.com/photo-1591488320449-011701bb6704?w=400&h=400&fit=crop" },
+      { name: "be quiet! Pure Base 500DX", brand: "be quiet!", model: "Pure Base 500DX", price: 699, specs: { "Formato": "Mid-Tower", "Cor": "Preto", "Vidro": "Temperado" }, image: "https://images.unsplash.com/photo-1587202372775-e229f172b9d7?w=400&h=400&fit=crop" },
+      { name: "ASUS TUF Gaming GT301", brand: "ASUS", model: "TUF Gaming GT301", price: 499, specs: { "Formato": "Mid-Tower", "Cor": "Preto", "Vidro": "Temperado" }, image: "https://images.unsplash.com/photo-1591488320449-011701bb6704?w=400&h=400&fit=crop" },
+      { name: "Thermaltake Core P3", brand: "Thermaltake", model: "Core P3", price: 799, specs: { "Formato": "Open Frame", "Cor": "Preto", "Vidro": "Temperado" }, image: "https://images.unsplash.com/photo-1587202372775-e229f172b9d7?w=400&h=400&fit=crop" },
+      { name: "MSI MAG Forge 100R", brand: "MSI", model: "MAG Forge 100R", price: 399, specs: { "Formato": "Mid-Tower", "Cor": "Preto", "Vidro": "Temperado" }, image: "https://images.unsplash.com/photo-1591488320449-011701bb6704?w=400&h=400&fit=crop" },
     ],
     cooler: [
-      { name: "NZXT Kraken Z73", brand: "NZXT", model: "Kraken Z73", price: 1999, specs: { "Tipo": "AIO 360mm", "Display": "LCD", "RGB": "Sim" } },
-      { name: "Corsair iCUE H150i Elite", brand: "Corsair", model: "iCUE H150i Elite", price: 1499, specs: { "Tipo": "AIO 360mm", "Display": "Não", "RGB": "Sim" } },
-      { name: "NZXT Kraken X63", brand: "NZXT", model: "Kraken X63", price: 999, specs: { "Tipo": "AIO 280mm", "Display": "Não", "RGB": "Sim" } },
-      { name: "Cooler Master MasterLiquid ML360R", brand: "Cooler Master", model: "ML360R RGB", price: 899, specs: { "Tipo": "AIO 360mm", "Display": "Não", "RGB": "Sim" } },
-      { name: "be quiet! Dark Rock Pro 4", brand: "be quiet!", model: "Dark Rock Pro 4", price: 499, specs: { "Tipo": "Air Cooler", "TDP": "250W", "RGB": "Não" } },
-      { name: "Noctua NH-D15", brand: "Noctua", model: "NH-D15", price: 599, specs: { "Tipo": "Air Cooler", "TDP": "250W", "RGB": "Não" } },
-      { name: "Deepcool AK620", brand: "Deepcool", model: "AK620", price: 349, specs: { "Tipo": "Air Cooler", "TDP": "260W", "RGB": "Não" } },
-      { name: "Corsair H100i RGB Pro XT", brand: "Corsair", model: "H100i RGB Pro XT", price: 799, specs: { "Tipo": "AIO 240mm", "Display": "Não", "RGB": "Sim" } },
-      { name: "Arctic Liquid Freezer II 360", brand: "Arctic", model: "Liquid Freezer II 360", price: 699, specs: { "Tipo": "AIO 360mm", "Display": "Não", "RGB": "Não" } },
-      { name: "Cooler Master Hyper 212 Black", brand: "Cooler Master", model: "Hyper 212 Black", price: 199, specs: { "Tipo": "Air Cooler", "TDP": "150W", "RGB": "Não" } },
+      { name: "NZXT Kraken Z73", brand: "NZXT", model: "Kraken Z73", price: 1999, specs: { "Tipo": "AIO 360mm", "Display": "LCD", "RGB": "Sim" }, image: "https://images.unsplash.com/photo-1587202372775-e229f172b9d7?w=400&h=400&fit=crop" },
+      { name: "Corsair iCUE H150i Elite", brand: "Corsair", model: "iCUE H150i Elite", price: 1499, specs: { "Tipo": "AIO 360mm", "Display": "Não", "RGB": "Sim" }, image: "https://images.unsplash.com/photo-1591488320449-011701bb6704?w=400&h=400&fit=crop" },
+      { name: "NZXT Kraken X63", brand: "NZXT", model: "Kraken X63", price: 999, specs: { "Tipo": "AIO 280mm", "Display": "Não", "RGB": "Sim" }, image: "https://images.unsplash.com/photo-1587202372775-e229f172b9d7?w=400&h=400&fit=crop" },
+      { name: "Cooler Master MasterLiquid ML360R", brand: "Cooler Master", model: "ML360R RGB", price: 899, specs: { "Tipo": "AIO 360mm", "Display": "Não", "RGB": "Sim" }, image: "https://images.unsplash.com/photo-1591488320449-011701bb6704?w=400&h=400&fit=crop" },
+      { name: "be quiet! Dark Rock Pro 4", brand: "be quiet!", model: "Dark Rock Pro 4", price: 499, specs: { "Tipo": "Air Cooler", "TDP": "250W", "RGB": "Não" }, image: "https://images.unsplash.com/photo-1587202372775-e229f172b9d7?w=400&h=400&fit=crop" },
+      { name: "Noctua NH-D15", brand: "Noctua", model: "NH-D15", price: 599, specs: { "Tipo": "Air Cooler", "TDP": "250W", "RGB": "Não" }, image: "https://images.unsplash.com/photo-1591488320449-011701bb6704?w=400&h=400&fit=crop" },
+      { name: "Deepcool AK620", brand: "Deepcool", model: "AK620", price: 349, specs: { "Tipo": "Air Cooler", "TDP": "260W", "RGB": "Não" }, image: "https://images.unsplash.com/photo-1587202372775-e229f172b9d7?w=400&h=400&fit=crop" },
+      { name: "Corsair H100i RGB Pro XT", brand: "Corsair", model: "H100i RGB Pro XT", price: 799, specs: { "Tipo": "AIO 240mm", "Display": "Não", "RGB": "Sim" }, image: "https://images.unsplash.com/photo-1591488320449-011701bb6704?w=400&h=400&fit=crop" },
+      { name: "Arctic Liquid Freezer II 360", brand: "Arctic", model: "Liquid Freezer II 360", price: 699, specs: { "Tipo": "AIO 360mm", "Display": "Não", "RGB": "Não" }, image: "https://images.unsplash.com/photo-1587202372775-e229f172b9d7?w=400&h=400&fit=crop" },
+      { name: "Cooler Master Hyper 212 Black", brand: "Cooler Master", model: "Hyper 212 Black", price: 199, specs: { "Tipo": "Air Cooler", "TDP": "150W", "RGB": "Não" }, image: "https://images.unsplash.com/photo-1591488320449-011701bb6704?w=400&h=400&fit=crop" },
     ],
   };
 
@@ -976,9 +1052,15 @@ export default function Admin() {
     let successCount = 0;
     for (const item of categoryData) {
       const success = await api.createHardware({
-        ...item,
-        image: "",
+        name: item.name,
+        brand: item.brand,
+        model: item.model,
+        price: item.price,
+        specs: item.specs,
+        image: item.image || "",
         category: category,
+        socket: item.socket,
+        memoryType: item.memoryType,
       });
       if (success) successCount++;
     }
@@ -986,7 +1068,7 @@ export default function Admin() {
     const categoryLabel = hardwareCategories.find(c => c.key === category)?.label || category;
     toast({
       title: "Dados de teste adicionados",
-      description: `${successCount} ${categoryLabel} criados com sucesso!`,
+      description: `${successCount} ${categoryLabel} criados com sucesso com imagens!`,
     });
     fetchHardwareData();
   }
@@ -1785,8 +1867,90 @@ export default function Admin() {
                       </button>
                     );
                   })}
+                  {/* Add new type button */}
+                  <button
+                    type="button"
+                    onClick={() => setShowNewTypeModal(true)}
+                    className="inline-flex items-center gap-2 rounded-lg border-2 border-dashed border-border px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:border-primary hover:text-primary"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Novo Tipo
+                  </button>
                 </div>
               </div>
+
+              {/* New Type Modal */}
+              {showNewTypeModal && (
+                <div className="rounded-xl border border-primary bg-primary/5 p-4">
+                  <h4 className="mb-4 font-semibold text-foreground">Criar Novo Tipo de Produto</h4>
+                  <div className="grid gap-4 md:grid-cols-2 mb-4">
+                    <input
+                      type="text"
+                      value={inlineNewCategoryKey}
+                      onChange={(e) => setInlineNewCategoryKey(e.target.value.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, ''))}
+                      className="rounded-lg border border-border bg-background px-4 py-2 text-foreground"
+                      placeholder="chave (ex: periferico)"
+                    />
+                    <input
+                      type="text"
+                      value={inlineNewCategoryLabel}
+                      onChange={(e) => setInlineNewCategoryLabel(e.target.value)}
+                      className="rounded-lg border border-border bg-background px-4 py-2 text-foreground"
+                      placeholder="Nome (ex: Periférico)"
+                    />
+                  </div>
+                  <div className="mb-4">
+                    <label className="mb-2 block text-sm font-medium text-foreground">Escolha um ícone:</label>
+                    <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto">
+                      {availableIcons.map((iconItem) => {
+                        const IconComp = iconItem.icon;
+                        return (
+                          <button
+                            key={iconItem.key}
+                            type="button"
+                            onClick={() => setInlineNewCategoryIcon(iconItem.key)}
+                            className={`p-2 rounded-lg transition-colors ${
+                              inlineNewCategoryIcon === iconItem.key
+                                ? "bg-primary text-primary-foreground"
+                                : "bg-secondary text-foreground hover:bg-secondary/80"
+                            }`}
+                          >
+                            <IconComp className="h-5 w-5" />
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (inlineNewCategoryKey && inlineNewCategoryLabel) {
+                          addCustomCategory(inlineNewCategoryKey, inlineNewCategoryLabel, inlineNewCategoryIcon);
+                          setCustomCategoriesList(getCustomCategories());
+                          setProductFormData(prev => ({ ...prev, productType: inlineNewCategoryKey as ProductCategory }));
+                          setInlineNewCategoryKey("");
+                          setInlineNewCategoryLabel("");
+                          setInlineNewCategoryIcon("tag");
+                          setShowNewTypeModal(false);
+                          toast({ title: "Tipo criado!", description: `${inlineNewCategoryLabel} adicionado` });
+                        }
+                      }}
+                      className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 font-medium text-primary-foreground"
+                    >
+                      <Plus className="h-4 w-4" />
+                      Criar Tipo
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowNewTypeModal(false)}
+                      className="rounded-lg border border-border px-4 py-2 text-foreground"
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+                </div>
+              )}
 
               {/* Basic Info */}
               <div className="grid gap-6 md:grid-cols-2">
