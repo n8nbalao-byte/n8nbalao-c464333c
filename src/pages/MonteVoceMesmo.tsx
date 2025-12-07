@@ -80,6 +80,7 @@ export default function MonteVoceMesmo() {
   const [searchTerm, setSearchTerm] = useState('');
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'card' | 'list'>('card');
+  const [allCategories, setAllCategories] = useState([...defaultCategories, ...getCustomCategories()]);
   const [companyData, setCompanyData] = useState<CompanyData>({
     name: '',
     address: '',
@@ -92,7 +93,12 @@ export default function MonteVoceMesmo() {
   });
   const quoteRef = useRef<HTMLDivElement>(null);
 
-  const allCategories = [...defaultCategories, ...getCustomCategories()];
+  // Reload custom categories when entering extras phase
+  useEffect(() => {
+    if (phase === 'extras') {
+      setAllCategories([...defaultCategories, ...getCustomCategories()]);
+    }
+  }, [phase]);
 
   useEffect(() => {
     fetchData();
