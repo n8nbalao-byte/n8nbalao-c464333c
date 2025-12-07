@@ -14,7 +14,8 @@ interface ExtractedProduct {
   description?: string;
   brand?: string;
   model?: string;
-  specs?: string[];
+  category?: string;
+  specs?: Record<string, string> | string[];
   images?: string[];
   image?: string;
   link?: string;
@@ -157,16 +158,26 @@ const ExtractProducts = () => {
         let successCount = 0;
         for (const product of selectedProducts) {
           try {
-            const specsRecord: Record<string, string> = {};
-            product.specs?.forEach((spec, idx) => {
-              specsRecord[`spec_${idx + 1}`] = spec;
-            });
+            // Handle specs - could be array or object
+            let specsRecord: Record<string, string> = {};
+            if (product.specs) {
+              if (Array.isArray(product.specs)) {
+                product.specs.forEach((spec, idx) => {
+                  specsRecord[`spec_${idx + 1}`] = spec;
+                });
+              } else {
+                specsRecord = product.specs as Record<string, string>;
+              }
+            }
+            
+            // Determine category from extracted data
+            const category = product.category || 'acessorio';
             
             await api.createProduct({
               title: product.title || 'Produto Importado',
               subtitle: product.brand || '',
-              categories: ['importado'],
-              productType: 'acessorio',
+              categories: [category],
+              productType: category as any,
               media: product.image ? [{ type: 'image', url: product.image }] : 
                      product.images?.[0] ? [{ type: 'image', url: product.images[0] }] : [],
               specs: specsRecord,
@@ -185,16 +196,26 @@ const ExtractProducts = () => {
         });
       } else if (extractedData) {
         // Import single product
-        const specsRecord: Record<string, string> = {};
-        extractedData.specs?.forEach((spec, idx) => {
-          specsRecord[`spec_${idx + 1}`] = spec;
-        });
+        // Handle specs - could be array or object
+        let specsRecord: Record<string, string> = {};
+        if (extractedData.specs) {
+          if (Array.isArray(extractedData.specs)) {
+            extractedData.specs.forEach((spec, idx) => {
+              specsRecord[`spec_${idx + 1}`] = spec;
+            });
+          } else {
+            specsRecord = extractedData.specs as Record<string, string>;
+          }
+        }
+        
+        // Determine category from extracted data
+        const category = extractedData.category || 'acessorio';
         
         await api.createProduct({
           title: extractedData.title || 'Produto Importado',
           subtitle: extractedData.brand || '',
-          categories: ['importado'],
-          productType: 'acessorio',
+          categories: [category],
+          productType: category as any,
           media: extractedData.images?.map(url => ({ type: 'image' as const, url })) || [],
           specs: specsRecord,
           components: {},
@@ -439,13 +460,18 @@ const ExtractProducts = () => {
                     </div>
                   )}
                   
-                  {extractedData.specs && extractedData.specs.length > 0 && (
+                  {extractedData.specs && Object.keys(extractedData.specs).length > 0 && (
                     <div>
                       <h4 className="font-semibold mb-1">Especificações</h4>
                       <ul className="list-disc list-inside text-sm text-muted-foreground">
-                        {extractedData.specs.map((spec, i) => (
-                          <li key={i}>{spec}</li>
-                        ))}
+                        {Array.isArray(extractedData.specs) 
+                          ? extractedData.specs.map((spec, i) => (
+                              <li key={i}>{spec}</li>
+                            ))
+                          : Object.entries(extractedData.specs).map(([key, value], i) => (
+                              <li key={i}><strong>{key}:</strong> {value}</li>
+                            ))
+                        }
                       </ul>
                     </div>
                   )}

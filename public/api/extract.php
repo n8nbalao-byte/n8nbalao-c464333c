@@ -18,44 +18,33 @@ $input = json_decode(file_get_contents('php://input'), true);
 
 $url = $input['url'] ?? '';
 $apiKey = $input['apiKey'] ?? '';
-$extractType = $input['extractType'] ?? 'product'; // 'product' or 'store'
+$extractType = $input['extractType'] ?? 'product';
 
 if (empty($url) || empty($apiKey)) {
     echo json_encode(['success' => false, 'error' => 'URL e API Key são obrigatórios']);
     exit();
 }
 
-// Function to fetch page HTML
 function fetchPageHtml($url) {
     $ch = curl_init();
     curl_setopt($ch, CURLOPT_URL, $url);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
     curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-    curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
+    curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36');
     curl_setopt($ch, CURLOPT_TIMEOUT, 30);
-    curl_setopt($ch, CURLOPT_HTTPHEADER, [
-        'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-        'Accept-Language: pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7',
-    ]);
     
     $html = curl_exec($ch);
     $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     $error = curl_error($ch);
     curl_close($ch);
     
-    if ($error) {
-        return ['success' => false, 'error' => 'Erro ao acessar URL: ' . $error];
-    }
-    
-    if ($httpCode !== 200) {
-        return ['success' => false, 'error' => 'HTTP Error: ' . $httpCode];
-    }
+    if ($error) return ['success' => false, 'error' => 'Erro: ' . $error];
+    if ($httpCode !== 200) return ['success' => false, 'error' => 'HTTP Error: ' . $httpCode];
     
     return ['success' => true, 'html' => $html];
 }
 
-// Function to call OpenAI API
 function callOpenAI($apiKey, $prompt, $systemPrompt) {
     $ch = curl_init();
     
@@ -83,9 +72,7 @@ function callOpenAI($apiKey, $prompt, $systemPrompt) {
     $error = curl_error($ch);
     curl_close($ch);
     
-    if ($error) {
-        return ['success' => false, 'error' => 'OpenAI Error: ' . $error];
-    }
+    if ($error) return ['success' => false, 'error' => 'OpenAI Error: ' . $error];
     
     $result = json_decode($response, true);
     
@@ -96,25 +83,17 @@ function callOpenAI($apiKey, $prompt, $systemPrompt) {
     return ['success' => true, 'content' => $result['choices'][0]['message']['content']];
 }
 
-// Clean HTML to reduce tokens
 function cleanHtml($html) {
-    // Remove scripts and styles
     $html = preg_replace('/<script\b[^>]*>(.*?)<\/script>/is', '', $html);
     $html = preg_replace('/<style\b[^>]*>(.*?)<\/style>/is', '', $html);
     $html = preg_replace('/<!--.*?-->/s', '', $html);
-    
-    // Remove extra whitespace
     $html = preg_replace('/\s+/', ' ', $html);
     
-    // Limit size to avoid token limits
-    if (strlen($html) > 50000) {
-        $html = substr($html, 0, 50000);
-    }
+    if (strlen($html) > 50000) $html = substr($html, 0, 50000);
     
     return trim($html);
 }
 
-// Extract images from HTML
 function extractImages($html) {
     $images = [];
     preg_match_all('/<img[^>]+src=["\']([^"\']+)["\'][^>]*>/i', $html, $matches);
@@ -128,7 +107,6 @@ function extractImages($html) {
     return array_unique(array_slice($images, 0, 10));
 }
 
-// Fetch the page
 $fetchResult = fetchPageHtml($url);
 if (!$fetchResult['success']) {
     echo json_encode($fetchResult);
@@ -140,19 +118,28 @@ $cleanedHtml = cleanHtml($html);
 $foundImages = extractImages($html);
 
 if ($extractType === 'product') {
-    // Single product extraction
-    $systemPrompt = 'Você é um especialista em extrair dados de produtos de páginas HTML. Retorne APENAS um JSON válido, sem markdown ou explicações.';
+    $systemPrompt = 'Você é um especialista em extrair dados de produtos. Retorne APENAS JSON válido, sem markdown.';
     
-    $prompt = "Extraia os dados do produto desta página HTML e retorne um JSON com esta estrutura exata:
+    $prompt = "Extraia os dados do produto desta página HTML e retorne um JSON com esta estrutura:
 {
   \"title\": \"nome do produto\",
   \"price\": 0.00,
-  \"description\": \"descrição do produto\",
+  \"description\": \"descrição curta do produto\",
   \"brand\": \"marca\",
   \"model\": \"modelo\",
-  \"specs\": [\"especificação 1\", \"especificação 2\"],
+  \"category\": \"categoria do produto (use uma dessas: headset, mouse, teclado, monitor, notebook, pc, placa-de-video, processador, memoria, armazenamento, fonte, gabinete, placa-mae, cooler, cadeira, webcam, microfone, caixa-de-som, controle, acessorio)\",
+  \"specs\": {
+    \"Nome da Especificação\": \"valor\",
+    \"Outra Especificação\": \"valor\"
+  },
   \"images\": [\"url1\", \"url2\"]
 }
+
+IMPORTANTE para specs:
+- Extraia TODAS as especificações técnicas do produto
+- Use nomes descritivos para as chaves (ex: \"Duração da Bateria\", \"Conexão\", \"Driver\", \"Frequência de Resposta\", \"Peso\", \"Cor\", \"Compatibilidade\")
+- O valor deve ser apenas o dado (ex: \"24 horas\", \"Bluetooth 5.0\", \"40mm\")
+- NÃO use nomes genéricos como spec_1, spec_2
 
 Se não encontrar algum campo, use null. Para price, use apenas números.
 
@@ -166,49 +153,34 @@ HTML da página:
         exit();
     }
     
-    // Parse the JSON response
-    $content = $aiResult['content'];
-    $content = preg_replace('/```json\s*/', '', $content);
+    $content = preg_replace('/```json\s*/', '', $aiResult['content']);
     $content = preg_replace('/```\s*/', '', $content);
-    $content = trim($content);
-    
-    $productData = json_decode($content, true);
+    $productData = json_decode(trim($content), true);
     
     if (!$productData) {
-        echo json_encode(['success' => false, 'error' => 'Não foi possível extrair dados do produto']);
+        echo json_encode(['success' => false, 'error' => 'Não foi possível extrair dados']);
         exit();
     }
     
-    // Add found images if AI didn't find any
     if (empty($productData['images']) && !empty($foundImages)) {
         $productData['images'] = $foundImages;
     }
     
-    echo json_encode([
-        'success' => true,
-        'type' => 'product',
-        'data' => $productData,
-        'sourceUrl' => $url
-    ]);
+    echo json_encode(['success' => true, 'type' => 'product', 'data' => $productData, 'sourceUrl' => $url]);
     
 } else {
-    // Store/listing extraction - multiple products
-    $systemPrompt = 'Você é um especialista em extrair dados de produtos de páginas de lojas/listings. Retorne APENAS um JSON válido, sem markdown ou explicações.';
+    $systemPrompt = 'Você é um especialista em extrair produtos de lojas. Retorne APENAS JSON válido.';
     
-    $prompt = "Extraia TODOS os produtos desta página de loja/listing e retorne um JSON array com esta estrutura:
-[
-  {
-    \"title\": \"nome do produto\",
-    \"price\": 0.00,
-    \"image\": \"url da imagem\",
-    \"link\": \"url do produto (se disponível)\"
-  }
-]
+    $prompt = "Extraia TODOS os produtos desta página e retorne um JSON array:
+[{
+  \"title\": \"nome\", 
+  \"price\": 0.00, 
+  \"image\": \"url\", 
+  \"link\": \"url\",
+  \"category\": \"categoria (headset, mouse, teclado, monitor, notebook, acessorio, etc)\"
+}]
 
-Se não encontrar algum campo, use null. Para price, use apenas números. Extraia o máximo de produtos possível.
-
-HTML da página:
-" . $cleanedHtml;
+HTML: " . $cleanedHtml;
 
     $aiResult = callOpenAI($apiKey, $prompt, $systemPrompt);
     
@@ -217,25 +189,15 @@ HTML da página:
         exit();
     }
     
-    // Parse the JSON response
-    $content = $aiResult['content'];
-    $content = preg_replace('/```json\s*/', '', $content);
+    $content = preg_replace('/```json\s*/', '', $aiResult['content']);
     $content = preg_replace('/```\s*/', '', $content);
-    $content = trim($content);
-    
-    $productsData = json_decode($content, true);
+    $productsData = json_decode(trim($content), true);
     
     if (!$productsData || !is_array($productsData)) {
-        echo json_encode(['success' => false, 'error' => 'Não foi possível extrair produtos da página']);
+        echo json_encode(['success' => false, 'error' => 'Não foi possível extrair produtos']);
         exit();
     }
     
-    echo json_encode([
-        'success' => true,
-        'type' => 'store',
-        'data' => $productsData,
-        'count' => count($productsData),
-        'sourceUrl' => $url
-    ]);
+    echo json_encode(['success' => true, 'type' => 'store', 'data' => $productsData, 'count' => count($productsData), 'sourceUrl' => $url]);
 }
 ?>
