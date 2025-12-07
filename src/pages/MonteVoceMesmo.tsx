@@ -5,10 +5,11 @@ import { StarryBackground } from "@/components/StarryBackground";
 
 import { api, type Product, type HardwareItem, type CompanyData, type HardwareCategory, getCustomCategories } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
-import { Check, Printer, ShoppingCart, ArrowLeft, Plus, X, Search, Package, ChevronRight, Cpu } from "lucide-react";
+import { Check, Printer, ShoppingCart, ArrowLeft, Plus, X, Search, Package, ChevronRight, Cpu, Minus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 
 // Hardware steps for PC assembly
 const hardwareSteps: { key: HardwareCategory; label: string; required: boolean; allowMultiple: boolean }[] = [
@@ -156,23 +157,13 @@ export default function MonteVoceMesmo() {
     const step = hardwareSteps[currentStep];
     
     if (step.allowMultiple) {
-      // For multiple selection, add to array
+      // For multiple selection, always add (allow duplicates)
       setSelectedHardware(prev => {
         const current = prev[step.key];
         const currentArray = Array.isArray(current) ? current : current ? [current] : [];
-        
-        // Check if already selected
-        const existingIndex = currentArray.findIndex(h => h.id === item.id);
-        if (existingIndex >= 0) {
-          // Remove if already selected
-          const newArray = currentArray.filter(h => h.id !== item.id);
-          return { ...prev, [step.key]: newArray.length > 0 ? newArray : null };
-        } else {
-          // Add to selection
-          return { ...prev, [step.key]: [...currentArray, item] };
-        }
+        return { ...prev, [step.key]: [...currentArray, item] };
       });
-      toast({ title: "Atualizado!", description: `${item.brand} ${item.model}` });
+      toast({ title: "Adicionado!", description: `${item.brand} ${item.model}` });
     } else {
       // Single selection
       setSelectedHardware(prev => ({ ...prev, [step.key]: item }));
@@ -183,6 +174,30 @@ export default function MonteVoceMesmo() {
         setTimeout(() => setCurrentStep(prev => prev + 1), 300);
       }
     }
+  }
+
+  function removeOneHardwareItem(stepKey: string, itemId: string) {
+    setSelectedHardware(prev => {
+      const current = prev[stepKey];
+      if (Array.isArray(current)) {
+        // Remove only the first occurrence
+        const idx = current.findIndex(h => h.id === itemId);
+        if (idx >= 0) {
+          const newArray = [...current];
+          newArray.splice(idx, 1);
+          return { ...prev, [stepKey]: newArray.length > 0 ? newArray : null };
+        }
+      }
+      return { ...prev, [stepKey]: null };
+    });
+  }
+
+  function getItemCount(stepKey: string, itemId: string): number {
+    const current = selectedHardware[stepKey];
+    if (Array.isArray(current)) {
+      return current.filter(h => h.id === itemId).length;
+    }
+    return current?.id === itemId ? 1 : 0;
   }
 
   function removeHardwareItem(stepKey: string, itemId: string) {
@@ -649,31 +664,102 @@ export default function MonteVoceMesmo() {
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[400px] overflow-y-auto">
                   {hardware.map((item) => {
-                    const currentSelection = selectedHardware[currentStepData.key];
-                    const isSelected = Array.isArray(currentSelection) 
-                      ? currentSelection.some(h => h.id === item.id)
-                      : currentSelection?.id === item.id;
+                    const itemCount = getItemCount(currentStepData.key, item.id);
+                    const isSelected = itemCount > 0;
+                    
                     return (
-                      <div
-                        key={item.id}
-                        onClick={() => selectHardware(item)}
-                        className={`p-4 rounded-lg border cursor-pointer transition-all hover:shadow-md ${
-                          isSelected 
-                            ? 'border-green-500 bg-green-500/10 ring-2 ring-green-500' 
-                            : 'border-border hover:border-primary/50'
-                        }`}
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="flex-1">
-                            <p className="font-semibold text-sm">{item.brand} {item.model}</p>
-                            <p className="text-xs text-muted-foreground">{item.name}</p>
+                      <HoverCard key={item.id} openDelay={200} closeDelay={100}>
+                        <HoverCardTrigger asChild>
+                          <div
+                            className={`p-4 rounded-lg border cursor-pointer transition-all hover:shadow-md ${
+                              isSelected 
+                                ? 'border-green-500 bg-green-500/10 ring-2 ring-green-500' 
+                                : 'border-border hover:border-primary/50'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="flex-1 min-w-0">
+                                <p className="font-semibold text-sm truncate">{item.brand} {item.model}</p>
+                                <p className="text-xs text-muted-foreground truncate">{item.name}</p>
+                              </div>
+                              <div className="text-right flex-shrink-0">
+                                <p className="font-bold text-primary">{formatPrice(item.price)}</p>
+                              </div>
+                            </div>
+                            
+                            {/* Add/Remove buttons for multiple selection */}
+                            {currentStepData.allowMultiple ? (
+                              <div className="flex items-center justify-between mt-3 pt-3 border-t border-border">
+                                <span className="text-xs text-muted-foreground">Quantidade: {itemCount}</span>
+                                <div className="flex items-center gap-2">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      removeOneHardwareItem(currentStepData.key, item.id);
+                                    }}
+                                    disabled={itemCount === 0}
+                                    className="h-8 w-8 p-0"
+                                  >
+                                    <Minus className="h-4 w-4" />
+                                  </Button>
+                                  <span className="font-bold w-6 text-center">{itemCount}</span>
+                                  <Button
+                                    variant="default"
+                                    size="sm"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      selectHardware(item);
+                                    }}
+                                    className="h-8 w-8 p-0"
+                                  >
+                                    <Plus className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="mt-3 pt-3 border-t border-border flex justify-end">
+                                {isSelected ? (
+                                  <span className="flex items-center gap-1 text-green-500 text-sm">
+                                    <Check className="h-4 w-4" /> Selecionado
+                                  </span>
+                                ) : (
+                                  <Button
+                                    variant="default"
+                                    size="sm"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      selectHardware(item);
+                                    }}
+                                  >
+                                    <Plus className="h-4 w-4 mr-1" /> Selecionar
+                                  </Button>
+                                )}
+                              </div>
+                            )}
                           </div>
-                          <div className="text-right">
-                            <p className="font-bold text-primary">{formatPrice(item.price)}</p>
-                            {isSelected && <Check className="h-4 w-4 text-green-500 ml-auto" />}
-                          </div>
-                        </div>
-                      </div>
+                        </HoverCardTrigger>
+                        <HoverCardContent side="right" className="w-64 p-3">
+                          {item.image ? (
+                            <img 
+                              src={item.image} 
+                              alt={`${item.brand} ${item.model}`}
+                              className="w-full h-40 object-contain rounded-lg bg-muted mb-2"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).style.display = 'none';
+                              }}
+                            />
+                          ) : (
+                            <div className="w-full h-40 bg-muted rounded-lg flex items-center justify-center mb-2">
+                              <Package className="h-12 w-12 text-muted-foreground" />
+                            </div>
+                          )}
+                          <p className="font-semibold text-sm">{item.brand} {item.model}</p>
+                          <p className="text-xs text-muted-foreground">{item.name}</p>
+                          <p className="font-bold text-primary mt-1">{formatPrice(item.price)}</p>
+                        </HoverCardContent>
+                      </HoverCard>
                     );
                   })}
                 </div>
