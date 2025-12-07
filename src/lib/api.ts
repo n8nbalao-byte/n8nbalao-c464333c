@@ -62,6 +62,11 @@ export interface HardwareItem {
   specs: Record<string, string>;
   category: 'processor' | 'motherboard' | 'memory' | 'storage' | 'gpu' | 'psu' | 'case' | 'watercooler';
   createdAt: string;
+  // Compatibility fields
+  socket?: string;
+  memoryType?: string;
+  formFactor?: string;
+  tdp?: number;
 }
 
 export const api = {
