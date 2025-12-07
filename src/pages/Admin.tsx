@@ -676,75 +676,93 @@ export default function Admin() {
     }).format(price);
   };
 
-  // Bulk upload functions
+  // Bulk upload/export functions - exports ALL existing hardware as backup
   function downloadExcelTemplate() {
-    // Build list of all hardware categories
-    const allCategories = hardwareCategories.map(c => c.key).join(', ');
+    // Get all hardware for current category
+    const categoryHardware = hardwareList;
     
-    const templateData = [
-      {
+    // Find max number of specs across all items
+    let maxSpecs = 5;
+    categoryHardware.forEach(item => {
+      const specCount = Object.keys(item.specs || {}).length;
+      if (specCount > maxSpecs) maxSpecs = specCount;
+    });
+
+    // Build export data from existing hardware
+    const exportData = categoryHardware.map(item => {
+      const row: Record<string, any> = {
+        nome: item.name,
+        marca: item.brand,
+        modelo: item.model,
+        preco: item.price,
+        categoria: item.category,
+        socket: item.socket || "",
+        memoria_tipo: item.memoryType || "",
+        form_factor: item.formFactor || "",
+        tdp: item.tdp || "",
+      };
+
+      // Add specs dynamically
+      const specEntries = Object.entries(item.specs || {});
+      for (let i = 0; i < maxSpecs; i++) {
+        row[`spec_${i + 1}_chave`] = specEntries[i]?.[0] || "";
+        row[`spec_${i + 1}_valor`] = specEntries[i]?.[1] || "";
+      }
+
+      return row;
+    });
+
+    // If no data, add example row
+    if (exportData.length === 0) {
+      const allCategories = hardwareCategories.map(c => c.key).join(', ');
+      exportData.push({
+        nome: `CATEGORIAS: ${allCategories}`,
+        marca: "Socket: LGA1700, AM5, AM4...",
+        modelo: "Memória: DDR5, DDR4",
+        preco: "",
+        categoria: activeHardwareCategory,
+        socket: "",
+        memoria_tipo: "",
+        form_factor: "",
+        tdp: "",
+        spec_1_chave: "",
+        spec_1_valor: "",
+      });
+      exportData.push({
         nome: "Exemplo Processador",
         marca: "Intel",
         modelo: "Core i7-13700K",
         preco: 2499.99,
         categoria: activeHardwareCategory,
         socket: "LGA1700",
-        memoria_tipo: "DDR5",
-        form_factor: "ATX",
+        memoria_tipo: "",
+        form_factor: "",
         tdp: 125,
         spec_1_chave: "Núcleos",
         spec_1_valor: "16",
-        spec_2_chave: "Threads",
-        spec_2_valor: "24",
-        spec_3_chave: "Frequência",
-        spec_3_valor: "3.4GHz",
-        spec_4_chave: "",
-        spec_4_valor: "",
-        spec_5_chave: "",
-        spec_5_valor: "",
-      },
-    ];
+      });
+    }
 
-    // Add instructions row
-    const instructionsData = [
-      {
-        nome: `CATEGORIAS: ${allCategories}`,
-        marca: "Socket: LGA1700, AM5, AM4...",
-        modelo: "Memória: DDR5, DDR4",
-        preco: "",
-        categoria: "",
-        socket: "Para CPU/Mobo",
-        memoria_tipo: "Para RAM/Mobo",
-        form_factor: "ATX, Micro-ATX...",
-        tdp: "Watts",
-        spec_1_chave: "",
-        spec_1_valor: "",
-        spec_2_chave: "",
-        spec_2_valor: "",
-        spec_3_chave: "",
-        spec_3_valor: "",
-        spec_4_chave: "",
-        spec_4_valor: "",
-        spec_5_chave: "",
-        spec_5_valor: "",
-      },
-      ...templateData,
-    ];
-
-    const ws = XLSX.utils.json_to_sheet(instructionsData);
+    const ws = XLSX.utils.json_to_sheet(exportData);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Hardware");
 
     // Auto-size columns
-    ws["!cols"] = [
+    const colWidths = [
       { wch: 40 }, { wch: 25 }, { wch: 25 }, { wch: 12 }, { wch: 15 },
       { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 10 },
-      { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 },
-      { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 },
     ];
+    for (let i = 0; i < maxSpecs; i++) {
+      colWidths.push({ wch: 15 }, { wch: 20 });
+    }
+    ws["!cols"] = colWidths;
 
-    XLSX.writeFile(wb, `template_hardware_${activeHardwareCategory}.xlsx`);
-    toast({ title: "Download iniciado", description: "Template atualizado com campos de compatibilidade" });
+    const now = new Date().toISOString().split('T')[0];
+    XLSX.writeFile(wb, `backup_hardware_${activeHardwareCategory}_${now}.xlsx`);
+    toast({ 
+      title: "Backup baixado", 
+      description: `${categoryHardware.length} itens exportados` 
+    });
   }
 
   async function handleBulkUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -1119,35 +1137,42 @@ export default function Admin() {
     fetchProductsData();
   }
 
-  // Bulk upload products
+  // Bulk upload/export products - exports ALL existing products as backup
   function downloadProductExcelTemplate() {
-    // Build list of all available product types (base + custom)
-    const allTypes = productTypes.map(t => t.key).join(', ');
-    
-    const templateData = [
-      {
-        titulo: "Produto Exemplo",
-        subtitulo: "Descrição curta",
-        descricao: "Descrição completa do produto",
-        preco: 999.99,
-        tipo: "notebook",
-        download_url: "",
-        spec_1_chave: "Processador",
-        spec_1_valor: "Intel Core i7",
-        spec_2_chave: "RAM",
-        spec_2_valor: "16GB",
-        spec_3_chave: "",
-        spec_3_valor: "",
-        spec_4_chave: "",
-        spec_4_valor: "",
-        spec_5_chave: "",
-        spec_5_valor: "",
-      },
-    ];
+    // Find max number of specs across all products
+    let maxSpecs = 5;
+    products.forEach(product => {
+      const specCount = Object.keys(product.specs || {}).length;
+      if (specCount > maxSpecs) maxSpecs = specCount;
+    });
 
-    // Add instructions row showing all available types
-    const instructionsData = [
-      {
+    // Build export data from existing products
+    const exportData = products.map(product => {
+      const row: Record<string, any> = {
+        id: product.id,
+        titulo: product.title,
+        subtitulo: product.subtitle || "",
+        descricao: product.description || "",
+        preco: product.totalPrice,
+        tipo: product.productType || "notebook",
+        download_url: product.downloadUrl || "",
+      };
+
+      // Add specs dynamically
+      const specEntries = Object.entries(product.specs || {});
+      for (let i = 0; i < maxSpecs; i++) {
+        row[`spec_${i + 1}_chave`] = specEntries[i]?.[0] || "";
+        row[`spec_${i + 1}_valor`] = specEntries[i]?.[1] || "";
+      }
+
+      return row;
+    });
+
+    // If no data, add instructions and example row
+    if (exportData.length === 0) {
+      const allTypes = productTypes.map(t => t.key).join(', ');
+      exportData.push({
+        id: "",
         titulo: `TIPOS DISPONÍVEIS: ${allTypes}`,
         subtitulo: "Preencha a partir da linha 3",
         descricao: "",
@@ -1156,30 +1181,39 @@ export default function Admin() {
         download_url: "Apenas para automações",
         spec_1_chave: "",
         spec_1_valor: "",
-        spec_2_chave: "",
-        spec_2_valor: "",
-        spec_3_chave: "",
-        spec_3_valor: "",
-        spec_4_chave: "",
-        spec_4_valor: "",
-        spec_5_chave: "",
-        spec_5_valor: "",
-      },
-      ...templateData,
-    ];
+      });
+      exportData.push({
+        id: "",
+        titulo: "Produto Exemplo",
+        subtitulo: "Descrição curta",
+        descricao: "Descrição completa do produto",
+        preco: 999.99,
+        tipo: "notebook",
+        download_url: "",
+        spec_1_chave: "Processador",
+        spec_1_valor: "Intel Core i7",
+      });
+    }
 
-    const ws = XLSX.utils.json_to_sheet(instructionsData);
+    const ws = XLSX.utils.json_to_sheet(exportData);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Produtos");
 
-    ws["!cols"] = [
-      { wch: 50 }, { wch: 30 }, { wch: 40 }, { wch: 12 }, { wch: 20 }, { wch: 40 },
-      { wch: 15 }, { wch: 20 }, { wch: 15 }, { wch: 20 }, { wch: 15 }, { wch: 20 },
-      { wch: 15 }, { wch: 20 }, { wch: 15 }, { wch: 20 },
+    // Auto-size columns
+    const colWidths = [
+      { wch: 40 }, { wch: 40 }, { wch: 30 }, { wch: 50 }, { wch: 12 }, { wch: 20 }, { wch: 40 },
     ];
+    for (let i = 0; i < maxSpecs; i++) {
+      colWidths.push({ wch: 15 }, { wch: 20 });
+    }
+    ws["!cols"] = colWidths;
 
-    XLSX.writeFile(wb, `template_produtos.xlsx`);
-    toast({ title: "Download iniciado", description: "Template atualizado com todos os tipos de produto" });
+    const now = new Date().toISOString().split('T')[0];
+    XLSX.writeFile(wb, `backup_produtos_${now}.xlsx`);
+    toast({ 
+      title: "Backup baixado", 
+      description: `${products.length} produtos exportados` 
+    });
   }
 
   async function handleProductBulkUpload(e: React.ChangeEvent<HTMLInputElement>) {
