@@ -5,18 +5,19 @@ import { Footer } from "@/components/Footer";
 import { Sidebar } from "@/components/Sidebar";
 import { api, type Product, type HardwareItem, type MediaItem, type ProductComponents, type CompanyData, type ProductCategory, type HardwareCategory, type HardwareCategoryDef, getCustomCategories, addCustomCategory, removeCustomCategory, updateCustomCategory, getHardwareCategories, addHardwareCategory, removeHardwareCategory, updateHardwareCategory } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Pencil, Trash2, Save, X, Upload, Play, Image, Cpu, CircuitBoard, MemoryStick, HardDrive, Monitor, Zap, Box, Package, Download, Droplets, Building2, Laptop, Bot, Code, Wrench, Key, Tv, Armchair, Tag, LucideIcon, Search, Sparkles, LayoutDashboard } from "lucide-react";
+import { Plus, Pencil, Trash2, Save, X, Upload, Play, Image, Cpu, CircuitBoard, MemoryStick, HardDrive, Monitor, Zap, Box, Package, Download, Droplets, Building2, Laptop, Bot, Code, Wrench, Key, Tv, Armchair, Tag, LucideIcon, Search, Sparkles, LayoutDashboard, Images } from "lucide-react";
 import * as XLSX from "xlsx";
 import { availableIcons, getIconFromKey } from "@/lib/icons";
 import { HardwareCard } from "@/components/HardwareCard";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { AdminDashboard } from "@/components/AdminDashboard";
+import { CarouselManager } from "@/components/CarouselManager";
 
 // Simple auth - for demo purposes only
 const ADMIN_USER = "n8nbalao";
 const ADMIN_PASS = "Balao2025";
 
-type AdminTab = 'dashboard' | 'products' | 'hardware' | 'company';
+type AdminTab = 'dashboard' | 'products' | 'hardware' | 'company' | 'carousels';
 
 interface ExtraProduct {
   id: string;
@@ -1539,6 +1540,17 @@ export default function Admin() {
               <Building2 className="h-5 w-5" />
               Dados da Empresa
             </button>
+            <button
+              onClick={() => setActiveTab('carousels')}
+              className={`inline-flex items-center gap-2 rounded-lg px-6 py-3 font-medium transition-colors ${
+                activeTab === 'carousels'
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-secondary text-foreground hover:bg-secondary/80"
+              }`}
+            >
+              <Images className="h-5 w-5" />
+              Carrosséis
+            </button>
           </div>
 
           {/* Categories display with edit on click */}
@@ -2021,6 +2033,11 @@ export default function Admin() {
                 </div>
               )}
             </div>
+          )}
+
+          {/* Carousels Tab */}
+          {activeTab === 'carousels' && (
+            <CarouselManager />
           )}
 
           {/* Hardware Tab */}
