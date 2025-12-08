@@ -112,7 +112,7 @@ export function AdminDashboard() {
       const validOrders = Array.isArray(ordersData) ? ordersData : [];
       const totalRevenue = validOrders
         .filter((o) => o.status !== "cancelled")
-        .reduce((sum, o) => sum + (o.totalPrice || 0), 0);
+        .reduce((sum, o) => sum + (parseFloat(String(o.totalPrice)) || 0), 0);
 
       setStats({
         totalCustomers: Array.isArray(customersData) ? customersData.length : 0,
