@@ -26,6 +26,7 @@ const ExtractProducts = () => {
   
   const [rawData, setRawData] = useState('');
   const [parsedProducts, setParsedProducts] = useState<ParsedProduct[]>([]);
+  const [taxa, setTaxa] = useState('0');
   const [margin, setMargin] = useState('30');
   const [productType, setProductType] = useState('');
   const [category, setCategory] = useState('');
@@ -109,9 +110,15 @@ const ExtractProducts = () => {
     });
   };
 
+  const calculateAdjustedCost = (costPrice: number) => {
+    const taxaPercent = parseFloat(taxa) || 0;
+    return costPrice * (1 + taxaPercent / 100);
+  };
+
   const calculateFinalPrice = (costPrice: number) => {
+    const adjustedCost = calculateAdjustedCost(costPrice);
     const marginPercent = parseFloat(margin) || 0;
-    return costPrice * (1 + marginPercent / 100);
+    return adjustedCost * (1 + marginPercent / 100);
   };
 
   const toggleProduct = (id: string) => {
@@ -245,7 +252,23 @@ https://images.kabum.com.br/...	Gift Card KaBuM: 1.000 Reais	R$ 1.000,00	...`}
             <CardHeader>
               <CardTitle className="text-lg">Configuração da Importação</CardTitle>
             </CardHeader>
-            <CardContent className="grid md:grid-cols-3 gap-4">
+            <CardContent className="grid md:grid-cols-4 gap-4">
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  <Percent className="h-4 w-4" />
+                  Taxa (%)
+                </Label>
+                <Input
+                  type="number"
+                  value={taxa}
+                  onChange={(e) => setTaxa(e.target.value)}
+                  placeholder="0"
+                  min="0"
+                  max="100"
+                />
+                <p className="text-xs text-muted-foreground">Aplicada sobre o custo</p>
+              </div>
+
               <div className="space-y-2">
                 <Label className="flex items-center gap-2">
                   <Percent className="h-4 w-4" />
@@ -340,6 +363,7 @@ https://images.kabum.com.br/...	Gift Card KaBuM: 1.000 Reais	R$ 1.000,00	...`}
                       <TableHead className="w-16">Imagem</TableHead>
                       <TableHead>Título</TableHead>
                       <TableHead className="text-right">Custo</TableHead>
+                      <TableHead className="text-right">Custo Ajustado (+{taxa}%)</TableHead>
                       <TableHead className="text-right">Venda (+{margin}%)</TableHead>
                       <TableHead className="w-12"></TableHead>
                     </TableRow>
@@ -371,6 +395,9 @@ https://images.kabum.com.br/...	Gift Card KaBuM: 1.000 Reais	R$ 1.000,00	...`}
                         </TableCell>
                         <TableCell className="text-right text-muted-foreground">
                           R$ {product.costPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        </TableCell>
+                        <TableCell className="text-right text-orange-500">
+                          R$ {calculateAdjustedCost(product.costPrice).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                         </TableCell>
                         <TableCell className="text-right font-medium text-primary">
                           R$ {calculateFinalPrice(product.costPrice).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
