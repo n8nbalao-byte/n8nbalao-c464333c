@@ -53,12 +53,12 @@ try {
 
 // Insert default admin if not exists
 $stmt = $pdo->prepare("SELECT id FROM admins WHERE email = ?");
-$stmt->execute(['admin@balao.info']);
+$stmt->execute(['admin@n8nbalao']);
 if (!$stmt->fetch()) {
     $defaultId = uniqid('admin_', true);
     $defaultPass = password_hash('Balao2025', PASSWORD_DEFAULT);
     $pdo->prepare("INSERT INTO admins (id, name, email, password, role) VALUES (?, ?, ?, ?, ?)")
-        ->execute([$defaultId, 'Administrador', 'admin@balao.info', $defaultPass, 'super_admin']);
+        ->execute([$defaultId, 'Administrador', 'admin@n8nbalao', $defaultPass, 'super_admin']);
 }
 
 $method = $_SERVER['REQUEST_METHOD'];
@@ -77,14 +77,14 @@ switch ($action) {
         $loginField = $data['email'] ?? $data['username'];
         
         // Check legacy credentials first (n8nbalao/Balao2025)
-        if (($loginField === 'n8nbalao' || $loginField === 'admin@balao.info') && $data['password'] === 'Balao2025') {
+        if (($loginField === 'n8nbalao' || $loginField === 'admin@n8nbalao') && $data['password'] === 'Balao2025') {
             // Return default admin
             echo json_encode([
                 'success' => true,
                 'admin' => [
                     'id' => 'legacy_admin',
                     'name' => 'Administrador',
-                    'email' => 'admin@balao.info',
+                    'email' => 'admin@n8nbalao',
                     'role' => 'super_admin'
                 ],
                 'token' => bin2hex(random_bytes(32))

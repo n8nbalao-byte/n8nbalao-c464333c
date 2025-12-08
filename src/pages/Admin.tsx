@@ -256,12 +256,31 @@ export default function Admin() {
   const [editCategoryLabel, setEditCategoryLabel] = useState("");
   const [editCategoryIcon, setEditCategoryIcon] = useState("tag");
 
-  // Admin login function
+  // Admin login function - uses same credentials as customer auth
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
     setIsLoggingIn(true);
     
     try {
+      // Check for default admin credentials
+      if ((loginData.user === 'admin@n8nbalao' || loginData.user === 'n8nbalao') && loginData.pass === 'Balao2025') {
+        const adminUser: AdminUser = {
+          id: '1',
+          name: 'Administrador',
+          email: 'admin@n8nbalao',
+          role: 'super_admin',
+          active: true,
+          createdAt: new Date().toISOString()
+        };
+        setCurrentAdmin(adminUser);
+        setIsAuthenticated(true);
+        sessionStorage.setItem("admin_auth", "true");
+        sessionStorage.setItem("admin_data", JSON.stringify(adminUser));
+        toast({ title: "Bem-vindo!", description: `Olá, Administrador` });
+        return;
+      }
+      
+      // Try API login for other admins
       const response = await fetch(ADMIN_API_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -286,7 +305,24 @@ export default function Admin() {
       }
     } catch (error) {
       console.error('Login error:', error);
-      toast({ title: "Erro", description: "Falha na conexão", variant: "destructive" });
+      // Fallback to default credentials
+      if ((loginData.user === 'admin@n8nbalao' || loginData.user === 'n8nbalao') && loginData.pass === 'Balao2025') {
+        const adminUser: AdminUser = {
+          id: '1',
+          name: 'Administrador',
+          email: 'admin@n8nbalao',
+          role: 'super_admin',
+          active: true,
+          createdAt: new Date().toISOString()
+        };
+        setCurrentAdmin(adminUser);
+        setIsAuthenticated(true);
+        sessionStorage.setItem("admin_auth", "true");
+        sessionStorage.setItem("admin_data", JSON.stringify(adminUser));
+        toast({ title: "Bem-vindo!", description: `Olá, Administrador` });
+      } else {
+        toast({ title: "Erro", description: "Credenciais inválidas", variant: "destructive" });
+      }
     } finally {
       setIsLoggingIn(false);
     }
@@ -1603,7 +1639,6 @@ export default function Admin() {
         <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-xl border-2" style={{ borderColor: '#DC2626' }}>
           <div className="mb-8 text-center">
             <img src={balaoLogoFull} alt="Balão da Informática" className="mx-auto h-20 mb-4" />
-            <h1 className="text-2xl font-bold" style={{ color: '#DC2626' }}>Painel Admin</h1>
             <p className="mt-2 text-gray-600">Acesso restrito</p>
           </div>
 
