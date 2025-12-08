@@ -68,8 +68,11 @@ export default function Automacao() {
     }).slice(0, 8);
   };
 
+  // Purple/coral color for this page (matching reference)
+  const accentColor = "#e84a7f"; // Pink/coral like reference
+
   return (
-    <div className="min-h-screen relative dark">
+    <div className="min-h-screen relative dark" style={{ "--accent-automacao": accentColor } as React.CSSProperties}>
       <StarryBackground />
       <Header />
       <Sidebar />
@@ -79,16 +82,19 @@ export default function Automacao() {
         <div className="container relative z-10">
           <div className="grid gap-12 lg:grid-cols-2 lg:items-center">
             <div className="space-y-8">
-              <div className="inline-block rounded-full bg-primary/20 px-4 py-2 text-sm font-medium text-primary border border-primary/30">
+              <div 
+                className="inline-block rounded-full px-4 py-2 text-sm font-medium border"
+                style={{ backgroundColor: `${accentColor}20`, color: accentColor, borderColor: `${accentColor}50` }}
+              >
                 AUTOMATIZE SEU ATENDIMENTO
               </div>
               
-              <h1 className="text-4xl font-bold leading-tight text-foreground lg:text-6xl">
+              <h1 className="text-4xl font-bold leading-tight text-white lg:text-6xl">
                 Transforme seu{" "}
-                <span className="text-primary">WhatsApp</span> em uma máquina de vendas automática
+                <span style={{ color: accentColor }}>WhatsApp</span> em uma máquina de vendas automática
               </h1>
               
-              <p className="text-lg text-muted-foreground">
+              <p className="text-lg text-gray-400">
                 Não perca mais vendas por falta de atendimento. Nosso chatbot com IA avançada 
                 responde suas mensagens 24/7, atende múltiplos clientes simultaneamente e 
                 aumenta suas conversões.
@@ -97,7 +103,8 @@ export default function Automacao() {
               <div className="flex flex-wrap gap-4">
                 <a
                   href="#pricing"
-                  className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-glow transition-all hover:bg-primary/90 hover:scale-105"
+                  className="inline-flex items-center justify-center gap-2 rounded-lg px-6 py-3 text-sm font-semibold text-white transition-all hover:opacity-90 hover:scale-105"
+                  style={{ backgroundColor: accentColor, boxShadow: `0 0 30px ${accentColor}40` }}
                 >
                   <Download className="h-5 w-5" />
                   Download
@@ -106,7 +113,8 @@ export default function Automacao() {
                   href="https://wa.me/5519981470446"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center justify-center gap-2 rounded-lg border border-primary bg-transparent px-6 py-3 text-sm font-semibold text-primary transition-all hover:bg-primary hover:text-primary-foreground hover:scale-105"
+                  className="inline-flex items-center justify-center gap-2 rounded-lg border bg-transparent px-6 py-3 text-sm font-semibold transition-all hover:scale-105"
+                  style={{ borderColor: accentColor, color: accentColor }}
                 >
                   <MessageCircle className="h-5 w-5" />
                   Fale Conosco
@@ -116,8 +124,8 @@ export default function Automacao() {
               <div className="flex gap-8 pt-4">
                 {stats.map((stat) => (
                   <div key={stat.label}>
-                    <div className="text-3xl font-bold text-primary">{stat.value}</div>
-                    <div className="text-sm text-muted-foreground">{stat.label}</div>
+                    <div className="text-3xl font-bold" style={{ color: accentColor }}>{stat.value}</div>
+                    <div className="text-sm text-gray-400">{stat.label}</div>
                   </div>
                 ))}
               </div>
@@ -131,7 +139,7 @@ export default function Automacao() {
                   className="relative z-10 max-w-sm rounded-3xl drop-shadow-2xl"
                 />
                 {/* Glow effect behind phone */}
-                <div className="absolute inset-0 -z-10 blur-3xl bg-primary/20 rounded-full scale-75" />
+                <div className="absolute inset-0 -z-10 blur-3xl rounded-full scale-75" style={{ backgroundColor: `${accentColor}30` }} />
               </div>
             </div>
           </div>
@@ -148,29 +156,29 @@ export default function Automacao() {
         <div className="container">
           <div className="grid gap-12 lg:grid-cols-2 lg:items-center">
             <div className="space-y-6">
-              <h2 className="text-3xl font-bold text-foreground lg:text-4xl">
-                Interface <span className="text-primary">No-Code</span> quando você precisa, Código quando quiser
+              <h2 className="text-3xl font-bold text-white lg:text-4xl">
+                Interface <span style={{ color: accentColor }}>No-Code</span> quando você precisa, Código quando quiser
               </h2>
-              <p className="text-muted-foreground">
+              <p className="text-gray-400">
                 Configure seu bot de WhatsApp sem escrever uma linha de código. Nossa interface visual 
                 intuitiva permite criar automações poderosas em minutos.
               </p>
-              <ul className="space-y-4">
+              <ul className="space-y-4 text-gray-300">
                 <li className="flex items-start gap-3">
-                  <span className="text-primary font-bold">•</span>
-                  <span><strong className="text-foreground">Interface 100% No-Code</strong> - Crie fluxos de conversação arrastando e soltando</span>
+                  <span className="font-bold" style={{ color: accentColor }}>•</span>
+                  <span><strong className="text-white">Interface 100% No-Code</strong> - Crie fluxos de conversação arrastando e soltando</span>
                 </li>
                 <li className="flex items-start gap-3">
-                  <span className="text-primary font-bold">•</span>
-                  <span><strong className="text-foreground">Personalização Avançada</strong> - Adapte o bot à identidade da sua marca</span>
+                  <span className="font-bold" style={{ color: accentColor }}>•</span>
+                  <span><strong className="text-white">Personalização Avançada</strong> - Adapte o bot à identidade da sua marca</span>
                 </li>
                 <li className="flex items-start gap-3">
-                  <span className="text-primary font-bold">•</span>
-                  <span><strong className="text-foreground">Integrações Nativas</strong> - Conecte com CRM, planilhas e sistemas externos</span>
+                  <span className="font-bold" style={{ color: accentColor }}>•</span>
+                  <span><strong className="text-white">Integrações Nativas</strong> - Conecte com CRM, planilhas e sistemas externos</span>
                 </li>
                 <li className="flex items-start gap-3">
-                  <span className="text-primary font-bold">•</span>
-                  <span><strong className="text-foreground">Respostas Inteligentes</strong> - IA que aprende com suas interações</span>
+                  <span className="font-bold" style={{ color: accentColor }}>•</span>
+                  <span><strong className="text-white">Respostas Inteligentes</strong> - IA que aprende com suas interações</span>
                 </li>
               </ul>
             </div>
@@ -188,12 +196,12 @@ export default function Automacao() {
       </section>
 
       {/* Workflow Section */}
-      <section className="py-20 bg-card/30">
+      <section className="py-20" style={{ backgroundColor: "rgba(30, 30, 50, 0.3)" }}>
         <div className="container text-center">
-          <h2 className="text-3xl font-bold text-foreground lg:text-4xl mb-4">
+          <h2 className="text-3xl font-bold text-white lg:text-4xl mb-4">
             Automatize processos complexos com facilidade
           </h2>
-          <p className="text-muted-foreground mb-12 max-w-2xl mx-auto">
+          <p className="text-gray-400 mb-12 max-w-2xl mx-auto">
             Crie workflows poderosos que conectam diferentes ferramentas e serviços, tudo de forma visual e intuitiva.
           </p>
           <div className="max-w-5xl mx-auto">
@@ -216,7 +224,7 @@ export default function Automacao() {
       {/* Custom Plan CTA */}
       <section className="py-20">
         <div className="container">
-          <div className="grid gap-12 lg:grid-cols-2 lg:items-center rounded-2xl bg-card/50 backdrop-blur-sm border border-border/50 p-8 lg:p-12">
+          <div className="grid gap-12 lg:grid-cols-2 lg:items-center rounded-2xl backdrop-blur-sm border p-8 lg:p-12" style={{ backgroundColor: "rgba(30, 30, 50, 0.5)", borderColor: "rgba(255,255,255,0.1)" }}>
             <div>
               <img
                 src="https://meuwhatsappbot.com.br/images/team.png"
@@ -225,17 +233,18 @@ export default function Automacao() {
               />
             </div>
             <div className="space-y-6">
-              <h2 className="text-3xl font-bold text-foreground lg:text-4xl">
+              <h2 className="text-3xl font-bold text-white lg:text-4xl">
                 Precisa de um plano personalizado para sua empresa?
               </h2>
-              <p className="text-muted-foreground">
+              <p className="text-gray-400">
                 Nossa equipe especializada está pronta para criar a solução perfeita para o seu negócio
               </p>
               <a
                 href="https://wa.me/5519981470446"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 rounded-lg bg-primary px-6 py-3 font-semibold text-primary-foreground transition-all hover:bg-primary/90 hover:scale-105"
+                className="inline-flex items-center gap-2 rounded-lg px-6 py-3 font-semibold text-white transition-all hover:opacity-90 hover:scale-105"
+                style={{ backgroundColor: accentColor }}
               >
                 <MessageCircle className="h-5 w-5" />
                 Entre em contato
@@ -249,10 +258,10 @@ export default function Automacao() {
       <section id="pricing" className="py-20">
         <div className="container">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-foreground lg:text-4xl">
+            <h2 className="text-3xl font-bold text-white lg:text-4xl">
               Nossos Produtos
             </h2>
-            <p className="mt-4 text-muted-foreground">
+            <p className="mt-4 text-gray-400">
               Soluções de automação para seu negócio
             </p>
           </div>
@@ -260,7 +269,7 @@ export default function Automacao() {
           {loading ? (
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
               {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="h-80 animate-pulse rounded-xl bg-card" />
+                <div key={i} className="h-80 animate-pulse rounded-xl" style={{ backgroundColor: "rgba(30, 30, 50, 0.5)" }} />
               ))}
             </div>
           ) : (
@@ -270,7 +279,7 @@ export default function Automacao() {
               ))}
               
               {getN8nProducts().length === 0 && (
-                <div className="col-span-full text-center py-12 text-muted-foreground">
+                <div className="col-span-full text-center py-12 text-gray-400">
                   Nenhum produto de automação disponível no momento.
                 </div>
               )}
@@ -282,16 +291,16 @@ export default function Automacao() {
       {/* CTA Section */}
       <section id="cta" className="py-20">
         <div className="container">
-          <div className="rounded-2xl gradient-primary p-12 text-center relative overflow-hidden">
+          <div className="rounded-2xl p-12 text-center relative overflow-hidden" style={{ background: `linear-gradient(135deg, ${accentColor} 0%, #a855f7 100%)` }}>
             {/* Decorative elements */}
             <div className="absolute top-0 left-0 w-32 h-32 bg-white/10 rounded-full -translate-x-1/2 -translate-y-1/2" />
             <div className="absolute bottom-0 right-0 w-48 h-48 bg-white/10 rounded-full translate-x-1/2 translate-y-1/2" />
             
             <div className="relative z-10">
-              <h2 className="text-3xl font-bold text-primary-foreground lg:text-4xl">
+              <h2 className="text-3xl font-bold text-white lg:text-4xl">
                 Pronto para automatizar seu atendimento?
               </h2>
-              <p className="mt-4 text-primary-foreground/80 max-w-2xl mx-auto">
+              <p className="mt-4 text-white/80 max-w-2xl mx-auto">
                 Comece agora e transforme seu WhatsApp em uma máquina de vendas
               </p>
               <div className="mt-8 flex flex-wrap justify-center gap-4">
@@ -299,7 +308,8 @@ export default function Automacao() {
                   href="https://wa.me/5519981470446"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 rounded-lg bg-background px-6 py-3 font-semibold text-primary transition-all hover:bg-background/90 hover:scale-105"
+                  className="inline-flex items-center gap-2 rounded-lg bg-white px-6 py-3 font-semibold transition-all hover:bg-white/90 hover:scale-105"
+                  style={{ color: accentColor }}
                 >
                   <MessageCircle className="h-5 w-5" />
                   Falar com Consultor
