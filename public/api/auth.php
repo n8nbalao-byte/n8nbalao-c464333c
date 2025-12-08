@@ -9,7 +9,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit();
 }
 
-$host = 'srv1196.hstgr.io';
+$host = 'localhost';
 $dbname = 'u770915504_n8nbalao';
 $username = 'u770915504_n8nbalao';
 $password = 'Balao2025';
