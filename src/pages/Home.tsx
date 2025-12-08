@@ -147,10 +147,10 @@ export default function Home() {
               </div>
             </form>
 
-            {/* Cart */}
-            <Link to="/loja" className="flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors">
-              <ShoppingCart className="h-5 w-5" />
-              <span className="hidden md:inline font-medium">Carrinho</span>
+            {/* Monte seu PC */}
+            <Link to="/monte-voce-mesmo" className="flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors">
+              <Cpu className="h-5 w-5" />
+              <span className="hidden md:inline font-medium">Monte seu PC</span>
             </Link>
           </div>
 
