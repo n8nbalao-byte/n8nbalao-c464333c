@@ -180,119 +180,189 @@ const ExtractProducts = () => {
     return -1;
   };
 
-  // Parse Mercado Livre format: extract price from multiple columns
-  const parseMercadoLivreRow = (row: any[], headers: string[]): { imageUrl: string; title: string; price: number } => {
+  // Universal parser: detect store format and extract image, title, price
+  const parseUniversalRow = (row: any[], headers: string[]): { imageUrl: string; title: string; price: number } => {
     let imageUrl = '';
     let title = '';
     let price = 0;
 
-    // Find image: look for column with URL starting with http or containing picture/src
+    // Detect store format
+    const isMercadoLivre = headers.some(h => h.includes('poly-component') || h.includes('andes-money') || h.includes('fraction'));
+    const isPichau = headers.some(h => h.includes('mui-') || h.includes('muigrid') || h.includes('muitypography'));
+    const isKalunga = headers.some(h => h.includes('blocoproduto'));
+    const isKabum = headers.some(h => h.includes('kabum') || (h.includes('restam') && headers.some(h2 => h2.includes('http'))));
+
+    // ===== EXTRACT IMAGE =====
     for (let i = 0; i < headers.length; i++) {
       const header = headers[i].toLowerCase();
       const value = String(row[i] || '').trim();
       
-      if (header.includes('picture') || header.includes('src') || header.includes('image') || header.includes('img')) {
-        if (value.startsWith('http') && !value.includes('data:image/gif')) {
-          imageUrl = value;
-          break;
-        }
+      // Skip placeholder/empty images
+      if (value.startsWith('data:image/gif') || !value) continue;
+      
+      // Pichau: mui-*-media src
+      if (isPichau && header.includes('media') && header.includes('src') && value.startsWith('http')) {
+        imageUrl = value;
+        break;
+      }
+      // Kalunga: blocoproduto__image src
+      if (isKalunga && header.includes('blocoproduto__image') && value.startsWith('http')) {
+        imageUrl = value;
+        break;
+      }
+      // General: any column with image/picture/src/foto and http URL
+      if ((header.includes('picture') || header.includes('src') || header.includes('image') || header.includes('img') || header.includes('foto') || header.includes('media')) 
+          && value.startsWith('http')) {
+        imageUrl = value;
+        break;
       }
     }
     
-    // If no image found by header, look for first http URL that's an image
+    // Fallback: find any http URL that looks like an image
     if (!imageUrl) {
       for (const cell of row) {
         const value = String(cell || '').trim();
-        if (value.startsWith('http') && (value.includes('.webp') || value.includes('.jpg') || value.includes('.png') || value.includes('.jpeg'))) {
+        if (value.startsWith('http') && (value.includes('.webp') || value.includes('.jpg') || value.includes('.png') || value.includes('.jpeg') || value.includes('/foto') || value.includes('/image') || value.includes('/media'))) {
           imageUrl = value;
           break;
         }
       }
     }
 
-    // Find title: look for column with 'title' in header
+    // ===== EXTRACT TITLE =====
     for (let i = 0; i < headers.length; i++) {
       const header = headers[i].toLowerCase();
-      if (header.includes('title') || header.includes('titulo') || header.includes('nome') || header.includes('name')) {
-        title = String(row[i] || '').trim();
-        if (title) break;
+      const value = String(row[i] || '').trim();
+      
+      // Pichau: MuiTypography-root
+      if (isPichau && header.includes('muitypography') && value.length > 10) {
+        title = value;
+        break;
+      }
+      // Kalunga: blocoproduto__title
+      if (isKalunga && header.includes('blocoproduto__title') && value.length > 5) {
+        title = value;
+        break;
+      }
+      // General: title/titulo/nome/name
+      if ((header.includes('title') || header.includes('titulo') || header.includes('nome') || header.includes('name')) && value.length > 5) {
+        title = value;
+        break;
       }
     }
     
-    // If no title found by header, use the longest text string
+    // Fallback: use the longest text string that isn't a URL or price
     if (!title) {
       let maxLen = 0;
       for (const cell of row) {
         const value = String(cell || '').trim();
-        if (value.length > maxLen && !value.startsWith('http') && !value.startsWith('R$') && isNaN(Number(value))) {
+        if (value.length > maxLen && value.length > 10 && !value.startsWith('http') && !value.startsWith('R$') && !value.includes('R$') && isNaN(Number(value.replace(/[.,]/g, '')))) {
           maxLen = value.length;
           title = value;
         }
       }
     }
 
-    // Find price: Mercado Livre splits price into multiple columns
-    // Pattern: R$ | integer | , | cents OR just look for "fraction" columns
-    let foundCurrency = false;
-    let priceInteger = '';
-    let priceCents = '';
+    // ===== EXTRACT PRICE (À VISTA) =====
     
-    for (let i = 0; i < headers.length; i++) {
-      const header = headers[i].toLowerCase();
-      const value = String(row[i] || '').trim();
-      
-      // Look for first occurrence of R$ (preço à vista)
-      if (value === 'R$' && !foundCurrency) {
-        foundCurrency = true;
-        // Next column should be the integer part
-        if (i + 1 < row.length) {
-          const nextVal = String(row[i + 1] || '').trim();
-          if (/^\d+$/.test(nextVal) || /^\d{1,3}(\.\d{3})*$/.test(nextVal)) {
-            priceInteger = nextVal.replace(/\./g, ''); // Remove thousand separators
-          }
-        }
-        // Look for cents (might be 2-3 columns after)
-        for (let j = i + 2; j < Math.min(i + 5, row.length); j++) {
-          const checkVal = String(row[j] || '').trim();
-          // Cents are typically 2 digits after a comma
-          if (/^\d{1,2}$/.test(checkVal) && checkVal !== '20' && checkVal !== '30' && checkVal !== '35') {
-            priceCents = checkVal;
+    // Pichau: mui-12athy2-price_vista
+    if (isPichau) {
+      for (let i = 0; i < headers.length; i++) {
+        const header = headers[i].toLowerCase();
+        if (header.includes('price_vista') && !header.includes('text')) {
+          const value = String(row[i] || '').trim();
+          if (value.includes('R$')) {
+            price = parsePrice(value);
             break;
           }
         }
-        break;
       }
-      
-      // Alternative: look for fraction column (andes-money-amount__fraction 2 is usually the main price)
-      if (header.includes('fraction') && header.includes('2') && !priceInteger) {
-        const val = String(row[i] || '').trim();
-        if (/^\d+$/.test(val)) {
-          priceInteger = val;
-        }
-      }
-      
-      // Look for cents column
-      if (header.includes('cents') && !header.includes('3') && !priceCents) {
-        const val = String(row[i] || '').trim();
-        if (/^\d{1,2}$/.test(val)) {
-          priceCents = val;
+    }
+    
+    // Kalunga: blocoproduto__text (first one with R$)
+    if (isKalunga && price === 0) {
+      for (let i = 0; i < headers.length; i++) {
+        const header = headers[i].toLowerCase();
+        if (header.includes('blocoproduto__text') && !header.includes('bold') && !header.includes('old')) {
+          const value = String(row[i] || '').trim();
+          if (value.includes('R$')) {
+            price = parsePrice(value);
+            break;
+          }
         }
       }
     }
     
-    // Build price
-    if (priceInteger) {
-      price = parseFloat(`${priceInteger}.${priceCents || '00'}`);
+    // Kabum: direct price column with R$ (3rd column typically)
+    if (isKabum && price === 0) {
+      for (const cell of row) {
+        const value = String(cell || '').trim();
+        if (value.startsWith('R$') && value.includes(',')) {
+          price = parsePrice(value);
+          break;
+        }
+      }
     }
     
-    // Fallback: try to find any number that looks like a price
+    // Mercado Livre: split columns (R$ | integer | , | cents)
+    if (isMercadoLivre && price === 0) {
+      let foundCurrency = false;
+      let priceInteger = '';
+      let priceCents = '';
+      
+      for (let i = 0; i < headers.length; i++) {
+        const header = headers[i].toLowerCase();
+        const value = String(row[i] || '').trim();
+        
+        // First R$ is the main price (à vista)
+        if (value === 'R$' && !foundCurrency) {
+          foundCurrency = true;
+          // Next column = integer part
+          if (i + 1 < row.length) {
+            const nextVal = String(row[i + 1] || '').trim();
+            if (/^\d{1,3}(\.\d{3})*$/.test(nextVal) || /^\d+$/.test(nextVal)) {
+              priceInteger = nextVal.replace(/\./g, '');
+            }
+          }
+          // Look for cents nearby
+          for (let j = i + 2; j < Math.min(i + 5, row.length); j++) {
+            const checkVal = String(row[j] || '').trim();
+            if (/^\d{1,2}$/.test(checkVal) && !['20', '30', '35'].includes(checkVal)) {
+              priceCents = checkVal;
+              break;
+            }
+          }
+          break;
+        }
+        
+        // Alternative: fraction 2 column
+        if (header.includes('fraction') && header.includes('2') && !priceInteger) {
+          const val = String(row[i] || '').trim();
+          if (/^\d+$/.test(val)) priceInteger = val;
+        }
+        
+        // Cents column (not cents 3)
+        if (header.includes('cents') && !header.includes('3') && !priceCents) {
+          const val = String(row[i] || '').trim();
+          if (/^\d{1,2}$/.test(val)) priceCents = val;
+        }
+      }
+      
+      if (priceInteger) {
+        price = parseFloat(`${priceInteger}.${priceCents || '00'}`);
+      }
+    }
+    
+    // General fallback: find any value with R$ or number that looks like price
     if (price === 0) {
       for (const cell of row) {
         const value = String(cell || '').trim();
-        const parsed = parsePrice(value);
-        if (parsed > 0 && parsed < 100000) {
-          price = parsed;
-          break;
+        if (value.includes('R$') || (value.includes(',') && /^\d/.test(value))) {
+          const parsed = parsePrice(value);
+          if (parsed > 0 && parsed < 500000) {
+            price = parsed;
+            break;
+          }
         }
       }
     }
@@ -326,45 +396,18 @@ const ExtractProducts = () => {
       // Get headers (first row)
       const headers = jsonData[0].map(h => String(h || '').toLowerCase().trim());
       
-      // Check if this is Mercado Livre format (has specific column names)
-      const isMercadoLivreFormat = headers.some(h => 
-        h.includes('poly-component') || 
-        h.includes('andes-money') || 
-        h.includes('fraction')
-      );
-      
       const products: ParsedProduct[] = [];
       
-      // Process rows (skip header)
+      // Process rows (skip header) - use universal parser for ALL formats
       for (let i = 1; i < jsonData.length; i++) {
         const row = jsonData[i];
         if (!row || row.length === 0) continue;
         
-        let imageUrl = '';
-        let title = '';
-        let costPrice = 0;
-        
-        if (isMercadoLivreFormat) {
-          // Use special Mercado Livre parser
-          const parsed = parseMercadoLivreRow(row, headers);
-          imageUrl = parsed.imageUrl;
-          title = parsed.title;
-          costPrice = parsed.price;
-        } else {
-          // Standard parsing for other scrapers
-          const imagePatterns = ['image', 'imagem', 'foto', 'photo', 'img', 'picture', 'thumbnail', 'src'];
-          const titlePatterns = ['title', 'titulo', 'título', 'nome', 'name', 'product', 'produto', 'description', 'descrição'];
-          const pricePatterns = ['price', 'preço', 'preco', 'valor', 'value', 'à vista', 'a vista', 'avista', 'cash'];
-          
-          const imageCol = findColumn(headers, imagePatterns);
-          const titleCol = findColumn(headers, titlePatterns);
-          const priceCol = findColumn(headers, pricePatterns);
-          
-          title = titleCol >= 0 ? String(row[titleCol] || '').trim() : '';
-          imageUrl = imageCol >= 0 ? String(row[imageCol] || '').trim() : '';
-          const priceText = priceCol >= 0 ? String(row[priceCol] || '') : '';
-          costPrice = parsePrice(priceText);
-        }
+        // Universal parser handles Mercado Livre, Pichau, Kabum, Kalunga and others
+        const parsed = parseUniversalRow(row, headers);
+        let imageUrl = parsed.imageUrl;
+        const title = parsed.title;
+        const costPrice = parsed.price;
         
         // Skip rows without valid title
         if (!title || title.length < 3) continue;
