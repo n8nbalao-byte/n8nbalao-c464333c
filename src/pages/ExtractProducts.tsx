@@ -115,9 +115,39 @@ const ExtractProducts = () => {
       }
 
       const result = await response.json();
+      console.log('Extraction result:', result);
 
       if (!result.success) {
         throw new Error(result.error || 'Erro ao extrair dados');
+      }
+
+      // Handle different response types
+      if (result.type === 'links' && Array.isArray(result.data)) {
+        // Server found product links but couldn't extract details
+        toast({
+          title: 'Links de produtos encontrados!',
+          description: `${result.data.length} links encontrados. Use "Produto Único" para extrair cada um.`,
+        });
+        
+        // Show links as products that need extraction
+        const linkProducts = result.data.map((link: string) => ({
+          title: `Link: ${link.substring(0, 60)}...`,
+          price: null,
+          description: '',
+          brand: '',
+          model: '',
+          category: 'acessorio',
+          specs: {},
+          images: [],
+          image: '',
+          link: link,
+          selected: false,
+          importing: false,
+          imported: false,
+          needsExtraction: true,
+        }));
+        setExtractedProducts(linkProducts);
+        return;
       }
 
       // Always convert to array format for consistent handling
@@ -134,16 +164,26 @@ const ExtractProducts = () => {
           images: p.images || (p.image ? [p.image] : []),
           image: p.image || p.images?.[0] || '',
           link: p.link || '',
-          selected: true,
+          selected: !p.needsExtraction,
           importing: false,
           imported: false,
+          needsExtraction: p.needsExtraction || false,
         }));
         setExtractedProducts(products);
         
-        toast({
-          title: 'Extração concluída!',
-          description: `${products.length} produtos encontrados.`,
-        });
+        const extractableCount = products.filter((p: any) => !p.needsExtraction).length;
+        
+        if (result.note) {
+          toast({
+            title: 'Extração parcial',
+            description: result.note,
+          });
+        } else {
+          toast({
+            title: 'Extração concluída!',
+            description: `${extractableCount} produtos prontos para importar.`,
+          });
+        }
       } else if (result.data) {
         // Single product - convert to array with one item
         const product = result.data;
@@ -471,14 +511,21 @@ const ExtractProducts = () => {
                   {inputMode === 'url' 
                     ? 'Cole a URL de uma página de loja para extrair múltiplos produtos.'
                     : 'Cole o código HTML de uma página de listagem para extrair múltiplos produtos.'}
-                  <br />
-                  {inputMode === 'url' && (
-                    <span className="text-yellow-600">⚠️ Sites como Mercado Livre podem bloquear. Use "Colar HTML" nesses casos.</span>
-                  )}
-                  {inputMode === 'html' && (
-                    <span className="text-green-600">✅ Modo HTML bypassa proteções anti-bot!</span>
-                  )}
                 </p>
+                {inputMode === 'url' && (
+                  <div className="p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/20 mt-2">
+                    <p className="text-sm text-yellow-400 font-medium mb-1">⚠️ Mercado Livre / Kabum</p>
+                    <p className="text-xs text-yellow-400/80">
+                      Esses sites carregam produtos via JavaScript. A extração via URL encontrará os <strong>links dos produtos</strong>, 
+                      que você pode extrair individualmente. Para melhores resultados, use <strong>"Colar HTML"</strong> com o DevTools.
+                    </p>
+                  </div>
+                )}
+                {inputMode === 'html' && (
+                  <div className="p-3 rounded-lg bg-green-500/10 border border-green-500/20 mt-2">
+                    <p className="text-sm text-green-400">✅ Modo HTML bypassa proteções anti-bot e captura todos os produtos carregados!</p>
+                  </div>
+                )}
               </TabsContent>
             </Tabs>
 
