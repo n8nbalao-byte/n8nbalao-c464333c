@@ -10,8 +10,8 @@ import { User, Mail, Lock, Phone, Loader2, ArrowLeft } from "lucide-react";
 
 const API_BASE = "https://www.n8nbalao.com/api";
 
-// Google Client ID - será preenchido após configuração no Google Cloud Console
-const GOOGLE_CLIENT_ID = "SEU_CLIENT_ID_AQUI.apps.googleusercontent.com";
+// Google Client ID
+const GOOGLE_CLIENT_ID = "502896071844-skg6o3tai5vffjf60bu22si0uovc4or0.apps.googleusercontent.com";
 
 interface CustomerData {
   id: string;
@@ -90,10 +90,7 @@ export default function ClienteAuth() {
 
   // Load Google Sign-In script
   useEffect(() => {
-    if (GOOGLE_CLIENT_ID === "SEU_CLIENT_ID_AQUI.apps.googleusercontent.com") {
-      return; // Don't load if not configured
-    }
-
+    // Google is configured, load the script
     const script = document.createElement("script");
     script.src = "https://accounts.google.com/gsi/client";
     script.async = true;
@@ -248,7 +245,7 @@ export default function ClienteAuth() {
     }
   };
 
-  const isGoogleConfigured = GOOGLE_CLIENT_ID !== "SEU_CLIENT_ID_AQUI.apps.googleusercontent.com";
+  const isGoogleConfigured = GOOGLE_CLIENT_ID.length > 10 && !GOOGLE_CLIENT_ID.includes("SEU_CLIENT_ID");
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
