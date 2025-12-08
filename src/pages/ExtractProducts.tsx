@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Upload, Loader2, Check, Trash2, Package, Percent, Tag, Link as LinkIcon, Globe, FileSpreadsheet } from "lucide-react";
 import { Link } from "react-router-dom";
-import { api, getCustomCategories, CustomCategory } from "@/lib/api";
+import { api, getCustomCategories, addCustomCategory, CustomCategory } from "@/lib/api";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -22,7 +22,44 @@ interface ParsedProduct {
   description?: string;
   costPrice: number;
   selected: boolean;
+  detectedCategory?: string;
 }
+
+// Category detection keywords mapping
+const categoryKeywords: Record<string, string[]> = {
+  'notebook': ['notebook', 'laptop', 'macbook', 'chromebook', 'ultrabook'],
+  'monitor': ['monitor', 'tela', 'display', 'led', 'lcd', 'ips', 'curvo'],
+  'pc': ['desktop', 'computador', 'gabinete', 'pc gamer', 'workstation'],
+  'processador': ['processador', 'cpu', 'intel', 'amd ryzen', 'core i'],
+  'placa_mae': ['placa mãe', 'placa-mãe', 'motherboard', 'mainboard'],
+  'memoria': ['memória ram', 'memoria ram', 'ddr4', 'ddr5', 'ram '],
+  'armazenamento': ['ssd', 'hd ', 'hdd', 'nvme', 'm.2', 'disco rígido'],
+  'gpu': ['placa de vídeo', 'placa de video', 'rtx', 'gtx', 'radeon', 'geforce'],
+  'fonte': ['fonte', 'psu', 'power supply'],
+  'cooler': ['cooler', 'water cooler', 'watercooler', 'ventilador', 'air cooler'],
+  'gabinete': ['gabinete', 'case', 'torre'],
+  'teclado': ['teclado', 'keyboard', 'mecânico'],
+  'mouse': ['mouse', 'rato'],
+  'headset': ['headset', 'fone', 'headphone', 'auricular'],
+  'cadeira_gamer': ['cadeira', 'chair', 'gamer'],
+  'acessorio': ['cabo', 'adaptador', 'hub', 'mousepad', 'webcam', 'microfone'],
+  'software': ['software', 'windows', 'office', 'licença', 'antivírus'],
+};
+
+// Detect category from product title
+const detectCategory = (title: string): string | undefined => {
+  const lowerTitle = title.toLowerCase();
+  
+  for (const [category, keywords] of Object.entries(categoryKeywords)) {
+    for (const keyword of keywords) {
+      if (lowerTitle.includes(keyword.toLowerCase())) {
+        return category;
+      }
+    }
+  }
+  
+  return undefined;
+};
 
 const ExtractProducts = () => {
   const { toast } = useToast();
@@ -171,7 +208,8 @@ const ExtractProducts = () => {
             imageUrl,
             title,
             costPrice,
-            selected: true
+            selected: true,
+            detectedCategory: detectCategory(title)
           });
         }
       }
@@ -242,13 +280,15 @@ const ExtractProducts = () => {
       }
 
       const productData = data.product;
+      const title = productData.title || 'Produto sem nome';
       const product: ParsedProduct = {
         id: crypto.randomUUID(),
         imageUrl: productData.images?.[0] || '',
-        title: productData.title || 'Produto sem nome',
+        title,
         description: productData.description || '',
         costPrice: parseFloat(productData.price) || 0,
-        selected: true
+        selected: true,
+        detectedCategory: detectCategory(title)
       };
 
       setParsedProducts(prev => [...prev, product]);
@@ -310,7 +350,8 @@ const ExtractProducts = () => {
           imageUrl,
           title,
           costPrice,
-          selected: true
+          selected: true,
+          detectedCategory: detectCategory(title)
         });
       }
     }
@@ -359,16 +400,38 @@ const ExtractProducts = () => {
 
   const selectedCount = parsedProducts.filter(p => p.selected).length;
 
-  const importProducts = async () => {
-    if (!productType || !category) {
-      toast({
-        title: "Configuração necessária",
-        description: "Selecione o tipo e categoria dos produtos.",
-        variant: "destructive"
-      });
-      return;
-    }
+  // Get icon for auto-created category
+  const getCategoryIcon = (categoryKey: string): string => {
+    const iconMap: Record<string, string> = {
+      'notebook': 'Laptop',
+      'monitor': 'Monitor',
+      'pc': 'Monitor',
+      'processador': 'Cpu',
+      'placa_mae': 'CircuitBoard',
+      'memoria': 'MemoryStick',
+      'armazenamento': 'HardDrive',
+      'gpu': 'Tv',
+      'fonte': 'Zap',
+      'cooler': 'Fan',
+      'gabinete': 'Box',
+      'teclado': 'Keyboard',
+      'mouse': 'Mouse',
+      'headset': 'Headphones',
+      'cadeira_gamer': 'Armchair',
+      'acessorio': 'Cable',
+      'software': 'AppWindow',
+    };
+    return iconMap[categoryKey] || 'Package';
+  };
 
+  // Format category label
+  const formatCategoryLabel = (key: string): string => {
+    return key
+      .replace(/_/g, ' ')
+      .replace(/\b\w/g, c => c.toUpperCase());
+  };
+
+  const importProducts = async () => {
     const toImport = parsedProducts.filter(p => p.selected);
     if (toImport.length === 0) {
       toast({
@@ -384,22 +447,49 @@ const ExtractProducts = () => {
 
     let successCount = 0;
     let errorCount = 0;
+    const createdCategories = new Set<string>();
 
+    // Pre-create any missing categories
+    const existingCategoryKeys = categories.map(c => c.key);
+    const neededCategories = new Set<string>();
+    
+    for (const product of toImport) {
+      const cat = product.detectedCategory || category || productType;
+      if (cat && !existingCategoryKeys.includes(cat)) {
+        neededCategories.add(cat);
+      }
+    }
+
+    // Create missing categories
+    for (const catKey of neededCategories) {
+      try {
+        const label = formatCategoryLabel(catKey);
+        const icon = getCategoryIcon(catKey);
+        await addCustomCategory(catKey, label, icon);
+        createdCategories.add(catKey);
+      } catch (error) {
+        console.error('Error creating category:', catKey, error);
+      }
+    }
+
+    // Import products
     for (let i = 0; i < toImport.length; i++) {
       const product = toImport[i];
       setImportProgress({ current: i + 1, total: toImport.length });
 
       try {
         const finalPrice = calculateFinalPrice(product.costPrice);
-        
         const media = product.imageUrl ? [{ type: 'image' as const, url: product.imageUrl }] : [];
+        
+        // Use detected category, fallback to selected category or productType
+        const productCategory = product.detectedCategory || category || productType;
 
         await api.createProduct({
           title: product.title,
           subtitle: '',
           description: product.description || '',
-          productType: productType as any,
-          categories: [category],
+          productType: (product.detectedCategory || productType) as any,
+          categories: [productCategory],
           media,
           specs: {},
           totalPrice: Math.round(finalPrice * 100) / 100,
@@ -416,10 +506,19 @@ const ExtractProducts = () => {
 
     setIsImporting(false);
     setParsedProducts(prev => prev.filter(p => !p.selected));
+    
+    // Reload categories to include newly created ones
+    if (createdCategories.size > 0) {
+      await loadCategories();
+    }
+
+    const categoryMsg = createdCategories.size > 0 
+      ? `. ${createdCategories.size} categoria(s) criada(s) automaticamente` 
+      : '';
 
     toast({
       title: "Importação concluída",
-      description: `${successCount} produtos importados${errorCount > 0 ? `, ${errorCount} erros` : ''}.`
+      description: `${successCount} produtos importados${errorCount > 0 ? `, ${errorCount} erros` : ''}${categoryMsg}.`
     });
   };
 
@@ -577,6 +676,9 @@ const ExtractProducts = () => {
           <Card className="border-2 bg-white" style={{ borderColor: '#E5E7EB' }}>
             <CardHeader>
               <CardTitle className="text-lg" style={{ color: '#DC2626' }}>Configuração da Importação</CardTitle>
+              <p className="text-sm text-gray-500 mt-1">
+                As categorias são detectadas automaticamente pelo nome do produto. Categorias não existentes serão criadas automaticamente.
+              </p>
             </CardHeader>
             <CardContent className="grid md:grid-cols-4 gap-4">
               <div className="space-y-2">
@@ -696,6 +798,7 @@ const ExtractProducts = () => {
                       </TableHead>
                       <TableHead className="w-16">Imagem</TableHead>
                       <TableHead>Título</TableHead>
+                      <TableHead>Categoria Detectada</TableHead>
                       <TableHead className="text-right">Custo</TableHead>
                       <TableHead className="text-right">Custo Ajustado (+{taxa}%)</TableHead>
                       <TableHead className="text-right">Venda (+{margin}%)</TableHead>
@@ -726,6 +829,17 @@ const ExtractProducts = () => {
                         </TableCell>
                         <TableCell className="max-w-xs truncate text-gray-800" title={product.title}>
                           {product.title}
+                        </TableCell>
+                        <TableCell>
+                          {product.detectedCategory ? (
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                              {formatCategoryLabel(product.detectedCategory)}
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-500">
+                              {category ? formatCategoryLabel(category) : 'Sem categoria'}
+                            </span>
+                          )}
                         </TableCell>
                         <TableCell className="text-right text-gray-500">
                           R$ {product.costPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
