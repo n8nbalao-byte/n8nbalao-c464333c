@@ -24,7 +24,7 @@ interface ExtractedProduct {
   imported?: boolean;
 }
 
-const API_BASE_URL = 'https://n8nbalao.com/api';
+const API_BASE_URL = 'https://www.n8nbalao.com/api';
 
 const ExtractProducts = () => {
   const navigate = useNavigate();
