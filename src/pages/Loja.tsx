@@ -254,15 +254,21 @@ export default function Loja() {
           {isHardwareMode && (
             <div className="mb-6">
               <div className="flex flex-wrap gap-2">
-                {selectedHardwareCategory && (
-                  <button
-                    onClick={() => setSelectedHardwareCategory(null)}
-                    className="inline-flex items-center gap-2 rounded-lg px-4 py-2 font-medium bg-gray-200 text-gray-700 hover:bg-gray-300 transition-colors"
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                    Voltar
-                  </button>
-                )}
+                {/* "Todos" button for hardware - shows all hardware */}
+                <button
+                  onClick={() => setSelectedHardwareCategory(null)}
+                  className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 font-medium transition-colors ${
+                    !selectedHardwareCategory
+                      ? "text-white"
+                      : "bg-white border border-gray-200 text-gray-700 hover:bg-gray-50"
+                  }`}
+                  style={!selectedHardwareCategory ? { backgroundColor: '#DC2626' } : {}}
+                >
+                  Todos
+                  <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(220, 38, 38, 0.1)', color: '#DC2626' }}>
+                    {hardware.length}
+                  </span>
+                </button>
                 {hardwareCategoriesList.map((cat) => {
                   const count = hardware.filter(h => h.category === cat.key).length;
                   return (
@@ -330,25 +336,17 @@ export default function Loja() {
               ))}
             </div>
           ) : isHardwareMode ? (
-            // Hardware Grid
-            selectedHardwareCategory ? (
-              filteredHardware.length > 0 ? (
-                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                  {filteredHardware.map((item) => (
-                    <HardwareCard key={item.id} hardware={item} showBuyButton />
-                  ))}
-                </div>
-              ) : (
-                <div className="py-20 text-center">
-                  <p className="text-xl text-gray-500">
-                    Nenhum hardware encontrado nesta categoria.
-                  </p>
-                </div>
-              )
+            // Hardware Grid - shows all hardware by default, or filtered by subcategory
+            filteredHardware.length > 0 ? (
+              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                {filteredHardware.map((item) => (
+                  <HardwareCard key={item.id} hardware={item} showBuyButton />
+                ))}
+              </div>
             ) : (
               <div className="py-20 text-center">
                 <p className="text-xl text-gray-500">
-                  Selecione uma subcategoria de hardware acima.
+                  Nenhum hardware encontrado.
                 </p>
               </div>
             )
