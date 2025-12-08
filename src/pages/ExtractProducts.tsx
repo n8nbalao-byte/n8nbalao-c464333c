@@ -201,11 +201,31 @@ const ExtractProducts = () => {
     let title = '';
     let price = 0;
 
-    // Detect store format
-    const isMercadoLivre = headers.some(h => h.includes('poly-component') || h.includes('andes-money') || h.includes('fraction'));
-    const isPichau = headers.some(h => h.includes('mui-') || h.includes('muigrid') || h.includes('muitypography'));
-    const isKalunga = headers.some(h => h.includes('blocoproduto'));
-    const isKabum = headers.some(h => h.includes('kabum') || (h.includes('restam') && headers.some(h2 => h2.includes('http'))));
+    // Normalize headers for detection
+    const headersJoined = headers.join(' ').toLowerCase();
+    
+    // Detect store format - more flexible detection
+    const isMercadoLivre = headersJoined.includes('poly-component') || 
+                          headersJoined.includes('andes-money') || 
+                          headersJoined.includes('fraction') ||
+                          headersJoined.includes('ui-search') ||
+                          headersJoined.includes('shops__item');
+    
+    const isPichau = headersJoined.includes('mui-') || 
+                    headersJoined.includes('muigrid') || 
+                    headersJoined.includes('muitypography') ||
+                    headersJoined.includes('pichau') ||
+                    headersJoined.includes('jss');
+    
+    const isKalunga = headersJoined.includes('blocoproduto') || 
+                     headersJoined.includes('kalunga') ||
+                     headersJoined.includes('prateleira');
+    
+    const isKabum = headersJoined.includes('kabum') || 
+                   headersJoined.includes('productcard') ||
+                   (headersJoined.includes('restam') && headersJoined.includes('http'));
+
+    console.log('Store detection:', { isMercadoLivre, isPichau, isKalunga, isKabum, headersSample: headers.slice(0, 5) });
 
     // ===== EXTRACT IMAGE =====
     for (let i = 0; i < headers.length; i++) {
@@ -215,18 +235,25 @@ const ExtractProducts = () => {
       // Skip placeholder/empty images
       if (value.startsWith('data:image/gif') || !value) continue;
       
-      // Pichau: mui-*-media src
-      if (isPichau && header.includes('media') && header.includes('src') && value.startsWith('http')) {
+      // Pichau: mui-*-media src or any media src
+      if (isPichau && (header.includes('media') || header.includes('cardmedia')) && value.startsWith('http')) {
         imageUrl = value;
         break;
       }
-      // Kalunga: blocoproduto__image src
-      if (isKalunga && header.includes('blocoproduto__image') && value.startsWith('http')) {
+      // Kalunga: blocoproduto__image src or img src
+      if (isKalunga && (header.includes('blocoproduto__image') || header.includes('img')) && value.startsWith('http')) {
+        imageUrl = value;
+        break;
+      }
+      // Mercado Livre: poly-component image
+      if (isMercadoLivre && (header.includes('image') || header.includes('picture')) && value.startsWith('http')) {
         imageUrl = value;
         break;
       }
       // General: any column with image/picture/src/foto and http URL
-      if ((header.includes('picture') || header.includes('src') || header.includes('image') || header.includes('img') || header.includes('foto') || header.includes('media')) 
+      if ((header.includes('picture') || header.includes('src') || header.includes('image') || 
+           header.includes('img') || header.includes('foto') || header.includes('media') ||
+           header.includes('thumbnail') || header.includes('photo')) 
           && value.startsWith('http')) {
         imageUrl = value;
         break;
@@ -237,7 +264,10 @@ const ExtractProducts = () => {
     if (!imageUrl) {
       for (const cell of row) {
         const value = String(cell || '').trim();
-        if (value.startsWith('http') && (value.includes('.webp') || value.includes('.jpg') || value.includes('.png') || value.includes('.jpeg') || value.includes('/foto') || value.includes('/image') || value.includes('/media'))) {
+        if (value.startsWith('http') && 
+            (value.includes('.webp') || value.includes('.jpg') || value.includes('.png') || 
+             value.includes('.jpeg') || value.includes('/foto') || value.includes('/image') || 
+             value.includes('/media') || value.includes('/img') || value.includes('produto'))) {
           imageUrl = value;
           break;
         }
@@ -249,18 +279,26 @@ const ExtractProducts = () => {
       const header = headers[i].toLowerCase();
       const value = String(row[i] || '').trim();
       
-      // Pichau: MuiTypography-root
-      if (isPichau && header.includes('muitypography') && value.length > 10) {
+      // Pichau: MuiTypography-root or product name
+      if (isPichau && (header.includes('muitypography') || header.includes('name') || header.includes('title')) && value.length > 10) {
         title = value;
         break;
       }
-      // Kalunga: blocoproduto__title
-      if (isKalunga && header.includes('blocoproduto__title') && value.length > 5) {
+      // Kalunga: blocoproduto__title or link text
+      if (isKalunga && (header.includes('blocoproduto__title') || header.includes('titulo') || 
+                        header.includes('link') || header.includes('name')) && value.length > 5) {
         title = value;
         break;
       }
-      // General: title/titulo/nome/name
-      if ((header.includes('title') || header.includes('titulo') || header.includes('nome') || header.includes('name')) && value.length > 5) {
+      // Mercado Livre: poly-component title or ui-search title
+      if (isMercadoLivre && (header.includes('title') || header.includes('heading') || 
+                            header.includes('link')) && value.length > 10) {
+        title = value;
+        break;
+      }
+      // General: title/titulo/nome/name/produto
+      if ((header.includes('title') || header.includes('titulo') || header.includes('nome') || 
+           header.includes('name') || header.includes('produto') || header.includes('descri')) && value.length > 5) {
         title = value;
         break;
       }
@@ -271,7 +309,10 @@ const ExtractProducts = () => {
       let maxLen = 0;
       for (const cell of row) {
         const value = String(cell || '').trim();
-        if (value.length > maxLen && value.length > 10 && !value.startsWith('http') && !value.startsWith('R$') && !value.includes('R$') && isNaN(Number(value.replace(/[.,]/g, '')))) {
+        // Must be text, not URL, not just a number, not a price
+        if (value.length > maxLen && value.length > 10 && value.length < 500 &&
+            !value.startsWith('http') && !value.startsWith('R$') && 
+            !value.match(/^[\d.,]+$/) && !value.match(/^\d{1,2}x/)) {
           maxLen = value.length;
           title = value;
         }
@@ -280,29 +321,31 @@ const ExtractProducts = () => {
 
     // ===== EXTRACT PRICE (À VISTA) =====
     
-    // Pichau: mui-12athy2-price_vista
+    // Pichau: mui-*-price_vista or price column
     if (isPichau) {
       for (let i = 0; i < headers.length; i++) {
         const header = headers[i].toLowerCase();
-        if (header.includes('price_vista') && !header.includes('text')) {
+        if ((header.includes('price_vista') || header.includes('preco') || header.includes('price')) && 
+            !header.includes('text') && !header.includes('old') && !header.includes('de_')) {
           const value = String(row[i] || '').trim();
-          if (value.includes('R$')) {
+          if (value.includes('R$') || value.match(/^\d/)) {
             price = parsePrice(value);
-            break;
+            if (price > 0) break;
           }
         }
       }
     }
     
-    // Kalunga: blocoproduto__text (first one with R$)
+    // Kalunga: blocoproduto__text or preco column
     if (isKalunga && price === 0) {
       for (let i = 0; i < headers.length; i++) {
         const header = headers[i].toLowerCase();
-        if (header.includes('blocoproduto__text') && !header.includes('bold') && !header.includes('old')) {
+        if ((header.includes('blocoproduto__text') || header.includes('preco') || header.includes('price')) && 
+            !header.includes('bold') && !header.includes('old') && !header.includes('de_')) {
           const value = String(row[i] || '').trim();
-          if (value.includes('R$')) {
+          if (value.includes('R$') || value.match(/^\d/)) {
             price = parsePrice(value);
-            break;
+            if (price > 0) break;
           }
         }
       }
@@ -312,14 +355,14 @@ const ExtractProducts = () => {
     if (isKabum && price === 0) {
       for (const cell of row) {
         const value = String(cell || '').trim();
-        if (value.startsWith('R$') && value.includes(',')) {
+        if (value.startsWith('R$') || (value.includes(',') && value.match(/^\d/))) {
           price = parsePrice(value);
-          break;
+          if (price > 0) break;
         }
       }
     }
     
-    // Mercado Livre: split columns (R$ | integer | , | cents)
+    // Mercado Livre: split columns (R$ | integer | , | cents) or combined
     if (isMercadoLivre && price === 0) {
       let foundCurrency = false;
       let priceInteger = '';
@@ -329,7 +372,17 @@ const ExtractProducts = () => {
         const header = headers[i].toLowerCase();
         const value = String(row[i] || '').trim();
         
-        // First R$ is the main price (à vista)
+        // Check for combined price format first
+        if ((header.includes('price') || header.includes('preco') || header.includes('money')) && 
+            (value.includes('R$') || value.match(/^\d.*,\d{2}$/))) {
+          const parsed = parsePrice(value);
+          if (parsed > 0) {
+            price = parsed;
+            break;
+          }
+        }
+        
+        // Split format: First R$ is the main price (à vista)
         if (value === 'R$' && !foundCurrency) {
           foundCurrency = true;
           // Next column = integer part
@@ -342,7 +395,7 @@ const ExtractProducts = () => {
           // Look for cents nearby
           for (let j = i + 2; j < Math.min(i + 5, row.length); j++) {
             const checkVal = String(row[j] || '').trim();
-            if (/^\d{1,2}$/.test(checkVal) && !['20', '30', '35'].includes(checkVal)) {
+            if (/^\d{1,2}$/.test(checkVal) && parseInt(checkVal) < 100) {
               priceCents = checkVal;
               break;
             }
@@ -351,28 +404,33 @@ const ExtractProducts = () => {
         }
         
         // Alternative: fraction 2 column
-        if (header.includes('fraction') && header.includes('2') && !priceInteger) {
+        if (header.includes('fraction') && !priceInteger) {
           const val = String(row[i] || '').trim();
           if (/^\d+$/.test(val)) priceInteger = val;
         }
         
-        // Cents column (not cents 3)
-        if (header.includes('cents') && !header.includes('3') && !priceCents) {
+        // Cents column
+        if (header.includes('cents') && !priceCents) {
           const val = String(row[i] || '').trim();
           if (/^\d{1,2}$/.test(val)) priceCents = val;
         }
       }
       
-      if (priceInteger) {
+      if (priceInteger && price === 0) {
         price = parseFloat(`${priceInteger}.${priceCents || '00'}`);
       }
     }
     
     // General fallback: find any value with R$ or number that looks like price
     if (price === 0) {
-      for (const cell of row) {
-        const value = String(cell || '').trim();
-        if (value.includes('R$') || (value.includes(',') && /^\d/.test(value))) {
+      for (let i = 0; i < headers.length; i++) {
+        const header = headers[i].toLowerCase();
+        const value = String(row[i] || '').trim();
+        
+        // Skip old/original prices
+        if (header.includes('old') || header.includes('de_') || header.includes('original')) continue;
+        
+        if (value.includes('R$') || (value.match(/^\d/) && value.includes(','))) {
           const parsed = parsePrice(value);
           if (parsed > 0 && parsed < 500000) {
             price = parsed;
@@ -381,6 +439,22 @@ const ExtractProducts = () => {
         }
       }
     }
+    
+    // Last resort fallback
+    if (price === 0) {
+      for (const cell of row) {
+        const value = String(cell || '').trim();
+        if ((value.includes('R$') || value.match(/^\d.*,\d{2}$/)) && !value.includes('x de')) {
+          const parsed = parsePrice(value);
+          if (parsed > 0 && parsed < 500000) {
+            price = parsed;
+            break;
+          }
+        }
+      }
+    }
+
+    console.log('Parsed row:', { imageUrl: imageUrl.substring(0, 50), title: title.substring(0, 50), price });
 
     return { imageUrl, title, price };
   };
