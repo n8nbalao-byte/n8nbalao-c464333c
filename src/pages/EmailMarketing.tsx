@@ -1,17 +1,221 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Mail, Send, Users, CheckCircle, XCircle, Loader2 } from 'lucide-react';
+import { ArrowLeft, Mail, Send, Users, CheckCircle, XCircle, Loader2, Clock, Image, Calendar, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { api, Customer } from '@/lib/api';
+import balaoLogo from '@/assets/balao-logo-full.png';
 
 const API_BASE = 'https://www.n8nbalao.com/api';
 
+// Convert image to base64 for embedding in email
+const imageToBase64 = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+};
+
+// Email templates with Balão branding
+const emailTemplates = [
+  {
+    id: 'promocao',
+    name: '🔥 Promoção Especial',
+    subject: '🔥 Oferta Imperdível - Balão da Informática',
+    html: `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin: 0; padding: 0; font-family: 'Segoe UI', Arial, sans-serif; background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);">
+  <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+    <div style="background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%); border-radius: 20px 20px 0 0; padding: 40px; text-align: center;">
+      <img src="https://www.n8nbalao.com/logo.png" alt="Balão da Informática" style="height: 60px; margin-bottom: 20px;">
+      <h1 style="color: white; margin: 0; font-size: 32px; text-shadow: 2px 2px 4px rgba(0,0,0,0.3);">🔥 PROMOÇÃO ESPECIAL 🔥</h1>
+    </div>
+    <div style="background: white; padding: 40px; border-radius: 0 0 20px 20px;">
+      <h2 style="color: #dc2626; margin-top: 0;">Olá!</h2>
+      <p style="color: #374151; font-size: 16px; line-height: 1.6;">Temos uma oferta exclusiva para você! Aproveite descontos incríveis em toda nossa linha de produtos.</p>
+      <div style="background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%); border-radius: 12px; padding: 20px; margin: 20px 0; border-left: 4px solid #dc2626;">
+        <p style="margin: 0; color: #991b1b; font-weight: bold; font-size: 24px;">Até 40% OFF</p>
+        <p style="margin: 5px 0 0 0; color: #7f1d1d;">Em produtos selecionados!</p>
+      </div>
+      <a href="https://www.n8nbalao.com/loja" style="display: inline-block; background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%); color: white; padding: 16px 40px; text-decoration: none; border-radius: 50px; font-weight: bold; font-size: 16px; box-shadow: 0 4px 15px rgba(220, 38, 38, 0.4);">VER OFERTAS</a>
+    </div>
+    <div style="text-align: center; padding: 20px; color: #9ca3af; font-size: 12px;">
+      <p>Balão da Informática - Seu parceiro em tecnologia</p>
+      <p>Para não receber mais emails, responda com "CANCELAR"</p>
+    </div>
+  </div>
+</body>
+</html>`
+  },
+  {
+    id: 'novidades',
+    name: '✨ Novidades',
+    subject: '✨ Novidades Chegaram! - Balão da Informática',
+    html: `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin: 0; padding: 0; font-family: 'Segoe UI', Arial, sans-serif; background: #f3f4f6;">
+  <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+    <div style="background: white; border-radius: 20px; overflow: hidden; box-shadow: 0 10px 40px rgba(0,0,0,0.1);">
+      <div style="background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%); padding: 30px; text-align: center;">
+        <img src="https://www.n8nbalao.com/logo.png" alt="Balão" style="height: 50px;">
+      </div>
+      <div style="padding: 40px;">
+        <div style="text-align: center; margin-bottom: 30px;">
+          <span style="background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%); color: #78350f; padding: 8px 20px; border-radius: 50px; font-size: 14px; font-weight: bold;">✨ NOVIDADES</span>
+        </div>
+        <h1 style="color: #111827; text-align: center; margin: 0 0 20px 0; font-size: 28px;">Produtos Novos Chegaram!</h1>
+        <p style="color: #6b7280; text-align: center; font-size: 16px; line-height: 1.6;">Confira as últimas novidades em hardware, periféricos e acessórios que acabaram de chegar em nossa loja.</p>
+        <div style="text-align: center; margin-top: 30px;">
+          <a href="https://www.n8nbalao.com/loja" style="display: inline-block; background: #dc2626; color: white; padding: 14px 35px; text-decoration: none; border-radius: 8px; font-weight: bold;">Conferir Novidades</a>
+        </div>
+      </div>
+    </div>
+    <div style="text-align: center; padding: 20px; color: #9ca3af; font-size: 12px;">
+      <p>© 2024 Balão da Informática</p>
+    </div>
+  </div>
+</body>
+</html>`
+  },
+  {
+    id: 'boasvindas',
+    name: '👋 Boas-vindas',
+    subject: '👋 Bem-vindo à Balão da Informática!',
+    html: `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin: 0; padding: 0; font-family: 'Segoe UI', Arial, sans-serif; background: linear-gradient(180deg, #fef2f2 0%, #ffffff 100%);">
+  <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+    <div style="background: white; border-radius: 24px; overflow: hidden; box-shadow: 0 20px 60px rgba(220, 38, 38, 0.15);">
+      <div style="background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%); padding: 50px 30px; text-align: center;">
+        <img src="https://www.n8nbalao.com/logo.png" alt="Balão" style="height: 70px; margin-bottom: 20px;">
+        <h1 style="color: white; margin: 0; font-size: 36px;">Bem-vindo! 🎈</h1>
+      </div>
+      <div style="padding: 40px;">
+        <p style="color: #374151; font-size: 18px; line-height: 1.7;">Olá! É um prazer ter você conosco.</p>
+        <p style="color: #6b7280; font-size: 16px; line-height: 1.7;">Na Balão da Informática, você encontra os melhores produtos de tecnologia, PCs montados sob medida e um atendimento que faz a diferença.</p>
+        <div style="background: #fef2f2; border-radius: 16px; padding: 25px; margin: 25px 0;">
+          <h3 style="color: #dc2626; margin: 0 0 15px 0;">O que você pode fazer:</h3>
+          <ul style="color: #374151; margin: 0; padding-left: 20px; line-height: 2;">
+            <li>🖥️ Montar seu PC personalizado</li>
+            <li>🛒 Comprar hardware de qualidade</li>
+            <li>🤖 Automatizar processos com n8n</li>
+          </ul>
+        </div>
+        <div style="text-align: center;">
+          <a href="https://www.n8nbalao.com" style="display: inline-block; background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%); color: white; padding: 16px 45px; text-decoration: none; border-radius: 50px; font-weight: bold; font-size: 16px;">Explorar Agora</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>`
+  },
+  {
+    id: 'newsletter',
+    name: '📰 Newsletter',
+    subject: '📰 Newsletter Semanal - Balão da Informática',
+    html: `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin: 0; padding: 0; font-family: 'Segoe UI', Arial, sans-serif; background: #111827;">
+  <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+    <div style="background: linear-gradient(180deg, #1f2937 0%, #111827 100%); border-radius: 20px; border: 1px solid #374151;">
+      <div style="padding: 30px; border-bottom: 1px solid #374151; display: flex; align-items: center; justify-content: space-between;">
+        <img src="https://www.n8nbalao.com/logo.png" alt="Balão" style="height: 40px;">
+        <span style="color: #dc2626; font-weight: bold;">NEWSLETTER</span>
+      </div>
+      <div style="padding: 40px;">
+        <h1 style="color: white; margin: 0 0 20px 0; font-size: 28px;">📰 Novidades da Semana</h1>
+        <p style="color: #9ca3af; font-size: 16px; line-height: 1.7;">Fique por dentro das últimas novidades do mundo da tecnologia e ofertas exclusivas.</p>
+        
+        <div style="background: #1f2937; border-radius: 12px; padding: 20px; margin: 25px 0; border-left: 3px solid #dc2626;">
+          <h3 style="color: #dc2626; margin: 0 0 10px 0;">🔥 Destaque da Semana</h3>
+          <p style="color: #d1d5db; margin: 0;">Novos processadores e placas de vídeo com preços especiais!</p>
+        </div>
+        
+        <div style="background: #1f2937; border-radius: 12px; padding: 20px; margin: 25px 0; border-left: 3px solid #10b981;">
+          <h3 style="color: #10b981; margin: 0 0 10px 0;">💡 Dica Tech</h3>
+          <p style="color: #d1d5db; margin: 0;">Saiba como escolher a memória RAM ideal para seu PC.</p>
+        </div>
+        
+        <div style="text-align: center; margin-top: 30px;">
+          <a href="https://www.n8nbalao.com/loja" style="display: inline-block; background: #dc2626; color: white; padding: 14px 35px; text-decoration: none; border-radius: 8px; font-weight: bold;">Ver Todas as Ofertas</a>
+        </div>
+      </div>
+      <div style="padding: 20px; border-top: 1px solid #374151; text-align: center;">
+        <p style="color: #6b7280; margin: 0; font-size: 12px;">© 2024 Balão da Informática | Tecnologia ao seu alcance</p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>`
+  },
+  {
+    id: 'monteseupc',
+    name: '🖥️ Monte seu PC',
+    subject: '🖥️ Monte o PC dos Seus Sonhos! - Balão da Informática',
+    html: `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin: 0; padding: 0; font-family: 'Segoe UI', Arial, sans-serif; background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);">
+  <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+    <div style="background: rgba(255,255,255,0.05); backdrop-filter: blur(10px); border-radius: 24px; border: 1px solid rgba(255,255,255,0.1);">
+      <div style="padding: 40px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.1);">
+        <img src="https://www.n8nbalao.com/logo.png" alt="Balão" style="height: 60px;">
+      </div>
+      <div style="padding: 40px; text-align: center;">
+        <div style="font-size: 60px; margin-bottom: 20px;">🖥️</div>
+        <h1 style="color: white; margin: 0 0 15px 0; font-size: 32px;">Monte seu PC Ideal</h1>
+        <p style="color: #a5b4fc; font-size: 18px; margin: 0 0 30px 0;">Personalize cada componente do seu computador</p>
+        
+        <div style="display: inline-block; text-align: left; background: rgba(255,255,255,0.05); border-radius: 16px; padding: 25px; margin: 20px 0;">
+          <div style="color: white; margin-bottom: 15px;">✅ Processadores Intel e AMD</div>
+          <div style="color: white; margin-bottom: 15px;">✅ Placas de Vídeo NVIDIA e AMD</div>
+          <div style="color: white; margin-bottom: 15px;">✅ Memórias DDR4 e DDR5</div>
+          <div style="color: white;">✅ SSDs NVMe de alta velocidade</div>
+        </div>
+        
+        <div style="margin-top: 30px;">
+          <a href="https://www.n8nbalao.com/monte-voce-mesmo" style="display: inline-block; background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%); color: white; padding: 18px 50px; text-decoration: none; border-radius: 50px; font-weight: bold; font-size: 18px; box-shadow: 0 10px 30px rgba(220, 38, 38, 0.4);">MONTAR MEU PC</a>
+        </div>
+      </div>
+      <div style="padding: 20px; text-align: center; border-top: 1px solid rgba(255,255,255,0.1);">
+        <p style="color: #6b7280; margin: 0; font-size: 12px;">Balão da Informática - O melhor em tecnologia</p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>`
+  }
+];
+
 const EmailMarketing = () => {
   const navigate = useNavigate();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [selectedEmails, setSelectedEmails] = useState<string[]>([]);
   const [subject, setSubject] = useState('');
@@ -19,6 +223,13 @@ const EmailMarketing = () => {
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [sendResults, setSendResults] = useState<{ email: string; success: boolean }[]>([]);
+  const [selectedTemplate, setSelectedTemplate] = useState('');
+  const [attachedImages, setAttachedImages] = useState<{ name: string; base64: string }[]>([]);
+  
+  // Scheduling
+  const [scheduleEnabled, setScheduleEnabled] = useState(false);
+  const [scheduleDay, setScheduleDay] = useState('1'); // Monday
+  const [scheduleTime, setScheduleTime] = useState('09:00');
 
   useEffect(() => {
     fetchCustomers();
@@ -27,7 +238,6 @@ const EmailMarketing = () => {
   const fetchCustomers = async () => {
     try {
       const data = await api.getCustomers();
-      // Filter customers with valid emails
       const customersWithEmail = data.filter((c: Customer) => c.email && c.email.includes('@'));
       setCustomers(customersWithEmail);
     } catch (error) {
@@ -52,6 +262,43 @@ const EmailMarketing = () => {
     } else {
       setSelectedEmails(customers.map(c => c.email));
     }
+  };
+
+  const handleTemplateSelect = (templateId: string) => {
+    setSelectedTemplate(templateId);
+    const template = emailTemplates.find(t => t.id === templateId);
+    if (template) {
+      setSubject(template.subject);
+      setHtmlContent(template.html);
+    }
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+
+    const newImages: { name: string; base64: string }[] = [];
+    
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      if (file.type.startsWith('image/')) {
+        const base64 = await imageToBase64(file);
+        newImages.push({ name: file.name, base64 });
+      }
+    }
+
+    setAttachedImages(prev => [...prev, ...newImages]);
+    toast.success(`${newImages.length} imagem(ns) anexada(s)`);
+  };
+
+  const insertImageInHtml = (imageBase64: string) => {
+    const imgTag = `<img src="${imageBase64}" alt="Imagem" style="max-width: 100%; height: auto; border-radius: 8px; margin: 10px 0;">`;
+    setHtmlContent(prev => prev.replace('</body>', `${imgTag}</body>`));
+    toast.success('Imagem inserida no email');
+  };
+
+  const removeImage = (index: number) => {
+    setAttachedImages(prev => prev.filter((_, i) => i !== index));
   };
 
   const sendEmails = async () => {
@@ -81,7 +328,7 @@ const EmailMarketing = () => {
             to: email,
             subject: subject,
             html: htmlContent,
-            from: 'N8N Balão Marketing <marketing@n8nbalao.com.br>'
+            from: 'Balão da Informática <marketing@n8nbalao.com.br>'
           })
         });
 
@@ -103,42 +350,32 @@ const EmailMarketing = () => {
       toast.success(`${successCount} email(s) enviado(s) com sucesso!`);
     }
     if (failCount > 0) {
-      toast.error(`${failCount} email(s) falharam`);
+      toast.error(`${failCount} email(s) falharam - verifique se o domínio está verificado no Resend`);
     }
   };
 
-  const defaultTemplate = `
-<!DOCTYPE html>
-<html>
-<head>
-  <style>
-    body { font-family: Arial, sans-serif; background: #f4f4f4; padding: 20px; }
-    .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 10px; overflow: hidden; }
-    .header { background: linear-gradient(135deg, #dc2626, #b91c1c); color: white; padding: 30px; text-align: center; }
-    .content { padding: 30px; }
-    .footer { background: #1a1a1a; color: #888; padding: 20px; text-align: center; font-size: 12px; }
-    .btn { display: inline-block; background: #dc2626; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; margin-top: 20px; }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <div class="header">
-      <h1>🎈 Balão da Informática</h1>
-    </div>
-    <div class="content">
-      <h2>Olá!</h2>
-      <p>Temos novidades incríveis para você!</p>
-      <p>Confira nossos produtos e monte o PC dos seus sonhos.</p>
-      <a href="https://www.n8nbalao.com.br" class="btn">Ver Produtos</a>
-    </div>
-    <div class="footer">
-      <p>Balão da Informática - Seu parceiro em tecnologia</p>
-      <p>Para não receber mais emails, responda com "CANCELAR"</p>
-    </div>
-  </div>
-</body>
-</html>
-  `.trim();
+  const saveSchedule = () => {
+    const schedule = {
+      enabled: scheduleEnabled,
+      day: scheduleDay,
+      time: scheduleTime,
+      emails: selectedEmails,
+      subject,
+      html: htmlContent
+    };
+    localStorage.setItem('emailSchedule', JSON.stringify(schedule));
+    toast.success('Agendamento salvo! Configure um cron job no servidor para executar o envio.');
+  };
+
+  const dayNames: Record<string, string> = {
+    '0': 'Domingo',
+    '1': 'Segunda-feira',
+    '2': 'Terça-feira',
+    '3': 'Quarta-feira',
+    '4': 'Quinta-feira',
+    '5': 'Sexta-feira',
+    '6': 'Sábado'
+  };
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -157,7 +394,7 @@ const EmailMarketing = () => {
       </div>
 
       <div className="max-w-7xl mx-auto p-6">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left: Customer List */}
           <div className="bg-card rounded-lg border border-border p-6">
             <div className="flex items-center justify-between mb-4">
@@ -166,7 +403,7 @@ const EmailMarketing = () => {
                 Clientes ({customers.length})
               </h2>
               <Button variant="outline" size="sm" onClick={toggleAll}>
-                {selectedEmails.length === customers.length ? 'Desmarcar Todos' : 'Selecionar Todos'}
+                {selectedEmails.length === customers.length ? 'Desmarcar' : 'Todos'}
               </Button>
             </div>
 
@@ -176,33 +413,34 @@ const EmailMarketing = () => {
               </div>
             ) : customers.length === 0 ? (
               <p className="text-muted-foreground text-center py-10">
-                Nenhum cliente com email cadastrado
+                Nenhum cliente cadastrado
               </p>
             ) : (
-              <div className="space-y-2 max-h-[500px] overflow-y-auto">
+              <div className="space-y-2 max-h-[400px] overflow-y-auto">
                 {customers.map((customer) => {
                   const result = sendResults.find(r => r.email === customer.email);
                   return (
                     <div 
                       key={customer.id} 
-                      className={`flex items-center gap-3 p-3 rounded-lg border transition-colors ${
+                      className={`flex items-center gap-3 p-3 rounded-lg border transition-colors cursor-pointer ${
                         selectedEmails.includes(customer.email) 
                           ? 'border-primary bg-primary/5' 
                           : 'border-border hover:bg-accent/50'
                       }`}
+                      onClick={() => toggleEmail(customer.email)}
                     >
                       <Checkbox
                         checked={selectedEmails.includes(customer.email)}
                         onCheckedChange={() => toggleEmail(customer.email)}
                       />
                       <div className="flex-1 min-w-0">
-                        <p className="font-medium truncate">{customer.name}</p>
-                        <p className="text-sm text-muted-foreground truncate">{customer.email}</p>
+                        <p className="font-medium truncate text-sm">{customer.name}</p>
+                        <p className="text-xs text-muted-foreground truncate">{customer.email}</p>
                       </div>
                       {result && (
                         result.success 
-                          ? <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
-                          : <XCircle className="w-5 h-5 text-red-500 flex-shrink-0" />
+                          ? <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
+                          : <XCircle className="w-4 h-4 text-red-500 flex-shrink-0" />
                       )}
                     </div>
                   );
@@ -212,12 +450,63 @@ const EmailMarketing = () => {
 
             <div className="mt-4 pt-4 border-t border-border">
               <p className="text-sm text-muted-foreground">
-                <strong>{selectedEmails.length}</strong> email(s) selecionado(s)
+                <strong>{selectedEmails.length}</strong> selecionado(s)
               </p>
+            </div>
+
+            {/* Schedule Section */}
+            <div className="mt-6 pt-4 border-t border-border">
+              <h3 className="font-semibold flex items-center gap-2 mb-4">
+                <Clock className="w-4 h-4" />
+                Agendamento Semanal
+              </h3>
+              
+              <div className="space-y-3">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <Checkbox 
+                    checked={scheduleEnabled} 
+                    onCheckedChange={(checked) => setScheduleEnabled(!!checked)}
+                  />
+                  <span className="text-sm">Ativar envio automático</span>
+                </label>
+
+                {scheduleEnabled && (
+                  <>
+                    <div>
+                      <label className="text-xs text-muted-foreground">Dia da semana</label>
+                      <Select value={scheduleDay} onValueChange={setScheduleDay}>
+                        <SelectTrigger className="mt-1">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Object.entries(dayNames).map(([value, label]) => (
+                            <SelectItem key={value} value={value}>{label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div>
+                      <label className="text-xs text-muted-foreground">Horário</label>
+                      <Input 
+                        type="time" 
+                        value={scheduleTime} 
+                        onChange={(e) => setScheduleTime(e.target.value)}
+                        className="mt-1"
+                      />
+                    </div>
+
+                    <Button onClick={saveSchedule} variant="outline" size="sm" className="w-full">
+                      <Calendar className="w-4 h-4 mr-2" />
+                      Salvar Agendamento
+                    </Button>
+                  </>
+                )}
+              </div>
             </div>
           </div>
 
-          {/* Right: Email Composer */}
+          {/* Center: Email Composer */}
           <div className="bg-card rounded-lg border border-border p-6">
             <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
               <Send className="w-5 h-5" />
@@ -225,6 +514,26 @@ const EmailMarketing = () => {
             </h2>
 
             <div className="space-y-4">
+              {/* Template Selection */}
+              <div>
+                <label className="block text-sm font-medium mb-2 flex items-center gap-2">
+                  <Sparkles className="w-4 h-4" />
+                  Template
+                </label>
+                <Select value={selectedTemplate} onValueChange={handleTemplateSelect}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Escolha um template..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {emailTemplates.map((template) => (
+                      <SelectItem key={template.id} value={template.id}>
+                        {template.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
               <div>
                 <label className="block text-sm font-medium mb-2">Assunto</label>
                 <Input
@@ -234,24 +543,56 @@ const EmailMarketing = () => {
                 />
               </div>
 
+              {/* Image Upload */}
               <div>
-                <label className="block text-sm font-medium mb-2">
-                  Conteúdo HTML
-                  <Button 
-                    variant="link" 
-                    size="sm" 
-                    className="ml-2 text-xs"
-                    onClick={() => setHtmlContent(defaultTemplate)}
-                  >
-                    Usar Template Padrão
-                  </Button>
+                <label className="block text-sm font-medium mb-2 flex items-center gap-2">
+                  <Image className="w-4 h-4" />
+                  Imagens
                 </label>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={handleImageUpload}
+                  className="hidden"
+                />
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-full"
+                >
+                  <Image className="w-4 h-4 mr-2" />
+                  Anexar Imagens
+                </Button>
+                
+                {attachedImages.length > 0 && (
+                  <div className="mt-2 space-y-2">
+                    {attachedImages.map((img, idx) => (
+                      <div key={idx} className="flex items-center gap-2 p-2 bg-accent/50 rounded text-sm">
+                        <img src={img.base64} alt={img.name} className="w-10 h-10 object-cover rounded" />
+                        <span className="flex-1 truncate">{img.name}</span>
+                        <Button size="sm" variant="ghost" onClick={() => insertImageInHtml(img.base64)}>
+                          Inserir
+                        </Button>
+                        <Button size="sm" variant="ghost" onClick={() => removeImage(idx)}>
+                          <XCircle className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2">Conteúdo HTML</label>
                 <Textarea
                   placeholder="Cole aqui o HTML do seu email..."
                   value={htmlContent}
                   onChange={(e) => setHtmlContent(e.target.value)}
-                  rows={15}
-                  className="font-mono text-sm"
+                  rows={10}
+                  className="font-mono text-xs"
                 />
               </div>
 
@@ -269,20 +610,25 @@ const EmailMarketing = () => {
                 ) : (
                   <>
                     <Send className="w-5 h-5 mr-2" />
-                    Enviar para {selectedEmails.length} Email(s)
+                    Enviar ({selectedEmails.length})
                   </>
                 )}
               </Button>
             </div>
+          </div>
 
-            {/* Preview */}
-            {htmlContent && (
-              <div className="mt-6 pt-6 border-t border-border">
-                <h3 className="text-sm font-medium mb-2">Pré-visualização</h3>
-                <div 
-                  className="bg-white rounded-lg overflow-hidden max-h-[300px] overflow-y-auto"
-                  dangerouslySetInnerHTML={{ __html: htmlContent }}
-                />
+          {/* Right: Preview */}
+          <div className="bg-card rounded-lg border border-border p-6">
+            <h2 className="text-lg font-semibold mb-4">Pré-visualização</h2>
+            
+            {htmlContent ? (
+              <div 
+                className="bg-white rounded-lg overflow-hidden max-h-[600px] overflow-y-auto border"
+                dangerouslySetInnerHTML={{ __html: htmlContent }}
+              />
+            ) : (
+              <div className="flex items-center justify-center h-64 text-muted-foreground">
+                <p>Selecione um template ou digite o HTML</p>
               </div>
             )}
           </div>
