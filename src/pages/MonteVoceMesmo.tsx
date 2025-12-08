@@ -495,7 +495,7 @@ export default function MonteVoceMesmo() {
   // PHASE: Quote Display
   if (phase === 'quote') {
     return (
-      <div className="min-h-screen flex flex-col bg-primary">
+      <div className="min-h-screen flex flex-col bg-white">
         {/* Header */}
         <header className="bg-white py-4 shadow-md">
           <div className="container flex items-center justify-between">
@@ -660,24 +660,21 @@ export default function MonteVoceMesmo() {
 
   // PHASE: Build
   return (
-    <div className="min-h-screen flex flex-col bg-primary">
-      {/* Header */}
-      <header className="bg-white shadow-md">
-        <div className="container py-4 flex items-center justify-between">
-          <Link to="/"><img src={balaoLogo} alt="Balão da Informática" className="h-12" /></Link>
-          <Link to="/loja" className="text-primary hover:underline font-medium">Ver Loja</Link>
-        </div>
-      </header>
-      
+    <div className="min-h-screen flex flex-col bg-white">
       <main className="flex-1 container py-8">
         <div className="max-w-4xl mx-auto">
+          {/* Top Bar with Ver Loja */}
+          <div className="flex justify-end mb-4">
+            <Link to="/loja" className="text-primary hover:underline font-medium">Ver Loja</Link>
+          </div>
+          
           {/* Hero Section */}
           <div className="text-center mb-8">
             <div className="flex justify-center mb-4">
               <img src={balaoLogo} alt="Balão da Informática" className="h-20" />
             </div>
-            <h1 className="text-4xl font-bold text-white mb-2">MONTE SEU PC</h1>
-            <p className="text-white">Escolha cada componente e monte o computador perfeito para você!</p>
+            <h1 className="text-4xl font-bold text-primary mb-2">MONTE SEU PC</h1>
+            <p className="text-primary">Escolha cada componente e monte o computador perfeito para você!</p>
           </div>
 
           {/* Component List */}
