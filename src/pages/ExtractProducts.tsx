@@ -1,731 +1,413 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Search, Package, Store, Loader2, Check, X, Download, Save, Plus, Code, Link } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useToast } from '@/hooks/use-toast';
-import { api, getCustomCategories, addCustomCategory } from '@/lib/api';
+import React, { useState, useEffect } from 'react';
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/hooks/use-toast";
+import { ArrowLeft, Link as LinkIcon, FileText, Loader2, Check, Plus, Save, Eye, EyeOff } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { api, getCustomCategories, addCustomCategory } from "@/lib/api";
 
 interface ExtractedProduct {
   title: string;
   price: number | null;
-  description?: string;
-  brand?: string;
-  model?: string;
-  category?: string;
-  specs?: Record<string, string> | string[];
-  images?: string[];
-  image?: string;
-  link?: string;
-  selected?: boolean;
-  importing?: boolean;
+  description: string;
+  brand: string;
+  model: string;
+  category: string;
+  specs: Record<string, string>;
+  images: string[];
+  link: string;
   imported?: boolean;
+  importing?: boolean;
 }
 
-const API_BASE_URL = 'https://www.n8nbalao.com/api';
-
 const ExtractProducts = () => {
-  const navigate = useNavigate();
   const { toast } = useToast();
+  const navigate = useNavigate();
   
-  const [apiKey, setApiKey] = useState(() => localStorage.getItem('openai_api_key') || '');
-  const [url, setUrl] = useState('');
+  const [apiKey, setApiKey] = useState('');
+  const [showApiKey, setShowApiKey] = useState(false);
+  const [inputUrl, setInputUrl] = useState('');
   const [manualHtml, setManualHtml] = useState('');
-  const [extractType, setExtractType] = useState<'product' | 'store'>('product');
   const [inputMode, setInputMode] = useState<'url' | 'html'>('url');
   const [isLoading, setIsLoading] = useState(false);
-  const [extractedProducts, setExtractedProducts] = useState<ExtractedProduct[]>([]);
-  const [isSavingAll, setIsSavingAll] = useState(false);
+  const [extractedProduct, setExtractedProduct] = useState<ExtractedProduct | null>(null);
+
+  useEffect(() => {
+    const savedKey = localStorage.getItem('openai_api_key');
+    if (savedKey) {
+      setApiKey(savedKey);
+    }
+  }, []);
 
   const saveApiKey = () => {
     localStorage.setItem('openai_api_key', apiKey);
     toast({
-      title: 'API Key salva',
-      description: 'Sua chave foi salva localmente no navegador.',
+      title: "API Key salva",
+      description: "Sua chave OpenAI foi salva localmente."
     });
   };
 
-  const extractProducts = async () => {
+  const extractProduct = async () => {
     if (!apiKey) {
       toast({
-        title: 'API Key necessária',
-        description: 'Por favor, insira sua chave da API do OpenAI.',
-        variant: 'destructive',
+        title: "API Key necessária",
+        description: "Configure sua chave OpenAI primeiro.",
+        variant: "destructive"
       });
       return;
     }
 
-    if (inputMode === 'url' && !url) {
+    if (inputMode === 'url' && !inputUrl) {
       toast({
-        title: 'URL necessária',
-        description: 'Por favor, insira a URL do produto ou loja.',
-        variant: 'destructive',
+        title: "URL necessária",
+        description: "Digite a URL do produto.",
+        variant: "destructive"
       });
       return;
     }
 
     if (inputMode === 'html' && !manualHtml) {
       toast({
-        title: 'HTML necessário',
-        description: 'Por favor, cole o código HTML da página.',
-        variant: 'destructive',
+        title: "HTML necessário",
+        description: "Cole o código HTML da página.",
+        variant: "destructive"
       });
       return;
     }
 
     setIsLoading(true);
-    setExtractedProducts([]);
+    setExtractedProduct(null);
 
     try {
-      // Limit HTML size to avoid payload issues (max 500KB)
-      let htmlToSend = inputMode === 'html' ? manualHtml : undefined;
-      if (htmlToSend && htmlToSend.length > 500000) {
-        htmlToSend = htmlToSend.substring(0, 500000);
-        console.log('HTML truncated to 500KB');
-      }
-
-      console.log('Iniciando extração...', { extractType, inputMode, urlLength: url.length, htmlLength: htmlToSend?.length || 0 });
-
-      const requestBody = {
-        url: inputMode === 'url' ? url : 'manual-html',
-        html: htmlToSend,
-        apiKey,
-        extractType,
-      };
-
-      console.log('Enviando para:', `${API_BASE_URL}/extract.php`);
-      console.log('Payload size:', JSON.stringify(requestBody).length, 'bytes');
-
-      const response = await fetch(`${API_BASE_URL}/extract.php`, {
+      const response = await fetch('https://www.n8nbalao.com/api/extract.php', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(requestBody),
+        body: JSON.stringify({
+          apiKey,
+          url: inputMode === 'url' ? inputUrl : '',
+          manualHtml: inputMode === 'html' ? manualHtml : ''
+        })
       });
 
-      console.log('Response status:', response.status);
+      const data = await response.json();
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Server response:', response.status, errorText);
-        throw new Error(`Erro do servidor: ${response.status}. Verifique se o extract.php foi atualizado no Hostinger.`);
-      }
-
-      const result = await response.json();
-      console.log('Extraction result:', result);
-
-      if (!result.success) {
-        throw new Error(result.error || 'Erro ao extrair dados');
-      }
-
-      // Handle different response types
-      if (result.type === 'links' && Array.isArray(result.data)) {
-        // Server found product links but couldn't extract details
+      if (!data.success) {
         toast({
-          title: 'Links de produtos encontrados!',
-          description: `${result.data.length} links encontrados. Use "Produto Único" para extrair cada um.`,
+          title: "Erro na extração",
+          description: data.error || "Não foi possível extrair o produto.",
+          variant: "destructive"
         });
-        
-        // Show links as products that need extraction
-        const linkProducts = result.data.map((link: string) => ({
-          title: `Link: ${link.substring(0, 60)}...`,
-          price: null,
-          description: '',
-          brand: '',
-          model: '',
-          category: 'acessorio',
-          specs: {},
-          images: [],
-          image: '',
-          link: link,
-          selected: false,
-          importing: false,
-          imported: false,
-          needsExtraction: true,
-        }));
-        setExtractedProducts(linkProducts);
         return;
       }
 
-      // Always convert to array format for consistent handling
-      if (result.type === 'store' && Array.isArray(result.data)) {
-        // Store extraction returns array of products
-        const products = result.data.map((p: any) => ({
-          title: p.title || 'Produto sem nome',
-          price: typeof p.price === 'number' ? p.price : parseFloat(p.price) || null,
-          description: p.description || '',
-          brand: p.brand || '',
-          model: p.model || '',
-          category: p.category || 'acessorio',
-          specs: p.specs || {},
-          images: p.images || (p.image ? [p.image] : []),
-          image: p.image || p.images?.[0] || '',
-          link: p.link || '',
-          selected: !p.needsExtraction,
-          importing: false,
-          imported: false,
-          needsExtraction: p.needsExtraction || false,
-        }));
-        setExtractedProducts(products);
-        
-        const extractableCount = products.filter((p: any) => !p.needsExtraction).length;
-        
-        if (result.note) {
-          toast({
-            title: 'Extração parcial',
-            description: result.note,
-          });
-        } else {
-          toast({
-            title: 'Extração concluída!',
-            description: `${extractableCount} produtos prontos para importar.`,
-          });
-        }
-      } else if (result.data) {
-        // Single product - convert to array with one item
-        const product = result.data;
-        setExtractedProducts([{
-          title: product.title || 'Produto sem nome',
-          price: typeof product.price === 'number' ? product.price : parseFloat(product.price) || null,
-          description: product.description || '',
-          brand: product.brand || '',
-          model: product.model || '',
-          category: product.category || 'acessorio',
-          specs: product.specs || {},
-          images: product.images || [],
-          image: product.images?.[0] || '',
-          link: product.link || url,
-          selected: true,
-          importing: false,
-          imported: false,
-        }]);
-        
-        toast({
-          title: 'Extração concluída!',
-          description: 'Dados do produto extraídos com sucesso.',
-        });
-      }
+      setExtractedProduct(data.product);
+      toast({
+        title: "Produto extraído",
+        description: `"${data.product.title}" encontrado.`
+      });
+
     } catch (error) {
       console.error('Extraction error:', error);
-      
-      let errorMessage = 'Erro desconhecido';
-      if (error instanceof TypeError && error.message === 'Failed to fetch') {
-        errorMessage = 'Não foi possível conectar ao servidor. Verifique se o arquivo extract.php foi enviado para a pasta /api do Hostinger.';
-      } else if (error instanceof Error) {
-        errorMessage = error.message;
-      }
-      
       toast({
-        title: 'Erro na extração',
-        description: errorMessage,
-        variant: 'destructive',
+        title: "Erro",
+        description: "Falha na conexão com o servidor.",
+        variant: "destructive"
       });
     } finally {
       setIsLoading(false);
     }
   };
 
-  const toggleProductSelection = (index: number) => {
-    setExtractedProducts(prev => {
-      const updated = [...prev];
-      updated[index] = { ...updated[index], selected: !updated[index].selected };
-      return updated;
-    });
-  };
+  const importProduct = async () => {
+    if (!extractedProduct) return;
 
-  const selectAll = () => {
-    setExtractedProducts(prev => prev.map(p => ({ ...p, selected: true })));
-  };
-
-  const deselectAll = () => {
-    setExtractedProducts(prev => prev.map(p => ({ ...p, selected: false })));
-  };
-
-  const importSingleProduct = async (index: number) => {
-    const product = extractedProducts[index];
-    if (product.imported) return;
-
-    setExtractedProducts(prev => {
-      const updated = [...prev];
-      updated[index] = { ...updated[index], importing: true };
-      return updated;
-    });
+    setExtractedProduct(prev => prev ? { ...prev, importing: true } : null);
 
     try {
-      // Handle specs - could be array or object
-      let specsRecord: Record<string, string> = {};
-      if (product.specs) {
-        if (Array.isArray(product.specs)) {
-          product.specs.forEach((spec, idx) => {
-            specsRecord[`spec_${idx + 1}`] = spec;
-          });
-        } else {
-          specsRecord = product.specs as Record<string, string>;
-        }
+      // Check if category exists, create if not
+      const customCategories = await getCustomCategories();
+      const allCategories = [...customCategories];
+      const categoryKey = extractedProduct.category?.toLowerCase().replace(/\s+/g, '_') || 'outros';
+      
+      const categoryExists = allCategories.some(
+        cat => cat.key.toLowerCase() === categoryKey || cat.label.toLowerCase() === extractedProduct.category?.toLowerCase()
+      );
+
+      if (!categoryExists && extractedProduct.category) {
+        const categoryLabel = extractedProduct.category.charAt(0).toUpperCase() + extractedProduct.category.slice(1);
+        await addCustomCategory(categoryKey, categoryLabel, 'Package');
       }
-      
-      const category = product.category || 'acessorio';
-      
-      // Check if category exists, if not create it
-      const existingCategories = await getCustomCategories();
-      const categoryExists = existingCategories.some(c => c.key === category);
-      
-      if (!categoryExists) {
-        // Map category to appropriate icon
-        const categoryIconMap: Record<string, string> = {
-          software: 'Monitor',
-          notebook: 'Laptop',
-          laptop: 'Laptop',
-          computador: 'Monitor',
-          pc: 'Monitor',
-          acessorio: 'Headphones',
-          acessorios: 'Headphones',
-          periferico: 'Mouse',
-          perifericos: 'Mouse',
-          teclado: 'Keyboard',
-          mouse: 'Mouse',
-          monitor: 'MonitorSmartphone',
-          fone: 'Headphones',
-          headset: 'Headphones',
-          cadeira: 'Armchair',
-          mesa: 'LayoutGrid',
-          impressora: 'Printer',
-          camera: 'Camera',
-          armazenamento: 'HardDrive',
-          storage: 'HardDrive',
-          memoria: 'MemoryStick',
-          processador: 'Cpu',
-          placa: 'CircuitBoard',
-          gabinete: 'Box',
-          fonte: 'Zap',
-          cooler: 'Fan',
-          rede: 'Wifi',
-          cabo: 'Cable',
-          licenca: 'Key',
-          automacao: 'Bot',
-          games: 'Gamepad2',
-          jogo: 'Gamepad2',
-          celular: 'Smartphone',
-          tablet: 'Tablet',
-          tv: 'Tv',
-          audio: 'Speaker',
-          caixa_som: 'Speaker',
-        };
-        
-        const categoryLower = category.toLowerCase();
-        const icon = categoryIconMap[categoryLower] || 'Box';
-        
-        // Create the category automatically
-        const categoryLabel = category.charAt(0).toUpperCase() + category.slice(1).replace(/_/g, ' ');
-        await addCustomCategory(category, categoryLabel, icon);
-        console.log(`Categoria "${categoryLabel}" criada automaticamente com ícone "${icon}"`);
+
+      // Prepare media from images
+      const media = extractedProduct.images?.slice(0, 5).map(url => ({
+        type: 'image' as const,
+        url
+      })) || [];
+
+      // Prepare specs
+      const specs: Record<string, string> = {};
+      if (extractedProduct.specs) {
+        Object.entries(extractedProduct.specs).forEach(([key, value]) => {
+          if (value) specs[key] = String(value);
+        });
       }
-      
+
       await api.createProduct({
-        title: product.title || 'Produto Importado',
-        subtitle: product.brand || '',
-        description: product.description || '',
-        categories: [category],
-        productType: category as any,
-        media: product.images?.length 
-          ? product.images.map(url => ({ type: 'image' as const, url }))
-          : product.image 
-            ? [{ type: 'image' as const, url: product.image }] 
-            : [],
-        specs: specsRecord,
+        title: extractedProduct.title || 'Produto Importado',
+        subtitle: extractedProduct.brand ? `${extractedProduct.brand} ${extractedProduct.model || ''}`.trim() : '',
+        description: extractedProduct.description || '',
+        productType: categoryKey as any,
+        categories: [categoryKey],
+        media,
+        specs,
+        totalPrice: extractedProduct.price || 0,
         components: {},
-        totalPrice: product.price || 0,
+        downloadUrl: ''
       });
 
-      setExtractedProducts(prev => {
-        const updated = [...prev];
-        updated[index] = { ...updated[index], importing: false, imported: true };
-        return updated;
-      });
+      setExtractedProduct(prev => prev ? { ...prev, imported: true, importing: false } : null);
 
       toast({
-        title: 'Produto importado!',
-        description: product.title,
+        title: "Produto importado",
+        description: `"${extractedProduct.title}" foi adicionado ao catálogo.`
       });
+
     } catch (error) {
-      console.error('Error importing product:', error);
-      
-      setExtractedProducts(prev => {
-        const updated = [...prev];
-        updated[index] = { ...updated[index], importing: false };
-        return updated;
-      });
-
+      console.error('Import error:', error);
+      setExtractedProduct(prev => prev ? { ...prev, importing: false } : null);
       toast({
-        title: 'Erro ao importar',
-        description: error instanceof Error ? error.message : 'Erro desconhecido',
-        variant: 'destructive',
+        title: "Erro ao importar",
+        description: "Não foi possível salvar o produto.",
+        variant: "destructive"
       });
     }
   };
-
-  const importSelectedProducts = async () => {
-    const selectedProducts = extractedProducts.filter(p => p.selected && !p.imported);
-    
-    if (selectedProducts.length === 0) {
-      toast({
-        title: 'Nenhum produto selecionado',
-        description: 'Selecione pelo menos um produto para importar.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    setIsSavingAll(true);
-
-    let successCount = 0;
-    for (let i = 0; i < extractedProducts.length; i++) {
-      const product = extractedProducts[i];
-      if (!product.selected || product.imported) continue;
-      
-      try {
-        await importSingleProduct(i);
-        successCount++;
-      } catch (e) {
-        console.error('Error importing product:', e);
-      }
-    }
-
-    setIsSavingAll(false);
-
-    toast({
-      title: 'Importação concluída!',
-      description: `${successCount} de ${selectedProducts.length} produtos importados.`,
-    });
-  };
-
-  const selectedCount = extractedProducts.filter(p => p.selected && !p.imported).length;
-  const importedCount = extractedProducts.filter(p => p.imported).length;
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-8">
+    <div className="min-h-screen bg-background p-6">
+      <div className="max-w-4xl mx-auto space-y-6">
         {/* Header */}
-        <div className="flex items-center gap-4 mb-8">
-          <Button variant="ghost" size="icon" onClick={() => navigate('/admin')}>
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
+        <div className="flex items-center gap-4">
+          <Link to="/admin">
+            <Button variant="outline" size="icon">
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+          </Link>
           <div>
-            <h1 className="text-2xl font-bold">Extração de Produtos com IA</h1>
-            <p className="text-muted-foreground">
-              Extraia automaticamente dados de produtos de qualquer URL
-            </p>
+            <h1 className="text-2xl font-bold">Extrair Produto</h1>
+            <p className="text-muted-foreground">Extraia informações de produtos usando IA</p>
           </div>
         </div>
 
-        {/* API Key Section */}
-        <Card className="mb-6">
+        {/* API Key */}
+        <Card>
           <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              🔑 Chave da API OpenAI
-            </CardTitle>
+            <CardTitle className="text-lg">Configuração OpenAI</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
             <div className="flex gap-2">
-              <Input
-                type="password"
-                placeholder="sk-..."
-                value={apiKey}
-                onChange={(e) => setApiKey(e.target.value)}
-                className="flex-1"
-              />
-              <Button onClick={saveApiKey} variant="secondary">
+              <div className="flex-1 relative">
+                <Input
+                  type={showApiKey ? "text" : "password"}
+                  value={apiKey}
+                  onChange={(e) => setApiKey(e.target.value)}
+                  placeholder="sk-..."
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 h-6 w-6"
+                  onClick={() => setShowApiKey(!showApiKey)}
+                >
+                  {showApiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </Button>
+              </div>
+              <Button onClick={saveApiKey} variant="outline">
                 <Save className="h-4 w-4 mr-2" />
                 Salvar
               </Button>
             </div>
-            <p className="text-sm text-muted-foreground mt-2">
-              Sua chave é salva apenas localmente no seu navegador. 
-              <a 
-                href="https://platform.openai.com/api-keys" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="text-primary hover:underline ml-1"
-              >
-                Obter chave API
-              </a>
-            </p>
           </CardContent>
         </Card>
 
-        {/* Extraction Section */}
-        <Card className="mb-6">
+        {/* Input Mode Selection */}
+        <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Extrair Produtos</CardTitle>
+            <CardTitle className="text-lg">Fonte dos Dados</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {/* Input Mode Selection */}
-            <div className="flex gap-2 p-1 bg-muted rounded-lg w-fit">
-              <button
+            <div className="flex gap-2">
+              <Button
+                variant={inputMode === 'url' ? 'default' : 'outline'}
                 onClick={() => setInputMode('url')}
-                className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                  inputMode === 'url' 
-                    ? 'bg-background text-foreground shadow-sm' 
-                    : 'text-muted-foreground hover:text-foreground'
-                }`}
+                className="flex-1"
               >
-                <Link className="h-4 w-4" />
-                Via URL
-              </button>
-              <button
+                <LinkIcon className="h-4 w-4 mr-2" />
+                URL do Produto
+              </Button>
+              <Button
+                variant={inputMode === 'html' ? 'default' : 'outline'}
                 onClick={() => setInputMode('html')}
-                className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                  inputMode === 'html' 
-                    ? 'bg-background text-foreground shadow-sm' 
-                    : 'text-muted-foreground hover:text-foreground'
-                }`}
+                className="flex-1"
               >
-                <Code className="h-4 w-4" />
+                <FileText className="h-4 w-4 mr-2" />
                 Colar HTML
-              </button>
+              </Button>
             </div>
 
-            <Tabs value={extractType} onValueChange={(v) => setExtractType(v as 'product' | 'store')}>
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="product" className="flex items-center gap-2">
-                  <Package className="h-4 w-4" />
-                  Produto Único
-                </TabsTrigger>
-                <TabsTrigger value="store" className="flex items-center gap-2">
-                  <Store className="h-4 w-4" />
-                  Loja/Listing
-                </TabsTrigger>
-              </TabsList>
-              <TabsContent value="product" className="mt-4">
-                <p className="text-sm text-muted-foreground mb-2">
-                  {inputMode === 'url' 
-                    ? 'Cole a URL de uma página de produto para extrair nome, preço, descrição, especificações e imagens.'
-                    : 'Cole o código HTML de uma página de produto (Ctrl+U no navegador).'}
-                </p>
-              </TabsContent>
-              <TabsContent value="store" className="mt-4">
-                <p className="text-sm text-muted-foreground mb-2">
-                  {inputMode === 'url' 
-                    ? 'Cole a URL de uma página de loja para extrair múltiplos produtos.'
-                    : 'Cole o código HTML de uma página de listagem para extrair múltiplos produtos.'}
-                </p>
-                {inputMode === 'url' && (
-                  <div className="p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/20 mt-2">
-                    <p className="text-sm text-yellow-400 font-medium mb-1">⚠️ Mercado Livre / Kabum</p>
-                    <p className="text-xs text-yellow-400/80">
-                      Esses sites carregam produtos via JavaScript. A extração via URL encontrará os <strong>links dos produtos</strong>, 
-                      que você pode extrair individualmente. Para melhores resultados, use <strong>"Colar HTML"</strong> com o DevTools.
-                    </p>
-                  </div>
-                )}
-                {inputMode === 'html' && (
-                  <div className="p-3 rounded-lg bg-green-500/10 border border-green-500/20 mt-2">
-                    <p className="text-sm text-green-400">✅ Modo HTML bypassa proteções anti-bot e captura todos os produtos carregados!</p>
-                  </div>
-                )}
-              </TabsContent>
-            </Tabs>
-
             {inputMode === 'url' ? (
-              <div className="flex gap-2">
+              <div className="space-y-2">
+                <Label>URL do Produto</Label>
                 <Input
-                  placeholder="https://www.exemplo.com/produto..."
-                  value={url}
-                  onChange={(e) => setUrl(e.target.value)}
-                  className="flex-1"
+                  value={inputUrl}
+                  onChange={(e) => setInputUrl(e.target.value)}
+                  placeholder="https://www.mercadolivre.com.br/produto..."
                 />
-                <Button onClick={extractProducts} disabled={isLoading}>
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Extraindo...
-                    </>
-                  ) : (
-                    <>
-                      <Search className="h-4 w-4 mr-2" />
-                      Extrair
-                    </>
-                  )}
-                </Button>
+                <p className="text-xs text-muted-foreground">
+                  Cole a URL direta do produto. Para sites com proteção anti-bot, use "Colar HTML".
+                </p>
               </div>
             ) : (
-              <div className="space-y-3">
-                <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
-                  <p className="text-sm text-blue-400 font-medium mb-2">📋 Como copiar o HTML:</p>
-                  <ol className="text-xs text-muted-foreground space-y-1 list-decimal list-inside">
-                    <li>Abra a página do produto/loja no navegador</li>
-                    <li>Pressione <kbd className="px-1 py-0.5 bg-secondary rounded text-xs">Ctrl+U</kbd> (Windows) ou <kbd className="px-1 py-0.5 bg-secondary rounded text-xs">Cmd+Option+U</kbd> (Mac)</li>
-                    <li>Selecione tudo (<kbd className="px-1 py-0.5 bg-secondary rounded text-xs">Ctrl+A</kbd>) e copie (<kbd className="px-1 py-0.5 bg-secondary rounded text-xs">Ctrl+C</kbd>)</li>
-                    <li>Cole aqui abaixo</li>
-                  </ol>
-                </div>
-                <textarea
-                  placeholder="Cole o código HTML da página aqui..."
+              <div className="space-y-2">
+                <Label>Código HTML</Label>
+                <Textarea
                   value={manualHtml}
                   onChange={(e) => setManualHtml(e.target.value)}
-                  className="w-full h-32 rounded-lg border border-border bg-background px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary font-mono"
+                  placeholder="Cole aqui o HTML da página (Ctrl+U no navegador)..."
+                  className="min-h-[200px] font-mono text-xs"
                 />
-                <div className="flex justify-between items-center">
-                  <span className="text-xs text-muted-foreground">
-                    {manualHtml.length > 0 ? `${(manualHtml.length / 1024).toFixed(1)} KB de HTML` : 'Nenhum HTML colado'}
-                  </span>
-                  <Button onClick={extractProducts} disabled={isLoading || !manualHtml}>
-                    {isLoading ? (
-                      <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Extraindo...
-                      </>
-                    ) : (
-                      <>
-                        <Search className="h-4 w-4 mr-2" />
-                        Extrair do HTML
-                      </>
-                    )}
-                  </Button>
-                </div>
+                <p className="text-xs text-muted-foreground">
+                  Abra a página do produto, pressione Ctrl+U, copie todo o conteúdo e cole aqui.
+                </p>
               </div>
             )}
+
+            <Button 
+              onClick={extractProduct} 
+              disabled={isLoading}
+              className="w-full"
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Extraindo...
+                </>
+              ) : (
+                <>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Extrair Produto
+                </>
+              )}
+            </Button>
           </CardContent>
         </Card>
 
-        {/* Results Section */}
-        {extractedProducts.length > 0 && (
+        {/* Extracted Product */}
+        {extractedProduct && (
           <Card>
             <CardHeader>
-              <div className="flex items-center justify-between flex-wrap gap-4">
-                <CardTitle className="text-lg">
-                  {extractedProducts.length} Produto{extractedProducts.length > 1 ? 's' : ''} Encontrado{extractedProducts.length > 1 ? 's' : ''}
-                  {importedCount > 0 && (
-                    <span className="text-sm text-muted-foreground ml-2">
-                      ({importedCount} importado{importedCount > 1 ? 's' : ''})
+              <CardTitle className="text-lg flex items-center justify-between">
+                Produto Extraído
+                {extractedProduct.imported && (
+                  <span className="text-sm text-green-500 flex items-center gap-1">
+                    <Check className="h-4 w-4" />
+                    Importado
+                  </span>
+                )}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex gap-4">
+                {extractedProduct.images?.[0] && (
+                  <img 
+                    src={extractedProduct.images[0]} 
+                    alt={extractedProduct.title}
+                    className="w-32 h-32 object-contain rounded-lg bg-muted"
+                  />
+                )}
+                <div className="flex-1 space-y-2">
+                  <h3 className="font-semibold text-lg">{extractedProduct.title}</h3>
+                  {extractedProduct.brand && (
+                    <p className="text-sm text-muted-foreground">
+                      {extractedProduct.brand} {extractedProduct.model}
+                    </p>
+                  )}
+                  {extractedProduct.price && (
+                    <p className="text-xl font-bold text-primary">
+                      R$ {extractedProduct.price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    </p>
+                  )}
+                  {extractedProduct.category && (
+                    <span className="inline-block px-2 py-1 bg-muted rounded text-xs">
+                      {extractedProduct.category}
                     </span>
                   )}
-                </CardTitle>
-                <div className="flex gap-2 flex-wrap">
-                  {extractedProducts.length > 1 && (
-                    <>
-                      <Button variant="outline" size="sm" onClick={selectAll}>
-                        <Check className="h-4 w-4 mr-1" />
-                        Todos
-                      </Button>
-                      <Button variant="outline" size="sm" onClick={deselectAll}>
-                        <X className="h-4 w-4 mr-1" />
-                        Nenhum
-                      </Button>
-                    </>
-                  )}
-                  <Button 
-                    onClick={importSelectedProducts} 
-                    disabled={isSavingAll || selectedCount === 0}
-                  >
-                    {isSavingAll ? (
-                      <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Importando...
-                      </>
-                    ) : (
-                      <>
-                        <Download className="h-4 w-4 mr-2" />
-                        Importar Selecionados ({selectedCount})
-                      </>
-                    )}
-                  </Button>
                 </div>
               </div>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {extractedProducts.map((product, index) => (
-                  <div
-                    key={index}
-                    className={`border rounded-lg p-4 transition-all ${
-                      product.imported 
-                        ? 'border-green-500 bg-green-500/10 opacity-70'
-                        : product.selected 
-                          ? 'border-primary bg-primary/5' 
-                          : 'border-border hover:border-muted-foreground'
-                    }`}
-                  >
-                    <div className="flex gap-3">
-                      {/* Image */}
-                      <div className="w-20 h-20 flex-shrink-0 bg-muted rounded overflow-hidden">
-                        {(product.image || product.images?.[0]) ? (
-                          <img 
-                            src={product.image || product.images?.[0]} 
-                            alt={product.title}
-                            className="w-full h-full object-cover"
-                            onError={(e) => {
-                              (e.target as HTMLImageElement).src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="%23666" stroke-width="1"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>';
-                            }}
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-muted-foreground">
-                            <Package className="h-8 w-8" />
-                          </div>
-                        )}
-                      </div>
 
-                      {/* Info */}
-                      <div className="flex-1 min-w-0">
-                        <h4 className="font-medium text-sm line-clamp-2">{product.title}</h4>
-                        {product.brand && (
-                          <p className="text-xs text-muted-foreground">{product.brand}</p>
-                        )}
-                        {product.price !== null && (
-                          <p className="text-primary font-bold mt-1">
-                            R$ {product.price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                          </p>
-                        )}
-                      </div>
-                    </div>
+              {extractedProduct.description && (
+                <div>
+                  <Label className="text-sm font-medium">Descrição</Label>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {extractedProduct.description.substring(0, 300)}
+                    {extractedProduct.description.length > 300 && '...'}
+                  </p>
+                </div>
+              )}
 
-                    {/* Actions */}
-                    <div className="flex gap-2 mt-3">
-                      {!product.imported ? (
-                        <>
-                          <Button
-                            variant={product.selected ? "default" : "outline"}
-                            size="sm"
-                            className="flex-1"
-                            onClick={() => toggleProductSelection(index)}
-                          >
-                            {product.selected ? (
-                              <>
-                                <Check className="h-3 w-3 mr-1" />
-                                Selecionado
-                              </>
-                            ) : (
-                              'Selecionar'
-                            )}
-                          </Button>
-                          <Button
-                            variant="secondary"
-                            size="sm"
-                            onClick={() => importSingleProduct(index)}
-                            disabled={product.importing}
-                          >
-                            {product.importing ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                              <>
-                                <Plus className="h-4 w-4" />
-                              </>
-                            )}
-                          </Button>
-                        </>
-                      ) : (
-                        <Button variant="outline" size="sm" className="flex-1" disabled>
-                          <Check className="h-3 w-3 mr-1 text-green-500" />
-                          Importado
-                        </Button>
-                      )}
-                    </div>
+              {extractedProduct.specs && Object.keys(extractedProduct.specs).length > 0 && (
+                <div>
+                  <Label className="text-sm font-medium">Especificações</Label>
+                  <div className="grid grid-cols-2 gap-2 mt-2">
+                    {Object.entries(extractedProduct.specs).slice(0, 6).map(([key, value]) => (
+                      <div key={key} className="text-xs">
+                        <span className="text-muted-foreground">{key}:</span>{' '}
+                        <span>{value}</span>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
+                </div>
+              )}
+
+              {extractedProduct.link && (
+                <a 
+                  href={extractedProduct.link} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-xs text-primary hover:underline block"
+                >
+                  Ver produto original →
+                </a>
+              )}
+
+              <Button
+                onClick={importProduct}
+                disabled={extractedProduct.imported || extractedProduct.importing}
+                className="w-full"
+              >
+                {extractedProduct.importing ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Importando...
+                  </>
+                ) : extractedProduct.imported ? (
+                  <>
+                    <Check className="h-4 w-4 mr-2" />
+                    Importado
+                  </>
+                ) : (
+                  <>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Importar Produto
+                  </>
+                )}
+              </Button>
             </CardContent>
           </Card>
         )}
