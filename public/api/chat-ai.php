@@ -278,6 +278,33 @@ if ($httpCode !== 200) {
 
 $assistantMessage = $data['choices'][0]['message']['content'] ?? 'Desculpe, não consegui processar sua mensagem.';
 
+// Log AI usage for chat
+$inputTokens = $data['usage']['prompt_tokens'] ?? 0;
+$outputTokens = $data['usage']['completion_tokens'] ?? 0;
+$totalTokens = $data['usage']['total_tokens'] ?? 0;
+$costPerInputToken = 0.00015 / 1000;
+$costPerOutputToken = 0.0006 / 1000;
+$costUSD = ($inputTokens * $costPerInputToken) + ($outputTokens * $costPerOutputToken);
+$costBRL = $costUSD * 5.5;
+
+try {
+    $stmt = $pdo->prepare("INSERT INTO ai_usage 
+        (operation_type, model, input_tokens, output_tokens, total_tokens, cost_usd, cost_brl, items_processed)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+    $stmt->execute([
+        'lorenzo_chat',
+        $lorenzoModel,
+        $inputTokens,
+        $outputTokens,
+        $totalTokens,
+        $costUSD,
+        $costBRL,
+        1
+    ]);
+} catch (Exception $e) {
+    // Silently fail
+}
+
 echo json_encode([
     'success' => true,
     'message' => $assistantMessage,

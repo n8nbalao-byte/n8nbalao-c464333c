@@ -288,6 +288,68 @@ export interface OrderItem {
 }
 
 // =====================================================
+// AI USAGE TRACKING
+// =====================================================
+
+export interface AIUsageData {
+  operationType: string;
+  model: string;
+  inputTokens: number;
+  outputTokens: number;
+  totalTokens: number;
+  costUsd: number;
+  costBrl: number;
+  itemsProcessed?: number;
+}
+
+export interface AIUsageTotals {
+  total_operations: number;
+  total_input_tokens: number;
+  total_output_tokens: number;
+  total_tokens: number;
+  total_cost_usd: number;
+  total_cost_brl: number;
+  total_items_processed: number;
+}
+
+export interface AIUsageBreakdown {
+  operation_type: string;
+  operations: number;
+  tokens: number;
+  cost_usd: number;
+  cost_brl: number;
+}
+
+export async function logAIUsage(usage: AIUsageData): Promise<boolean> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/ai-usage.php`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(usage),
+    });
+    return response.ok;
+  } catch {
+    console.error('Error logging AI usage');
+    return false;
+  }
+}
+
+export async function getAIUsage(period: 'all' | 'today' | 'week' | 'month' = 'all'): Promise<{
+  totals: AIUsageTotals;
+  breakdown: AIUsageBreakdown[];
+  recent: any[];
+} | null> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/ai-usage.php?period=${period}`);
+    if (!response.ok) return null;
+    const data = await response.json();
+    return data.success ? data.data : null;
+  } catch {
+    return null;
+  }
+}
+
+// =====================================================
 // API OBJECT
 // =====================================================
 

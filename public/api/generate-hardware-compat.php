@@ -159,6 +159,25 @@ $costPerOutputToken = 0.0006 / 1000; // gpt-4o-mini output
 $costUSD = ($inputTokens * $costPerInputToken) + ($outputTokens * $costPerOutputToken);
 $costBRL = $costUSD * 5.5; // approximate exchange rate
 
+// Log AI usage
+try {
+    $stmt = $pdo->prepare("INSERT INTO ai_usage 
+        (operation_type, model, input_tokens, output_tokens, total_tokens, cost_usd, cost_brl, items_processed)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+    $stmt->execute([
+        'hardware_compatibility',
+        $model,
+        $inputTokens,
+        $outputTokens,
+        $totalTokens,
+        $costUSD,
+        $costBRL,
+        count($compatibilityData)
+    ]);
+} catch (Exception $e) {
+    // Silently fail - don't break the main functionality
+}
+
 echo json_encode([
     'success' => true,
     'compatibility' => $compatibilityData,
