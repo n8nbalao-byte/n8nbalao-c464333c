@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
-import { Header } from "@/components/Header";
-import { Footer } from "@/components/Footer";
-import { StarryBackground } from "@/components/StarryBackground";
+import { Link } from "react-router-dom";
+import { RedWhiteHeader } from "@/components/RedWhiteHeader";
+import { RedWhiteFooter } from "@/components/RedWhiteFooter";
 import { api, type Product, type HardwareItem, type CompanyData, type HardwareCategory, getCustomCategories } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { useCart } from "@/contexts/CartContext";
@@ -478,9 +478,9 @@ export default function MonteVoceMesmo() {
   // PHASE: Quote Display
   if (phase === 'quote') {
     return (
-      <div className="min-h-screen flex flex-col bg-background">
-        <Header />
-        <main className="flex-1 container py-8">
+      <div className="min-h-screen flex flex-col bg-white">
+        <RedWhiteHeader />
+        <main className="flex-1 container py-8 bg-gray-50">
           <div className="max-w-4xl mx-auto">
             <div className="flex justify-between items-center mb-6">
               <Button variant="outline" onClick={() => setPhase('build')}>
@@ -632,18 +632,17 @@ export default function MonteVoceMesmo() {
             </Card>
           </div>
         </main>
-        <Footer />
+        <RedWhiteFooter />
       </div>
     );
   }
 
   // PHASE: Build - StudioPC style
   return (
-    <div className="min-h-screen flex flex-col relative">
-      <StarryBackground />
-      <Header />
+    <div className="min-h-screen flex flex-col bg-white">
+      <RedWhiteHeader />
       
-      <main className="flex-1 container py-8">
+      <main className="flex-1 container py-8 bg-gray-50">
         <div className="max-w-4xl mx-auto">
           {/* Hero Section */}
           <div className="text-center mb-8">
@@ -803,7 +802,7 @@ export default function MonteVoceMesmo() {
         </div>
       </main>
 
-      <Footer />
+      <RedWhiteFooter />
 
       {/* Selection Sheet */}
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>

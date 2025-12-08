@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
-import { Header } from "@/components/Header";
-import { Footer } from "@/components/Footer";
-import { StarryBackground } from "@/components/StarryBackground";
+import { Link } from "react-router-dom";
 import { ProductCard } from "@/components/ProductCard";
 import { HardwareCard } from "@/components/HardwareCard";
 import { api, type Product, type HardwareItem, getCustomCategories, getHardwareCategories, type HardwareCategoryDef } from "@/lib/api";
 import { getIconFromKey } from "@/lib/icons";
-import { Search, ArrowUpDown, Package, Cpu, ChevronLeft } from "lucide-react";
+import { Search, ArrowUpDown, Package, Cpu, ChevronLeft, ShoppingCart, Menu, HardDrive, Monitor, Laptop, Bot } from "lucide-react";
+import { useCart } from "@/contexts/CartContext";
+import balaoLogo from "@/assets/balao-logo.png";
 
 type ProductType = 'all' | 'hardware' | string;
 
@@ -32,6 +32,7 @@ export default function Loja() {
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [productTypes, setProductTypes] = useState<{ key: ProductType; label: string; icon: React.ElementType }[]>([]);
   const [hardwareCategoriesList, setHardwareCategoriesList] = useState<HardwareCategoryDef[]>(defaultHardwareCategories);
+  const { totalItems, setIsOpen } = useCart();
 
   useEffect(() => {
     async function fetchData() {
@@ -160,16 +161,103 @@ export default function Loja() {
   const isHardwareMode = selectedType === 'hardware';
 
   return (
-    <div className="min-h-screen bg-transparent relative">
-      <StarryBackground />
-      <Header />
+    <div className="min-h-screen bg-white">
+      {/* Top Bar */}
+      <div style={{ backgroundColor: '#DC2626' }} className="text-white py-2 text-sm">
+        <div className="container flex justify-between items-center">
+          <span>Bem-vindo à Balão da Informática!</span>
+          <div className="flex gap-4">
+            <Link to="/cliente" className="hover:underline">Minha Conta</Link>
+            <Link to="/meus-pedidos" className="hover:underline">Meus Pedidos</Link>
+          </div>
+        </div>
+      </div>
 
-      <main className="py-12">
+      {/* Header */}
+      <header className="bg-white shadow-sm sticky top-0 z-50">
+        <div className="container py-4">
+          <div className="flex items-center justify-between gap-4">
+            {/* Logo */}
+            <Link to="/" className="shrink-0">
+              <img src={balaoLogo} alt="Balão da Informática" className="h-12 md:h-16" />
+            </Link>
+
+            {/* Search Bar */}
+            <div className="flex-1 max-w-2xl">
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Pesquise seu produto..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="w-full px-4 py-3 pr-12 border-2 rounded-lg text-gray-800 placeholder:text-gray-400 focus:outline-none focus:ring-2"
+                  style={{ borderColor: '#DC2626' }}
+                />
+                <button type="button" className="absolute right-2 top-1/2 -translate-y-1/2 text-white p-2 rounded-lg transition-colors" style={{ backgroundColor: '#DC2626' }}>
+                  <Search className="h-5 w-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Cart */}
+            <button 
+              onClick={() => setIsOpen(true)}
+              className="flex items-center gap-2 text-white px-4 py-2 rounded-lg transition-colors relative"
+              style={{ backgroundColor: '#DC2626' }}
+            >
+              <ShoppingCart className="h-5 w-5" />
+              <span className="hidden md:inline font-medium">Carrinho</span>
+              {totalItems > 0 && (
+                <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-white text-xs font-bold" style={{ color: '#DC2626' }}>
+                  {totalItems}
+                </span>
+              )}
+            </button>
+          </div>
+        </div>
+
+        {/* Navigation */}
+        <nav className="bg-gray-100 border-t border-gray-200">
+          <div className="container">
+            <div className="flex items-center gap-1 overflow-x-auto py-2 scrollbar-hide">
+              <Link to="/" className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:bg-white rounded-lg transition-colors whitespace-nowrap font-medium" style={{ ['--hover-color' as any]: '#DC2626' }}>
+                Início
+              </Link>
+              <Link to="/loja" className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:bg-white rounded-lg transition-colors whitespace-nowrap font-medium" style={{ color: '#DC2626' }}>
+                <Menu className="h-4 w-4" />
+                Loja
+              </Link>
+              <Link to="/monte-voce-mesmo" className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:bg-white rounded-lg transition-colors whitespace-nowrap font-medium">
+                <Cpu className="h-4 w-4" />
+                Monte seu PC
+              </Link>
+              <Link to="/automacao" className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:bg-white rounded-lg transition-colors whitespace-nowrap font-medium">
+                <Bot className="h-4 w-4" />
+                Automação
+              </Link>
+              <Link to="/loja?category=notebook" className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:bg-white rounded-lg transition-colors whitespace-nowrap font-medium">
+                <Laptop className="h-4 w-4" />
+                Notebooks
+              </Link>
+              <Link to="/loja?category=hardware" className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:bg-white rounded-lg transition-colors whitespace-nowrap font-medium">
+                <HardDrive className="h-4 w-4" />
+                Hardware
+              </Link>
+              <Link to="/loja?category=monitor" className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:bg-white rounded-lg transition-colors whitespace-nowrap font-medium">
+                <Monitor className="h-4 w-4" />
+                Monitores
+              </Link>
+            </div>
+          </div>
+        </nav>
+      </header>
+
+      <main className="py-12 bg-gray-50">
         <div className="container">
           {/* Page Header */}
           <div className="mb-8">
-            <h1 className="text-4xl font-bold text-foreground">Nossa Loja</h1>
-            <p className="mt-2 text-muted-foreground">
+            <h1 className="text-4xl font-bold text-gray-800">Nossa Loja</h1>
+            <p className="mt-2 text-gray-600">
               Escolha o produto ideal para suas necessidades
             </p>
           </div>
@@ -184,9 +272,10 @@ export default function Loja() {
                   onClick={() => handleTypeSelect(type.key)}
                   className={`inline-flex items-center gap-2 rounded-lg px-5 py-3 font-medium transition-colors ${
                     selectedType === type.key
-                      ? "bg-primary text-primary-foreground shadow-glow"
-                      : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                      ? "text-white"
+                      : "bg-white text-gray-700 border border-gray-200 hover:bg-gray-50"
                   }`}
+                  style={selectedType === type.key ? { backgroundColor: '#DC2626' } : {}}
                 >
                   <Icon className="h-5 w-5" />
                   {type.label}
@@ -202,7 +291,7 @@ export default function Loja() {
                 {selectedHardwareCategory && (
                   <button
                     onClick={() => setSelectedHardwareCategory(null)}
-                    className="inline-flex items-center gap-2 rounded-lg px-4 py-2 font-medium bg-muted text-muted-foreground hover:bg-muted/80 transition-colors"
+                    className="inline-flex items-center gap-2 rounded-lg px-4 py-2 font-medium bg-gray-200 text-gray-700 hover:bg-gray-300 transition-colors"
                   >
                     <ChevronLeft className="h-4 w-4" />
                     Voltar
@@ -216,12 +305,13 @@ export default function Loja() {
                       onClick={() => handleHardwareCategorySelect(cat.key)}
                       className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 font-medium transition-colors ${
                         selectedHardwareCategory === cat.key
-                          ? "bg-accent text-accent-foreground"
-                          : "bg-card border border-border text-foreground hover:bg-card/80"
+                          ? "text-white"
+                          : "bg-white border border-gray-200 text-gray-700 hover:bg-gray-50"
                       }`}
+                      style={selectedHardwareCategory === cat.key ? { backgroundColor: '#DC2626' } : {}}
                     >
                       {cat.label}
-                      <span className="text-xs bg-primary/20 text-primary px-2 py-0.5 rounded-full">
+                      <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(220, 38, 38, 0.1)', color: '#DC2626' }}>
                         {count}
                       </span>
                     </button>
@@ -231,14 +321,15 @@ export default function Loja() {
 
               {/* Hardware Filters */}
               {selectedHardwareCategory && currentHardwareCategory?.filters && currentHardwareCategory.filters.length > 0 && (
-                <div className="mt-4 flex flex-wrap gap-4 p-4 bg-card/50 rounded-lg border border-border">
+                <div className="mt-4 flex flex-wrap gap-4 p-4 bg-white rounded-lg border border-gray-200">
                   {currentHardwareCategory.filters.map((filter) => (
                     <div key={filter.field} className="flex items-center gap-2">
-                      <label className="text-sm font-medium text-muted-foreground">{filter.label}:</label>
+                      <label className="text-sm font-medium text-gray-600">{filter.label}:</label>
                       <select
                         value={selectedFilters[filter.field] || 'all'}
                         onChange={(e) => setSelectedFilters(prev => ({ ...prev, [filter.field]: e.target.value }))}
-                        className="rounded-lg border border-border bg-background px-3 py-1.5 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                        className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm text-gray-800 focus:outline-none focus:ring-2"
+                        style={{ ['--ring-color' as any]: '#DC2626' }}
                       >
                         <option value="all">Todos</option>
                         {filter.options.map((opt) => (
@@ -252,39 +343,24 @@ export default function Loja() {
             </div>
           )}
 
-          {/* Filters */}
-          <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            {/* Search */}
-            <div className="relative max-w-md flex-1">
-              <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
-              <input
-                type="text"
-                placeholder={isHardwareMode ? "Buscar hardware..." : "Buscar produtos..."}
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="w-full rounded-lg border border-border bg-card py-2 pl-10 pr-4 text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-              />
-            </div>
-
-            {/* Sort Order */}
-            <div className="flex items-center gap-2">
-              <ArrowUpDown className="h-4 w-4 text-muted-foreground" />
-              <select
-                value={sortOrder}
-                onChange={(e) => setSortOrder(e.target.value as "asc" | "desc")}
-                className="rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-              >
-                <option value="asc">Menor preço</option>
-                <option value="desc">Maior preço</option>
-              </select>
-            </div>
+          {/* Sort Order */}
+          <div className="mb-8 flex items-center justify-end gap-2">
+            <ArrowUpDown className="h-4 w-4 text-gray-500" />
+            <select
+              value={sortOrder}
+              onChange={(e) => setSortOrder(e.target.value as "asc" | "desc")}
+              className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2"
+            >
+              <option value="asc">Menor preço</option>
+              <option value="desc">Maior preço</option>
+            </select>
           </div>
 
           {/* Content Grid */}
           {loading ? (
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {[1, 2, 3, 4, 5, 6].map((i) => (
-                <div key={i} className="h-80 animate-pulse rounded-xl bg-card" />
+                <div key={i} className="h-80 animate-pulse rounded-xl bg-gray-200" />
               ))}
             </div>
           ) : isHardwareMode ? (
@@ -298,14 +374,14 @@ export default function Loja() {
                 </div>
               ) : (
                 <div className="py-20 text-center">
-                  <p className="text-xl text-muted-foreground">
+                  <p className="text-xl text-gray-500">
                     Nenhum hardware encontrado nesta categoria.
                   </p>
                 </div>
               )
             ) : (
               <div className="py-20 text-center">
-                <p className="text-xl text-muted-foreground">
+                <p className="text-xl text-gray-500">
                   Selecione uma subcategoria de hardware acima.
                 </p>
               </div>
@@ -320,7 +396,7 @@ export default function Loja() {
               </div>
             ) : (
               <div className="py-20 text-center">
-                <p className="text-xl text-muted-foreground">
+                <p className="text-xl text-gray-500">
                   Nenhum produto encontrado.
                 </p>
               </div>
@@ -329,7 +405,56 @@ export default function Loja() {
         </div>
       </main>
 
-      <Footer />
+      {/* Footer */}
+      <footer className="bg-gray-900 text-white py-12">
+        <div className="container">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+            <div>
+              <img src={balaoLogo} alt="Balão da Informática" className="h-12 mb-4 brightness-0 invert" />
+              <p className="text-gray-400 text-sm">
+                Sua loja de informática completa. Computadores, notebooks, hardware e muito mais.
+              </p>
+            </div>
+            
+            <div>
+              <h4 className="font-bold mb-4">Navegação</h4>
+              <ul className="space-y-2 text-gray-400 text-sm">
+                <li><Link to="/" className="hover:text-white transition-colors">Início</Link></li>
+                <li><Link to="/loja" className="hover:text-white transition-colors">Loja</Link></li>
+                <li><Link to="/monte-voce-mesmo" className="hover:text-white transition-colors">Monte seu PC</Link></li>
+                <li><Link to="/automacao" className="hover:text-white transition-colors">Automação</Link></li>
+              </ul>
+            </div>
+            
+            <div>
+              <h4 className="font-bold mb-4">Categorias</h4>
+              <ul className="space-y-2 text-gray-400 text-sm">
+                <li><Link to="/loja?category=pc" className="hover:text-white transition-colors">PCs Montados</Link></li>
+                <li><Link to="/loja?category=notebook" className="hover:text-white transition-colors">Notebooks</Link></li>
+                <li><Link to="/loja?category=hardware" className="hover:text-white transition-colors">Hardware</Link></li>
+                <li><Link to="/loja?category=acessorio" className="hover:text-white transition-colors">Acessórios</Link></li>
+              </ul>
+            </div>
+            
+            <div>
+              <h4 className="font-bold mb-4">Contato</h4>
+              <ul className="space-y-2 text-gray-400 text-sm">
+                <li>WhatsApp: (19) 98147-0446</li>
+                <li>Email: contato@balao.info</li>
+              </ul>
+              <div className="mt-4">
+                <Link to="/admin" className="text-xs text-gray-500 hover:text-gray-300 transition-colors">
+                  Admin
+                </Link>
+              </div>
+            </div>
+          </div>
+          
+          <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-500 text-sm">
+            © {new Date().getFullYear()} Balão da Informática. Todos os direitos reservados.
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }
