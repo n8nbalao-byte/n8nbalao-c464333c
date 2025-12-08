@@ -16,7 +16,7 @@ import balaoLogoFull from "@/assets/balao-logo-full.png";
 // Admin API URL
 const ADMIN_API_URL = 'https://www.n8nbalao.com/api/admins.php';
 
-type AdminTab = 'dashboard' | 'products' | 'hardware' | 'company' | 'carousels' | 'admins' | 'settings';
+type AdminTab = 'dashboard' | 'products' | 'simple_products' | 'hardware' | 'company' | 'carousels' | 'admins' | 'settings';
 
 interface AdminUser {
   id: string;
@@ -545,7 +545,7 @@ export default function Admin() {
 
   useEffect(() => {
     if (isAuthenticated) {
-      if (activeTab === 'products') {
+      if (activeTab === 'products' || activeTab === 'simple_products') {
         fetchProductsData();
       } else if (activeTab === 'hardware') {
         fetchHardwareData();
@@ -1985,8 +1985,18 @@ export default function Admin() {
                 ? { backgroundColor: '#DC2626', color: 'white' } 
                 : { backgroundColor: 'white', color: '#374151', border: '1px solid #E5E7EB' }}
             >
+              <Monitor className="h-5 w-5" />
+              Montar Configurações
+            </button>
+            <button
+              onClick={() => setActiveTab('simple_products')}
+              className="inline-flex items-center gap-2 rounded-lg px-6 py-3 font-medium transition-colors"
+              style={activeTab === 'simple_products' 
+                ? { backgroundColor: '#DC2626', color: 'white' } 
+                : { backgroundColor: 'white', color: '#374151', border: '1px solid #E5E7EB' }}
+            >
               <Package className="h-5 w-5" />
-              Produtos
+              Produtos Simples
             </button>
             <button
               onClick={() => setActiveTab('hardware')}
@@ -3063,6 +3073,218 @@ export default function Admin() {
                 </form>
               </div>
             </div>
+          )}
+
+          {/* Simple Products Tab - Individual product registration without mandatory hardware */}
+          {activeTab === 'simple_products' && (
+            <>
+              {/* Search and actions for simple products */}
+              <div className="mb-4 flex flex-wrap gap-4">
+                <div className="relative flex-1 min-w-[250px]">
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <input
+                    type="text"
+                    value={productSearchTerm}
+                    onChange={(e) => setProductSearchTerm(e.target.value)}
+                    placeholder="Buscar produtos por nome, tipo..."
+                    className="w-full rounded-lg border border-border bg-background pl-10 pr-4 py-2 text-foreground focus:border-primary focus:outline-none"
+                  />
+                </div>
+                <div className="flex gap-2">
+                  {selectedProducts.size > 0 && (
+                    <>
+                      <button
+                        onClick={() => setShowBulkEditModal(true)}
+                        className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/80"
+                      >
+                        <Pencil className="h-4 w-4" />
+                        Editar ({selectedProducts.size})
+                      </button>
+                      <button
+                        onClick={handleBulkDeleteProducts}
+                        className="inline-flex items-center gap-2 rounded-lg bg-destructive px-4 py-2 text-sm font-medium text-destructive-foreground transition-colors hover:bg-destructive/80"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        Excluir ({selectedProducts.size})
+                      </button>
+                    </>
+                  )}
+                  <button
+                    onClick={() => {
+                      setProductFormData({
+                        ...defaultProductFormData,
+                        productType: 'acessorio', // Default to simple accessory
+                      });
+                      setEditingProductId(null);
+                      setIsEditingProduct(true);
+                    }}
+                    className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors hover:opacity-90"
+                    style={{ backgroundColor: '#DC2626' }}
+                  >
+                    <Plus className="h-4 w-4" />
+                    Novo Produto
+                  </button>
+                </div>
+              </div>
+
+              {/* Info about simple products */}
+              <div className="mb-4 p-4 rounded-lg bg-blue-50 border border-blue-200 text-blue-800">
+                <div className="flex items-center gap-2">
+                  <Package className="h-5 w-5" />
+                  <span className="font-medium">Produtos Simples</span>
+                </div>
+                <p className="text-sm mt-1 text-blue-600">
+                  Cadastre produtos individuais como acessórios, monitores, cadeiras, softwares e licenças. 
+                  Estes produtos não precisam de componentes de hardware obrigatórios.
+                </p>
+              </div>
+
+              {loading ? (
+                <div className="h-64 animate-pulse rounded-xl bg-card" />
+              ) : (
+                <div className="overflow-hidden rounded-xl border border-border bg-card">
+                  <table className="w-full">
+                    <thead className="border-b border-border bg-secondary">
+                      <tr>
+                        <th className="px-4 py-4 text-left">
+                          <input
+                            type="checkbox"
+                            checked={products.length > 0 && selectedProducts.size === products.length}
+                            onChange={toggleAllProducts}
+                            className="h-4 w-4 rounded border-border text-primary focus:ring-primary"
+                          />
+                        </th>
+                        <th className="px-4 py-4 text-left text-sm font-semibold text-foreground">Mídia</th>
+                        <th 
+                          className="px-6 py-4 text-left text-sm font-semibold text-foreground cursor-pointer hover:text-primary transition-colors"
+                          onClick={() => {
+                            if (productSortColumn === 'title') {
+                              setProductSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+                            } else {
+                              setProductSortColumn('title');
+                              setProductSortDirection('asc');
+                            }
+                          }}
+                        >
+                          Título {productSortColumn === 'title' && (productSortDirection === 'asc' ? '↑' : '↓')}
+                        </th>
+                        <th 
+                          className="px-6 py-4 text-left text-sm font-semibold text-foreground cursor-pointer hover:text-primary transition-colors"
+                          onClick={() => {
+                            if (productSortColumn === 'type') {
+                              setProductSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+                            } else {
+                              setProductSortColumn('type');
+                              setProductSortDirection('asc');
+                            }
+                          }}
+                        >
+                          Tipo {productSortColumn === 'type' && (productSortDirection === 'asc' ? '↑' : '↓')}
+                        </th>
+                        <th 
+                          className="px-6 py-4 text-left text-sm font-semibold text-foreground cursor-pointer hover:text-primary transition-colors"
+                          onClick={() => {
+                            if (productSortColumn === 'price') {
+                              setProductSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+                            } else {
+                              setProductSortColumn('price');
+                              setProductSortDirection('asc');
+                            }
+                          }}
+                        >
+                          Preço {productSortColumn === 'price' && (productSortDirection === 'asc' ? '↑' : '↓')}
+                        </th>
+                        <th className="px-6 py-4 text-right text-sm font-semibold text-foreground">Ações</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      {[...products]
+                        .filter((p) => {
+                          // Only show products that are NOT pc or kit (those go to "Montar Configurações")
+                          const type = p.productType || '';
+                          if (type === 'pc' || type === 'kit') return false;
+                          if (!productSearchTerm) return true;
+                          const search = productSearchTerm.toLowerCase();
+                          return (
+                            p.title.toLowerCase().includes(search) ||
+                            (p.subtitle || '').toLowerCase().includes(search) ||
+                            (p.productType || '').toLowerCase().includes(search)
+                          );
+                        })
+                        .sort((a, b) => {
+                          const direction = productSortDirection === 'asc' ? 1 : -1;
+                          if (productSortColumn === 'title') {
+                            return a.title.localeCompare(b.title) * direction;
+                          } else if (productSortColumn === 'type') {
+                            const typeA = a.productType || '';
+                            const typeB = b.productType || '';
+                            return typeA.localeCompare(typeB) * direction;
+                          } else {
+                            return ((a.totalPrice || 0) - (b.totalPrice || 0)) * direction;
+                          }
+                        }).map((product) => {
+                        const typeInfo = productTypes.find(t => t.key === product.productType);
+                        const TypeIcon = typeInfo?.icon || Tag;
+                        return (
+                          <tr key={product.id} className={`hover:bg-secondary/50 ${selectedProducts.has(product.id) ? 'bg-primary/10' : ''}`}>
+                            <td className="px-4 py-4">
+                              <input
+                                type="checkbox"
+                                checked={selectedProducts.has(product.id)}
+                                onChange={() => toggleProductSelection(product.id)}
+                                className="h-4 w-4 rounded border-border text-primary focus:ring-primary"
+                              />
+                            </td>
+                            <td className="px-4 py-4">
+                              {product.media?.[0]?.url ? (
+                                <img
+                                  src={product.media[0].url}
+                                  alt=""
+                                  className="h-12 w-12 rounded-lg object-cover"
+                                />
+                              ) : (
+                                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-secondary">
+                                  <Package className="h-6 w-6 text-muted-foreground" />
+                                </div>
+                              )}
+                            </td>
+                            <td className="px-6 py-4">
+                              <p className="font-medium text-foreground">{product.title}</p>
+                              <p className="text-sm text-muted-foreground">{product.subtitle}</p>
+                            </td>
+                            <td className="px-6 py-4">
+                              <span className="inline-flex items-center gap-1 rounded-full bg-secondary px-3 py-1 text-sm">
+                                <TypeIcon className="h-4 w-4" />
+                                {typeInfo?.label || product.productType}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 text-foreground">
+                              R$ {(product.totalPrice || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                            </td>
+                            <td className="px-6 py-4 text-right">
+                              <div className="flex items-center justify-end gap-2">
+                                <button
+                                  onClick={() => openProductEditor(product)}
+                                  className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+                                >
+                                  <Pencil className="h-4 w-4" />
+                                </button>
+                                <button
+                                  onClick={() => handleProductDelete(product.id)}
+                                  className="rounded-lg p-2 text-destructive transition-colors hover:bg-destructive/10"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </>
           )}
 
           {/* Hardware Tab */}
