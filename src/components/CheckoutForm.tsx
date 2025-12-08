@@ -80,8 +80,9 @@ export function CheckoutForm({ onClose }: { onClose: () => void }) {
 
       const customer = customerResult.customer;
 
-      // Save customer data locally
+      // Save customer data locally (both keys for compatibility)
       localStorage.setItem("customerData", JSON.stringify(customer));
+      localStorage.setItem("customer", JSON.stringify(customer));
 
       // Create order
       const orderItems = items.map((item) => ({
