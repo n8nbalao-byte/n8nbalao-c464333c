@@ -13,6 +13,8 @@ import MonteVoceMesmo from "./pages/MonteVoceMesmo";
 import ImportHardware from "./pages/ImportHardware";
 import ImportProducts from "./pages/ImportProducts";
 import ExtractProducts from "./pages/ExtractProducts";
+import ClienteAuth from "./pages/ClienteAuth";
+import MeusPedidos from "./pages/MeusPedidos";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -34,6 +36,8 @@ const App = () => (
             <Route path="/import-hardware" element={<ImportHardware />} />
             <Route path="/import-products" element={<ImportProducts />} />
             <Route path="/extract-products" element={<ExtractProducts />} />
+            <Route path="/cliente" element={<ClienteAuth />} />
+            <Route path="/meus-pedidos" element={<MeusPedidos />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

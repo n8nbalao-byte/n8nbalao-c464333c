@@ -1,9 +1,10 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import logo from "@/assets/logo-white.svg";
-import { ShoppingCart } from "lucide-react";
+import { ShoppingCart, User } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
 import { Button } from "@/components/ui/button";
+import { useState, useEffect } from "react";
 
 const navLinks = [
   { href: "/", label: "Início", scrollTo: null },
@@ -18,6 +19,12 @@ export function Header() {
   const location = useLocation();
   const navigate = useNavigate();
   const { totalItems, setIsOpen } = useCart();
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  useEffect(() => {
+    const customer = localStorage.getItem("customer");
+    setIsLoggedIn(!!customer);
+  }, [location.pathname]);
 
   const handleNavClick = (e: React.MouseEvent, link: typeof navLinks[0]) => {
     if (link.scrollTo) {
@@ -62,19 +69,30 @@ export function Header() {
           ))}
         </nav>
 
-        <Button
-          variant="ghost"
-          size="icon"
-          className="relative"
-          onClick={() => setIsOpen(true)}
-        >
-          <ShoppingCart className="h-5 w-5" />
-          {totalItems > 0 && (
-            <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
-              {totalItems}
-            </span>
-          )}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => navigate(isLoggedIn ? "/meus-pedidos" : "/cliente")}
+            title={isLoggedIn ? "Meus Pedidos" : "Entrar"}
+          >
+            <User className="h-5 w-5" />
+          </Button>
+
+          <Button
+            variant="ghost"
+            size="icon"
+            className="relative"
+            onClick={() => setIsOpen(true)}
+          >
+            <ShoppingCart className="h-5 w-5" />
+            {totalItems > 0 && (
+              <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
+                {totalItems}
+              </span>
+            )}
+          </Button>
+        </div>
       </div>
     </header>
   );
