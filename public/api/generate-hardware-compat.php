@@ -58,10 +58,10 @@ Para cada item, retorne um objeto JSON com os campos relevantes baseado na categ
 - motherboard: { socket: mesmos valores, memoryType: 'DDR5' | 'DDR4' | 'DDR3', formFactor: 'ATX' | 'Micro-ATX' | 'Mini-ITX' | 'E-ATX' }
 - memory: { memoryType: 'DDR5' | 'DDR4' | 'DDR3' }
 - storage: { formFactor: 'NVMe' | 'SATA' | 'HDD' }
-- gpu: {} (sem campos específicos)
-- psu: { tdp: número em watts (ex: 500, 650, 750) }
-- cooler: { socket: valores de socket ou 'Universal' }
-- case: { formFactor: 'ATX' | 'Micro-ATX' | 'Mini-ITX' | 'Full Tower' }
+- gpu: { tdp: número estimado em watts baseado no modelo (ex: RTX 4090 = 450, RTX 4080 = 320, RTX 4070 = 200, RTX 3080 = 320, RX 7900 = 355) }
+- psu: { tdp: número em watts extraído do nome (ex: 500, 650, 750, 850, 1000) }
+- cooler: { socket: 'Universal' | 'LGA1700' | 'AM5' | 'AM4' etc, formFactor: 'Air Cooler' | '120mm' | '140mm' | '240mm' | '280mm' | '360mm' | '420mm' }
+- case: { formFactor: 'Mini-ITX' | 'Micro-ATX' | 'ATX' | 'Full Tower' | 'E-ATX' }
 
 Regras de detecção:
 - Intel Core 12ª/13ª/14ª Gen = LGA1700
@@ -74,6 +74,14 @@ Regras de detecção:
 - Placas B760/Z790/H770 = LGA1700 + DDR5 ou DDR4
 - Placas B550/X570 = AM4 + DDR4
 - Placas B650/X670 = AM5 + DDR5
+- Gabinete Mid Tower = ATX geralmente
+- Gabinete Full Tower = pode ser E-ATX
+- Gabinete Compact/SFF = Mini-ITX ou Micro-ATX
+- Water Cooler 240mm/280mm/360mm = pegar tamanho do nome
+- Air Cooler sem menção de radiador = Air Cooler
+- GPU TDP estimado: RTX 4090=450W, RTX 4080=320W, RTX 4070 Ti=285W, RTX 4070=200W, RTX 4060 Ti=165W, RTX 4060=115W
+- GPU TDP estimado: RTX 3090=350W, RTX 3080=320W, RTX 3070=220W, RTX 3060=170W
+- GPU TDP estimado: RX 7900 XTX=355W, RX 7900 XT=315W, RX 7800 XT=263W, RX 7600=165W
 
 Se não conseguir determinar um campo, omita-o do resultado.
 
