@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { ProductCard } from "@/components/ProductCard";
 import { HardwareCard } from "@/components/HardwareCard";
-import { CategoryNavbar } from "@/components/CategoryNavbar";
+import { CategorySidebar } from "@/components/CategorySidebar";
 import { api, type Product, type HardwareItem, getCustomCategories, getHardwareCategories, type HardwareCategoryDef } from "@/lib/api";
 import { getIconFromKey } from "@/lib/icons";
 import { Search, ArrowUpDown, Package, Cpu, ChevronLeft, ShoppingCart, Menu, HardDrive, Monitor, Laptop, Bot } from "lucide-react";
@@ -231,20 +231,20 @@ export default function Loja() {
             </button>
           </div>
         </div>
-
-        {/* Category Navigation Bar */}
-        <CategoryNavbar 
-          onCategorySelect={handleTypeSelect}
-          selectedCategory={selectedType}
-          showMonteSeuPC={true}
-        />
       </header>
 
-      <main className="py-12 bg-gray-50">
-        <div className="container">
+      <div className="flex">
+        {/* Left Sidebar */}
+        <CategorySidebar 
+          onCategorySelect={handleTypeSelect}
+          selectedCategory={selectedType}
+        />
+
+        {/* Main Content */}
+        <main className="flex-1 py-8 px-6 bg-gray-50">
           {/* Page Header */}
           <div className="mb-8">
-            <h1 className="text-4xl font-bold text-gray-800">Nossa Loja</h1>
+            <h1 className="text-3xl font-bold text-gray-800">Nossa Loja</h1>
             <p className="mt-2 text-gray-600">
               Escolha o produto ideal para suas necessidades
             </p>
@@ -368,8 +368,8 @@ export default function Loja() {
               </div>
             )
           )}
-        </div>
-      </main>
+        </main>
+      </div>
 
       {/* Footer */}
       <footer className="bg-gray-900 text-white py-12">
