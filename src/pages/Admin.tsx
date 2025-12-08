@@ -1783,7 +1783,7 @@ export default function Admin() {
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#FEF2F2' }}>
-      <RedWhiteHeader hideCart />
+      <RedWhiteHeader hideCart hideNavigation />
       
       <main className="py-12">
         <div className="container">
@@ -4362,7 +4362,7 @@ export default function Admin() {
         </div>
       )}
 
-      <RedWhiteFooter />
+      <RedWhiteFooter hideFooter />
     </div>
   );
 }
