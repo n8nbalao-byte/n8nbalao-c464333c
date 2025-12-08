@@ -7,6 +7,7 @@ import { api, type Product, type HardwareItem, getCustomCategories, getHardwareC
 import { getIconFromKey } from "@/lib/icons";
 import { Search, ArrowUpDown, Package, Cpu, ChevronLeft, ShoppingCart, Menu, HardDrive, Monitor, Laptop, Bot } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
+import LorenzoChatWidget from "@/components/LorenzoChatWidget";
 import balaoLogo from "@/assets/balao-logo.png";
 
 type ProductType = 'all' | 'hardware' | string;
@@ -419,6 +420,9 @@ export default function Loja() {
           </div>
         </div>
       </footer>
+
+      {/* Lorenzo Chat Widget */}
+      <LorenzoChatWidget />
     </div>
   );
 }
