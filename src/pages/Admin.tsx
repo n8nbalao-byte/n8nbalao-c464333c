@@ -1421,7 +1421,7 @@ export default function Admin() {
           </div>
 
           {/* Main Tabs */}
-          <div className="mb-6 flex gap-2">
+          <div className="mb-4 flex flex-wrap gap-2">
             <button
               onClick={() => setActiveTab('products')}
               className={`inline-flex items-center gap-2 rounded-lg px-6 py-3 font-medium transition-colors ${
@@ -1457,95 +1457,85 @@ export default function Admin() {
             </button>
           </div>
 
+          {/* Categories Row */}
+          <div className="mb-6 flex flex-wrap items-center gap-2">
+            <span className="text-sm font-medium text-muted-foreground mr-2">Categorias:</span>
+            {customCategoriesList.map((cat) => {
+              const Icon = getIconFromKey(cat.icon || 'tag');
+              return (
+                <div
+                  key={cat.key}
+                  className="inline-flex items-center gap-2 rounded-lg bg-secondary px-4 py-2 text-sm group hover:bg-secondary/80 transition-colors"
+                >
+                  <Icon className="h-4 w-4 text-primary" />
+                  <span className="text-foreground font-medium">{cat.label}</span>
+                  <button
+                    onClick={async (e) => {
+                      e.stopPropagation();
+                      if (confirm(`Excluir a categoria "${cat.label}"?`)) {
+                        await removeCustomCategory(cat.key);
+                        const updatedCategories = await getCustomCategories();
+                        setCustomCategoriesList(updatedCategories);
+                        toast({ title: "Categoria removida" });
+                      }
+                    }}
+                    className="h-5 w-5 rounded-full bg-destructive/20 text-destructive flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive/30 ml-1"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              );
+            })}
+            {/* Add new category button */}
+            <div className="inline-flex items-center gap-1">
+              <input
+                type="text"
+                value={newCategoryKey}
+                onChange={(e) => setNewCategoryKey(e.target.value.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, ''))}
+                className="rounded-lg border border-border bg-background px-2 py-1.5 text-sm text-foreground w-20"
+                placeholder="chave"
+              />
+              <input
+                type="text"
+                value={newCategoryLabel}
+                onChange={(e) => setNewCategoryLabel(e.target.value)}
+                className="rounded-lg border border-border bg-background px-2 py-1.5 text-sm text-foreground w-24"
+                placeholder="Nome"
+              />
+              <select
+                value={newCategoryIcon}
+                onChange={(e) => setNewCategoryIcon(e.target.value)}
+                className="rounded-lg border border-border bg-background px-2 py-1.5 text-sm text-foreground w-20"
+              >
+                {availableIcons.map((icon) => (
+                  <option key={icon.key} value={icon.key}>{icon.key}</option>
+                ))}
+              </select>
+              <button
+                onClick={async () => {
+                  if (newCategoryKey && newCategoryLabel) {
+                    const success = await addCustomCategory(newCategoryKey, newCategoryLabel, newCategoryIcon);
+                    if (success) {
+                      const updatedCategories = await getCustomCategories();
+                      setCustomCategoriesList(updatedCategories);
+                      setNewCategoryKey("");
+                      setNewCategoryLabel("");
+                      setNewCategoryIcon("tag");
+                      toast({ title: "Categoria criada!", description: `${newCategoryLabel} adicionada` });
+                    }
+                  }
+                }}
+                disabled={!newCategoryKey || !newCategoryLabel}
+                className="inline-flex items-center gap-1 rounded-lg bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground disabled:opacity-50"
+              >
+                <Plus className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          </div>
+
           {/* Products Tab */}
           {activeTab === 'products' && (
             <>
-              {/* Categories Management Bar */}
-              <div className="mb-4 rounded-xl border border-border bg-card p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
-                    <Tag className="h-4 w-4 text-primary" />
-                    Categorias ({customCategoriesList.length})
-                  </h3>
-                </div>
-                <div className="flex flex-wrap gap-2 mb-3">
-                  {customCategoriesList.map((cat) => {
-                    const Icon = getIconFromKey(cat.icon || 'tag');
-                    return (
-                      <div
-                        key={cat.key}
-                        className="inline-flex items-center gap-2 rounded-full bg-secondary px-3 py-1.5 text-sm group hover:bg-secondary/80 transition-colors"
-                      >
-                        <Icon className="h-3.5 w-3.5 text-primary" />
-                        <span className="text-foreground">{cat.label}</span>
-                        <button
-                          onClick={async () => {
-                            if (confirm(`Excluir a categoria "${cat.label}"?`)) {
-                              await removeCustomCategory(cat.key);
-                              const updatedCategories = await getCustomCategories();
-                              setCustomCategoriesList(updatedCategories);
-                              toast({ title: "Categoria removida" });
-                            }
-                          }}
-                          className="h-4 w-4 rounded-full bg-destructive/20 text-destructive flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive/30 ml-1"
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
-                      </div>
-                    );
-                  })}
-                  {customCategoriesList.length === 0 && (
-                    <span className="text-sm text-muted-foreground italic">Nenhuma categoria criada</span>
-                  )}
-                </div>
-                {/* Add new category inline */}
-                <div className="flex flex-wrap gap-2 items-center pt-2 border-t border-border">
-                  <input
-                    type="text"
-                    value={newCategoryKey}
-                    onChange={(e) => setNewCategoryKey(e.target.value.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, ''))}
-                    className="rounded-lg border border-border bg-background px-3 py-1.5 text-sm text-foreground w-28"
-                    placeholder="chave"
-                  />
-                  <input
-                    type="text"
-                    value={newCategoryLabel}
-                    onChange={(e) => setNewCategoryLabel(e.target.value)}
-                    className="rounded-lg border border-border bg-background px-3 py-1.5 text-sm text-foreground w-32"
-                    placeholder="Nome"
-                  />
-                  <select
-                    value={newCategoryIcon}
-                    onChange={(e) => setNewCategoryIcon(e.target.value)}
-                    className="rounded-lg border border-border bg-background px-3 py-1.5 text-sm text-foreground w-28"
-                  >
-                    {availableIcons.map((icon) => (
-                      <option key={icon.key} value={icon.key}>{icon.key}</option>
-                    ))}
-                  </select>
-                  <button
-                    onClick={async () => {
-                      if (newCategoryKey && newCategoryLabel) {
-                        const success = await addCustomCategory(newCategoryKey, newCategoryLabel, newCategoryIcon);
-                        if (success) {
-                          const updatedCategories = await getCustomCategories();
-                          setCustomCategoriesList(updatedCategories);
-                          setNewCategoryKey("");
-                          setNewCategoryLabel("");
-                          setNewCategoryIcon("tag");
-                          toast({ title: "Categoria criada!", description: `${newCategoryLabel} adicionada` });
-                        }
-                      }
-                    }}
-                    disabled={!newCategoryKey || !newCategoryLabel}
-                    className="inline-flex items-center gap-1 rounded-lg bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground disabled:opacity-50"
-                  >
-                    <Plus className="h-3.5 w-3.5" />
-                    Adicionar
-                  </button>
-                </div>
-              </div>
-
               {/* Search and bulk actions for products */}
               <div className="mb-4 flex flex-wrap gap-4">
                 <div className="relative flex-1 min-w-[250px]">
