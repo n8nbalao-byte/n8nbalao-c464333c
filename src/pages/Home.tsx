@@ -2,8 +2,10 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api, type Product, type HardwareItem, getCustomCategories } from "@/lib/api";
 import { getIconFromKey } from "@/lib/icons";
-import { ShoppingCart, ChevronRight, Cpu, HardDrive, Monitor, Package, Laptop, Bot, Code, Wrench, Key, Tv, Armchair, ChevronLeft, Search, Menu, Grid3X3, LayoutGrid, List } from "lucide-react";
+import { ShoppingCart, ChevronRight, Cpu, HardDrive, Monitor, Package, Laptop, Bot, Code, Wrench, Key, Tv, Armchair, ChevronLeft, Search, Menu } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
+import { useViewMode } from "@/contexts/ViewModeContext";
+import { ViewModeSelector } from "@/components/ViewModeSelector";
 import { Button } from "@/components/ui/button";
 import { HomeCarousel } from "@/components/HomeCarousel";
 import { CategorySidebar } from "@/components/CategorySidebar";
@@ -22,8 +24,6 @@ const baseCategoryConfig = [
   { key: 'cadeira_gamer', label: 'Cadeiras Gamer', icon: Armchair },
 ];
 
-type ViewMode = 'compact' | 'standard' | 'list';
-
 export default function Home() {
   const [products, setProducts] = useState<Product[]>([]);
   const [hardware, setHardware] = useState<HardwareItem[]>([]);
@@ -31,9 +31,9 @@ export default function Home() {
   const [categoryConfig, setCategoryConfig] = useState(baseCategoryConfig);
   const [currentPromoSlide, setCurrentPromoSlide] = useState(0);
   const { addToCart } = useCart();
+  const { viewMode } = useViewMode();
   const [searchQuery, setSearchQuery] = useState("");
   const [showAdminChoice, setShowAdminChoice] = useState(false);
-  const [viewMode, setViewMode] = useState<ViewMode>('standard');
   const [hoveredProduct, setHoveredProduct] = useState<string | null>(null);
 
   useEffect(() => {
@@ -361,28 +361,7 @@ export default function Home() {
 
           {/* View Mode Toggle */}
           <div className="flex items-center justify-end gap-2 pb-4 border-b border-gray-100 mb-4">
-            <span className="text-sm text-gray-500 mr-2">Visualização:</span>
-            <button
-              onClick={() => setViewMode('compact')}
-              className={`p-2 rounded-lg transition-colors ${viewMode === 'compact' ? 'bg-primary text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
-              title="Cards compactos"
-            >
-              <Grid3X3 className="h-4 w-4" />
-            </button>
-            <button
-              onClick={() => setViewMode('standard')}
-              className={`p-2 rounded-lg transition-colors ${viewMode === 'standard' ? 'bg-primary text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
-              title="Cards padrão"
-            >
-              <LayoutGrid className="h-4 w-4" />
-            </button>
-            <button
-              onClick={() => setViewMode('list')}
-              className={`p-2 rounded-lg transition-colors ${viewMode === 'list' ? 'bg-primary text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
-              title="Lista"
-            >
-              <List className="h-4 w-4" />
-            </button>
+            <ViewModeSelector />
           </div>
 
           {/* Featured Products by Category */}
