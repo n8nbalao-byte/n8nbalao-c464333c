@@ -135,7 +135,9 @@ export default function Index() {
       </section>
 
       {/* Benefits Carousel Section */}
-      <BenefitsCarousel />
+      <section id="benefits">
+        <BenefitsCarousel />
+      </section>
 
       {/* No-Code Section */}
       <section className="py-20">
