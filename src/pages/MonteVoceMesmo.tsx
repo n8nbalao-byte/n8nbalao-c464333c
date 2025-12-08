@@ -495,7 +495,7 @@ export default function MonteVoceMesmo() {
   // PHASE: Quote Display
   if (phase === 'quote') {
     return (
-      <div className="min-h-screen flex flex-col bg-gray-100">
+      <div className="min-h-screen flex flex-col bg-primary">
         {/* Header */}
         <header className="bg-white py-4 shadow-md">
           <div className="container flex items-center justify-between">
@@ -660,7 +660,7 @@ export default function MonteVoceMesmo() {
 
   // PHASE: Build
   return (
-    <div className="min-h-screen flex flex-col bg-gray-100">
+    <div className="min-h-screen flex flex-col bg-primary">
       {/* Header */}
       <header className="bg-white shadow-md">
         <div className="container py-4 flex items-center justify-between">
