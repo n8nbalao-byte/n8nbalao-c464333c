@@ -596,7 +596,16 @@ export default function Admin() {
     setLoadingSettings(true);
     try {
       const response = await fetch('https://www.n8nbalao.com/api/settings.php');
-      const data = await response.json();
+      const text = await response.text();
+      
+      // Handle empty response
+      if (!text || text.trim() === '') {
+        console.log('Settings API returned empty response - using defaults');
+        setLoadingSettings(false);
+        return;
+      }
+      
+      const data = JSON.parse(text);
       if (data.success && Array.isArray(data.data)) {
         data.data.forEach((setting: { key: string; value: string }) => {
           if (setting.key === 'openai_api_key') setOpenaiApiKey(setting.value || '');
@@ -623,18 +632,34 @@ export default function Admin() {
         { key: 'single_gen_model', value: singleGenModel },
       ];
       
+      let allSuccess = true;
       for (const setting of settings) {
-        await fetch('https://www.n8nbalao.com/api/settings.php', {
+        const response = await fetch('https://www.n8nbalao.com/api/settings.php', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(setting)
         });
+        const text = await response.text();
+        console.log(`Saved ${setting.key}:`, text);
+        
+        if (text) {
+          try {
+            const result = JSON.parse(text);
+            if (!result.success) allSuccess = false;
+          } catch {
+            allSuccess = false;
+          }
+        }
       }
       
-      toast({ title: "Sucesso", description: "Configurações salvas!" });
+      if (allSuccess) {
+        toast({ title: "Sucesso", description: "Configurações salvas!" });
+      } else {
+        toast({ title: "Aviso", description: "Algumas configurações podem não ter sido salvas. Verifique se o arquivo settings.php foi enviado ao servidor.", variant: "destructive" });
+      }
     } catch (error) {
       console.error('Error saving settings:', error);
-      toast({ title: "Erro", description: "Falha ao salvar configurações", variant: "destructive" });
+      toast({ title: "Erro", description: "Falha ao salvar configurações. Verifique se o arquivo settings.php está no servidor.", variant: "destructive" });
     }
     setSavingSettings(false);
   }
