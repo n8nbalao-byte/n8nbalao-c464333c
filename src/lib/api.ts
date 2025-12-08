@@ -367,6 +367,18 @@ export const api = {
     }
   },
 
+  async deleteAllProducts(): Promise<boolean> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/products.php?all=true`, {
+        method: 'DELETE',
+      });
+      return response.ok;
+    } catch (error) {
+      console.error('Error deleting all products:', error);
+      return false;
+    }
+  },
+
   // Hardware
   async getHardware(category?: string): Promise<HardwareItem[]> {
     try {
