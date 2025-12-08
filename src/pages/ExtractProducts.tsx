@@ -906,7 +906,7 @@ const ExtractProducts = () => {
               {/* Import Button */}
               <Button
                 onClick={importProducts}
-                disabled={isImporting || selectedCount === 0 || !productType || !category}
+                disabled={isImporting || selectedCount === 0}
                 className="w-full mt-4 text-white hover:opacity-90"
                 style={{ backgroundColor: '#DC2626' }}
                 size="lg"
