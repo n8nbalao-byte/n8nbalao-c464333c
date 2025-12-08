@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Sidebar } from "@/components/Sidebar";
-import { api, type Product, type HardwareItem, type MediaItem, type ProductComponents, type CompanyData, type ProductCategory, type HardwareCategory, getCustomCategories, addCustomCategory, removeCustomCategory, updateCustomCategory } from "@/lib/api";
+import { api, type Product, type HardwareItem, type MediaItem, type ProductComponents, type CompanyData, type ProductCategory, type HardwareCategory, type HardwareCategoryDef, getCustomCategories, addCustomCategory, removeCustomCategory, updateCustomCategory, getHardwareCategories, addHardwareCategory, removeHardwareCategory, updateHardwareCategory } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Pencil, Trash2, Save, X, Upload, Play, Image, Cpu, CircuitBoard, MemoryStick, HardDrive, Monitor, Zap, Box, Package, Download, Droplets, Building2, Laptop, Bot, Code, Wrench, Key, Tv, Armchair, Tag, LucideIcon, Search, Sparkles, LayoutDashboard } from "lucide-react";
 import * as XLSX from "xlsx";
@@ -126,16 +126,16 @@ const kitComponentSteps = [
   { key: 'memory', label: 'Memória RAM', icon: MemoryStick },
 ] as const;
 
-// Hardware categories (PC components only)
-const hardwareCategories: { key: HardwareCategory; label: string; icon: React.ElementType }[] = [
-  { key: 'processor', label: 'Processadores', icon: Cpu },
-  { key: 'motherboard', label: 'Placas-Mãe', icon: CircuitBoard },
-  { key: 'memory', label: 'Memória RAM', icon: MemoryStick },
-  { key: 'storage', label: 'Armazenamento', icon: HardDrive },
-  { key: 'gpu', label: 'Placas de Vídeo', icon: Monitor },
-  { key: 'psu', label: 'Fontes', icon: Zap },
-  { key: 'case', label: 'Gabinetes', icon: Box },
-  { key: 'cooler', label: 'Coolers', icon: Droplets },
+// Default hardware categories (will be merged with database ones)
+const defaultHardwareCategories: HardwareCategoryDef[] = [
+  { key: 'processor', label: 'Processadores', icon: 'cpu', filters: [{ field: 'socket', label: 'Socket', options: ['LGA1700', 'LGA1200', 'LGA1151', 'LGA1150', 'LGA1155', 'AM5', 'AM4', 'AM3+'] }] },
+  { key: 'motherboard', label: 'Placas-Mãe', icon: 'circuit-board', filters: [{ field: 'socket', label: 'Socket', options: ['LGA1700', 'LGA1200', 'LGA1151', 'LGA1150', 'LGA1155', 'AM5', 'AM4', 'AM3+'] }, { field: 'memoryType', label: 'Memória', options: ['DDR5', 'DDR4', 'DDR3'] }] },
+  { key: 'memory', label: 'Memória RAM', icon: 'memory-stick', filters: [{ field: 'memoryType', label: 'Tipo', options: ['DDR5', 'DDR4', 'DDR3'] }] },
+  { key: 'storage', label: 'Armazenamento', icon: 'hard-drive', filters: [{ field: 'formFactor', label: 'Tipo', options: ['SSD NVMe', 'SSD SATA', 'HDD'] }] },
+  { key: 'gpu', label: 'Placas de Vídeo', icon: 'monitor' },
+  { key: 'psu', label: 'Fontes', icon: 'zap', filters: [{ field: 'tdp', label: 'Potência', options: ['500W', '600W', '700W', '800W', '1000W+'] }] },
+  { key: 'case', label: 'Gabinetes', icon: 'box', filters: [{ field: 'formFactor', label: 'Tamanho', options: ['ATX', 'Micro-ATX', 'Mini-ITX'] }] },
+  { key: 'cooler', label: 'Coolers', icon: 'droplets', filters: [{ field: 'socket', label: 'Socket', options: ['LGA1700', 'LGA1200', 'AM5', 'AM4', 'Universal'] }] },
 ];
 
 // Product types for simple products (not PC assembly)
@@ -182,6 +182,17 @@ export default function Admin() {
   const [newHardwareSpecKey, setNewHardwareSpecKey] = useState("");
   const [newHardwareSpecValue, setNewHardwareSpecValue] = useState("");
   const [hardwareSearchTerm, setHardwareSearchTerm] = useState("");
+  const [hardwareCategoriesList, setHardwareCategoriesList] = useState<HardwareCategoryDef[]>([]);
+  const [activeHardwareFilter, setActiveHardwareFilter] = useState<Record<string, string>>({});
+  
+  // Hardware category management modal state
+  const [showNewHardwareCategoryModal, setShowNewHardwareCategoryModal] = useState(false);
+  const [showEditHardwareCategoryModal, setShowEditHardwareCategoryModal] = useState(false);
+  const [editingHardwareCategory, setEditingHardwareCategory] = useState<HardwareCategoryDef | null>(null);
+  const [newHardwareCatKey, setNewHardwareCatKey] = useState("");
+  const [newHardwareCatLabel, setNewHardwareCatLabel] = useState("");
+  const [newHardwareCatIcon, setNewHardwareCatIcon] = useState("box");
+  const [newHardwareCatFilters, setNewHardwareCatFilters] = useState<{field: string; label: string; options: string[]}[]>([]);
 
   // Company state
   const [companyData, setCompanyData] = useState<CompanyData>({
@@ -222,11 +233,25 @@ export default function Admin() {
     icon: getIconFromKey(c.icon || 'tag') 
   }));
 
-  // Load custom categories on mount
+  // Load custom categories and hardware categories on mount
   useEffect(() => {
     async function loadCategories() {
-      const categories = await getCustomCategories();
+      const [categories, hwCategories] = await Promise.all([
+        getCustomCategories(),
+        getHardwareCategories()
+      ]);
       setCustomCategoriesList(categories);
+      // Merge database categories with defaults (database takes precedence)
+      const mergedHwCategories = [...defaultHardwareCategories];
+      hwCategories.forEach(dbCat => {
+        const idx = mergedHwCategories.findIndex(c => c.key === dbCat.key);
+        if (idx >= 0) {
+          mergedHwCategories[idx] = dbCat;
+        } else {
+          mergedHwCategories.push(dbCat);
+        }
+      });
+      setHardwareCategoriesList(mergedHwCategories);
     }
     loadCategories();
   }, []);
@@ -826,7 +851,7 @@ export default function Admin() {
 
     // If no data, add example row
     if (exportData.length === 0) {
-      const allCategories = hardwareCategories.map(c => c.key).join(', ');
+      const allCategories = hardwareCategoriesList.map(c => c.key).join(', ');
       exportData.push({
         nome: `CATEGORIAS: ${allCategories}`,
         marca: "Socket: LGA1700, AM5, AM4...",
@@ -1187,7 +1212,7 @@ export default function Admin() {
       if (success) successCount++;
     }
 
-    const categoryLabel = hardwareCategories.find(c => c.key === category)?.label || category;
+    const categoryLabel = hardwareCategoriesList.find(c => c.key === category)?.label || category;
     toast({
       title: "Dados de teste adicionados",
       description: `${successCount} ${categoryLabel} criados com sucesso com imagens!`,
@@ -1418,7 +1443,8 @@ export default function Admin() {
     );
   }
 
-  const ActiveHardwareIcon = hardwareCategories.find(c => c.key === activeHardwareCategory)?.icon || Cpu;
+  const activeHwCat = hardwareCategoriesList.find(c => c.key === activeHardwareCategory);
+  const ActiveHardwareIcon = activeHwCat ? getIconFromKey(activeHwCat.icon) : Cpu;
 
   return (
     <div className="min-h-screen bg-background">
@@ -2002,13 +2028,16 @@ export default function Admin() {
             <>
               {/* Hardware Category Tabs */}
               <div className="mb-6 flex flex-wrap gap-2">
-                {hardwareCategories.map((cat) => {
-                  const Icon = cat.icon;
+                {hardwareCategoriesList.map((cat) => {
+                  const Icon = getIconFromKey(cat.icon);
                   return (
                     <button
                       key={cat.key}
-                      onClick={() => setActiveHardwareCategory(cat.key)}
-                      className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+                      onClick={() => {
+                        setActiveHardwareCategory(cat.key);
+                        setActiveHardwareFilter({});
+                      }}
+                      className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors group relative ${
                         activeHardwareCategory === cat.key
                           ? "bg-primary text-primary-foreground"
                           : "bg-secondary text-foreground hover:bg-secondary/80"
@@ -2016,10 +2045,66 @@ export default function Admin() {
                     >
                       <Icon className="h-4 w-4" />
                       {cat.label}
+                      <span
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setEditingHardwareCategory(cat);
+                          setNewHardwareCatKey(cat.key);
+                          setNewHardwareCatLabel(cat.label);
+                          setNewHardwareCatIcon(cat.icon || 'box');
+                          setNewHardwareCatFilters(cat.filters || []);
+                          setShowEditHardwareCategoryModal(true);
+                        }}
+                        className="ml-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <Pencil className="h-3 w-3" />
+                      </span>
                     </button>
                   );
                 })}
+                {/* Add new hardware category button */}
+                <button
+                  onClick={() => {
+                    setNewHardwareCatKey("");
+                    setNewHardwareCatLabel("");
+                    setNewHardwareCatIcon("box");
+                    setNewHardwareCatFilters([]);
+                    setShowNewHardwareCategoryModal(true);
+                  }}
+                  className="inline-flex items-center gap-2 rounded-lg border-2 border-dashed border-border px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:border-primary hover:text-primary"
+                >
+                  <Plus className="h-4 w-4" />
+                  Nova Subcategoria
+                </button>
               </div>
+
+              {/* Filters for active category */}
+              {activeHwCat?.filters && activeHwCat.filters.length > 0 && (
+                <div className="mb-4 flex flex-wrap items-center gap-4">
+                  <span className="text-sm text-muted-foreground">Filtrar por:</span>
+                  {activeHwCat.filters.map((filter) => (
+                    <select
+                      key={filter.field}
+                      value={activeHardwareFilter[filter.field] || ''}
+                      onChange={(e) => setActiveHardwareFilter(prev => ({ ...prev, [filter.field]: e.target.value }))}
+                      className="rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none"
+                    >
+                      <option value="">{filter.label}: Todos</option>
+                      {filter.options.map(opt => (
+                        <option key={opt} value={opt}>{opt}</option>
+                      ))}
+                    </select>
+                  ))}
+                  {Object.keys(activeHardwareFilter).some(k => activeHardwareFilter[k]) && (
+                    <button
+                      onClick={() => setActiveHardwareFilter({})}
+                      className="text-sm text-primary hover:underline"
+                    >
+                      Limpar filtros
+                    </button>
+                  )}
+                </div>
+              )}
 
               {/* Search and bulk actions for hardware */}
               <div className="mb-4 flex flex-wrap gap-4">
@@ -2071,13 +2156,33 @@ export default function Admin() {
                     <tbody className="divide-y divide-border">
                       {hardwareList
                         .filter((item) => {
-                          if (!hardwareSearchTerm) return true;
-                          const search = hardwareSearchTerm.toLowerCase();
-                          return (
-                            item.name.toLowerCase().includes(search) ||
-                            item.brand.toLowerCase().includes(search) ||
-                            item.model.toLowerCase().includes(search)
-                          );
+                          // Text search filter
+                          if (hardwareSearchTerm) {
+                            const search = hardwareSearchTerm.toLowerCase();
+                            const matchesSearch = 
+                              item.name.toLowerCase().includes(search) ||
+                              item.brand.toLowerCase().includes(search) ||
+                              item.model.toLowerCase().includes(search);
+                            if (!matchesSearch) return false;
+                          }
+                          // Category-specific filters
+                          for (const [field, value] of Object.entries(activeHardwareFilter)) {
+                            if (!value) continue;
+                            const itemValue = (item as any)[field];
+                            if (!itemValue) return false;
+                            // Handle TDP filtering specially
+                            if (field === 'tdp' && typeof itemValue === 'number') {
+                              const tdpThreshold = parseInt(value);
+                              if (value.includes('+')) {
+                                if (itemValue < tdpThreshold) return false;
+                              } else if (itemValue < tdpThreshold - 100 || itemValue > tdpThreshold) {
+                                return false;
+                              }
+                            } else if (String(itemValue).toLowerCase() !== value.toLowerCase()) {
+                              return false;
+                            }
+                          }
+                          return true;
                         })
                         .map((item) => (
                         <tr key={item.id} className="hover:bg-secondary/50">
@@ -2951,7 +3056,7 @@ export default function Admin() {
                   onChange={(e) => setHardwareFormData(prev => ({ ...prev, category: e.target.value as HardwareCategory }))}
                   className="w-full rounded-lg border border-border bg-background px-4 py-3 text-foreground focus:border-primary focus:outline-none"
                 >
-                  {hardwareCategories.map(cat => (
+                  {hardwareCategoriesList.map(cat => (
                     <option key={cat.key} value={cat.key}>{cat.label}</option>
                   ))}
                 </select>
@@ -3205,6 +3310,313 @@ export default function Admin() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* New Hardware Category Modal */}
+      {showNewHardwareCategoryModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="w-full max-w-lg rounded-xl bg-card p-6 shadow-xl border border-border max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold">Nova Subcategoria de Hardware</h3>
+              <button onClick={() => setShowNewHardwareCategoryModal(false)} className="text-muted-foreground hover:text-foreground">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Chave (ID único)</label>
+                <input
+                  type="text"
+                  value={newHardwareCatKey}
+                  onChange={(e) => setNewHardwareCatKey(e.target.value.toLowerCase().replace(/\s+/g, '_'))}
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-foreground focus:border-primary focus:outline-none"
+                  placeholder="ex: placa_rede"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium mb-1">Nome</label>
+                <input
+                  type="text"
+                  value={newHardwareCatLabel}
+                  onChange={(e) => setNewHardwareCatLabel(e.target.value)}
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-foreground focus:border-primary focus:outline-none"
+                  placeholder="Ex: Placas de Rede"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium mb-2">Ícone</label>
+                <div className="grid grid-cols-8 gap-2 max-h-32 overflow-y-auto p-2 border border-border rounded-lg bg-background">
+                  {availableIcons.slice(0, 40).map((iconOption) => {
+                    const IconComp = iconOption.icon;
+                    return (
+                      <button
+                        key={iconOption.key}
+                        type="button"
+                        onClick={() => setNewHardwareCatIcon(iconOption.key)}
+                        className={`p-2 rounded-lg transition-colors ${
+                          newHardwareCatIcon === iconOption.key
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-secondary hover:bg-secondary/80"
+                        }`}
+                      >
+                        <IconComp className="h-4 w-4" />
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium mb-2">Filtros (opcional)</label>
+                <p className="text-xs text-muted-foreground mb-2">Adicione campos para filtrar produtos desta categoria</p>
+                
+                {newHardwareCatFilters.map((filter, idx) => (
+                  <div key={idx} className="mb-2 p-3 rounded-lg border border-border bg-secondary/30">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium">{filter.label}</span>
+                      <button
+                        type="button"
+                        onClick={() => setNewHardwareCatFilters(prev => prev.filter((_, i) => i !== idx))}
+                        className="text-destructive text-xs"
+                      >
+                        Remover
+                      </button>
+                    </div>
+                    <div className="flex flex-wrap gap-1">
+                      {filter.options.map((opt, optIdx) => (
+                        <span key={optIdx} className="px-2 py-1 bg-background rounded text-xs">{opt}</span>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+                
+                <button
+                  type="button"
+                  onClick={() => {
+                    const field = prompt('Nome do campo (ex: memoryType, socket):');
+                    const label = prompt('Label exibido (ex: Tipo de Memória):');
+                    const options = prompt('Opções separadas por vírgula (ex: DDR3, DDR4, DDR5):');
+                    if (field && label && options) {
+                      setNewHardwareCatFilters(prev => [...prev, {
+                        field,
+                        label,
+                        options: options.split(',').map(o => o.trim())
+                      }]);
+                    }
+                  }}
+                  className="text-sm text-primary hover:underline"
+                >
+                  + Adicionar filtro
+                </button>
+              </div>
+              
+              <div className="flex gap-2 pt-4">
+                <button
+                  onClick={async () => {
+                    if (!newHardwareCatKey || !newHardwareCatLabel) {
+                      toast({ title: "Erro", description: "Preencha chave e nome", variant: "destructive" });
+                      return;
+                    }
+                    const success = await addHardwareCategory({
+                      key: newHardwareCatKey,
+                      label: newHardwareCatLabel,
+                      icon: newHardwareCatIcon,
+                      filters: newHardwareCatFilters.length > 0 ? newHardwareCatFilters : undefined
+                    });
+                    if (success) {
+                      const updated = await getHardwareCategories();
+                      const merged = [...defaultHardwareCategories];
+                      updated.forEach(dbCat => {
+                        const idx = merged.findIndex(c => c.key === dbCat.key);
+                        if (idx >= 0) merged[idx] = dbCat;
+                        else merged.push(dbCat);
+                      });
+                      setHardwareCategoriesList(merged);
+                      setShowNewHardwareCategoryModal(false);
+                      toast({ title: "Categoria criada" });
+                    } else {
+                      toast({ title: "Erro ao criar categoria", variant: "destructive" });
+                    }
+                  }}
+                  className="flex-1 rounded-lg bg-primary py-2 font-semibold text-primary-foreground"
+                >
+                  Criar
+                </button>
+                <button
+                  onClick={() => setShowNewHardwareCategoryModal(false)}
+                  className="flex-1 rounded-lg border border-border py-2 font-semibold text-foreground"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Hardware Category Modal */}
+      {showEditHardwareCategoryModal && editingHardwareCategory && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="w-full max-w-lg rounded-xl bg-card p-6 shadow-xl border border-border max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold">Editar Subcategoria: {editingHardwareCategory.label}</h3>
+              <button onClick={() => setShowEditHardwareCategoryModal(false)} className="text-muted-foreground hover:text-foreground">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Nome</label>
+                <input
+                  type="text"
+                  value={newHardwareCatLabel}
+                  onChange={(e) => setNewHardwareCatLabel(e.target.value)}
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-foreground focus:border-primary focus:outline-none"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium mb-2">Ícone</label>
+                <div className="grid grid-cols-8 gap-2 max-h-32 overflow-y-auto p-2 border border-border rounded-lg bg-background">
+                  {availableIcons.slice(0, 40).map((iconOption) => {
+                    const IconComp = iconOption.icon;
+                    return (
+                      <button
+                        key={iconOption.key}
+                        type="button"
+                        onClick={() => setNewHardwareCatIcon(iconOption.key)}
+                        className={`p-2 rounded-lg transition-colors ${
+                          newHardwareCatIcon === iconOption.key
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-secondary hover:bg-secondary/80"
+                        }`}
+                      >
+                        <IconComp className="h-4 w-4" />
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium mb-2">Filtros</label>
+                
+                {newHardwareCatFilters.map((filter, idx) => (
+                  <div key={idx} className="mb-2 p-3 rounded-lg border border-border bg-secondary/30">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium">{filter.label} ({filter.field})</span>
+                      <button
+                        type="button"
+                        onClick={() => setNewHardwareCatFilters(prev => prev.filter((_, i) => i !== idx))}
+                        className="text-destructive text-xs"
+                      >
+                        Remover
+                      </button>
+                    </div>
+                    <div className="flex flex-wrap gap-1">
+                      {filter.options.map((opt, optIdx) => (
+                        <span key={optIdx} className="px-2 py-1 bg-background rounded text-xs">{opt}</span>
+                      ))}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const newOpt = prompt('Nova opção:');
+                          if (newOpt) {
+                            setNewHardwareCatFilters(prev => prev.map((f, i) => 
+                              i === idx ? { ...f, options: [...f.options, newOpt.trim()] } : f
+                            ));
+                          }
+                        }}
+                        className="px-2 py-1 bg-primary/20 text-primary rounded text-xs"
+                      >
+                        + Adicionar
+                      </button>
+                    </div>
+                  </div>
+                ))}
+                
+                <button
+                  type="button"
+                  onClick={() => {
+                    const field = prompt('Nome do campo (ex: memoryType, socket):');
+                    const label = prompt('Label exibido (ex: Tipo de Memória):');
+                    const options = prompt('Opções separadas por vírgula (ex: DDR3, DDR4, DDR5):');
+                    if (field && label && options) {
+                      setNewHardwareCatFilters(prev => [...prev, {
+                        field,
+                        label,
+                        options: options.split(',').map(o => o.trim())
+                      }]);
+                    }
+                  }}
+                  className="text-sm text-primary hover:underline"
+                >
+                  + Adicionar novo filtro
+                </button>
+              </div>
+              
+              <div className="flex gap-2 pt-4">
+                <button
+                  onClick={async () => {
+                    const success = await updateHardwareCategory(editingHardwareCategory.key, {
+                      label: newHardwareCatLabel,
+                      icon: newHardwareCatIcon,
+                      filters: newHardwareCatFilters.length > 0 ? newHardwareCatFilters : undefined
+                    });
+                    if (success) {
+                      const updated = await getHardwareCategories();
+                      const merged = [...defaultHardwareCategories];
+                      updated.forEach(dbCat => {
+                        const idx = merged.findIndex(c => c.key === dbCat.key);
+                        if (idx >= 0) merged[idx] = dbCat;
+                        else merged.push(dbCat);
+                      });
+                      setHardwareCategoriesList(merged);
+                      setShowEditHardwareCategoryModal(false);
+                      toast({ title: "Categoria atualizada" });
+                    } else {
+                      toast({ title: "Erro ao atualizar", variant: "destructive" });
+                    }
+                  }}
+                  className="flex-1 rounded-lg bg-primary py-2 font-semibold text-primary-foreground"
+                >
+                  Salvar
+                </button>
+                <button
+                  onClick={async () => {
+                    if (confirm(`Excluir a categoria "${editingHardwareCategory.label}"?`)) {
+                      await removeHardwareCategory(editingHardwareCategory.key);
+                      const updated = await getHardwareCategories();
+                      const merged = [...defaultHardwareCategories];
+                      updated.forEach(dbCat => {
+                        const idx = merged.findIndex(c => c.key === dbCat.key);
+                        if (idx >= 0) merged[idx] = dbCat;
+                        else merged.push(dbCat);
+                      });
+                      setHardwareCategoriesList(merged);
+                      setShowEditHardwareCategoryModal(false);
+                      setActiveHardwareCategory('processor');
+                      toast({ title: "Categoria removida" });
+                    }
+                  }}
+                  className="rounded-lg bg-destructive/20 px-4 py-2 text-destructive"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+                <button
+                  onClick={() => setShowEditHardwareCategoryModal(false)}
+                  className="flex-1 rounded-lg border border-border py-2 font-semibold text-foreground"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

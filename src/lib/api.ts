@@ -118,8 +118,78 @@ function extractComponentIds(components: ProductComponents): ProductComponentIds
   return ids;
 }
 
-// Hardware is for PC components only
-export type HardwareCategory = 'processor' | 'motherboard' | 'memory' | 'storage' | 'gpu' | 'psu' | 'case' | 'cooler';
+// Hardware is for PC components only - dynamic from database
+export type HardwareCategory = string;
+
+// Hardware category definition
+export interface HardwareCategoryDef {
+  key: string;
+  label: string;
+  icon?: string;
+  // Filter options for this category
+  filters?: {
+    field: string;
+    label: string;
+    options: string[];
+  }[];
+}
+
+// Fetch hardware categories from database
+export async function getHardwareCategories(): Promise<HardwareCategoryDef[]> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/categories.php?type=hardware_category`);
+    if (!response.ok) return [];
+    return await response.json();
+  } catch {
+    return [];
+  }
+}
+
+// Add hardware category
+export async function addHardwareCategory(category: HardwareCategoryDef): Promise<boolean> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/categories.php`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...category, type: 'hardware_category' }),
+    });
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
+
+// Update hardware category
+export async function updateHardwareCategory(key: string, category: Partial<HardwareCategoryDef>): Promise<boolean> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/categories.php`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        key, 
+        type: 'hardware_category', 
+        newLabel: category.label,
+        newIcon: category.icon,
+        filters: category.filters
+      }),
+    });
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
+
+// Remove hardware category
+export async function removeHardwareCategory(key: string): Promise<boolean> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/categories.php?key=${key}&type=hardware_category`, {
+      method: 'DELETE',
+    });
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
 
 export interface HardwareItem {
   id: string;
