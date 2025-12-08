@@ -106,6 +106,31 @@ export default function Home() {
               <span className="hidden md:inline font-medium">Carrinho</span>
             </Link>
           </div>
+
+          {/* Category Cards - Dynamic Grid */}
+          <div className="flex flex-wrap justify-center gap-2 mt-4">
+            <Link 
+              to="/monte-voce-mesmo" 
+              className="group bg-gray-50 rounded-lg px-3 py-2 hover:bg-primary/10 transition-all border border-gray-200 flex items-center gap-2"
+            >
+              <Cpu className="h-4 w-4 text-primary" />
+              <span className="font-semibold text-primary text-xs whitespace-nowrap">MONTE SEU PC</span>
+            </Link>
+            
+            {categoryConfig.map((cat) => {
+              const Icon = cat.icon;
+              return (
+                <Link 
+                  key={cat.key}
+                  to={`/loja?category=${cat.key}`} 
+                  className="group bg-gray-50 rounded-lg px-3 py-2 hover:bg-primary/10 transition-all border border-gray-200 flex items-center gap-2"
+                >
+                  <Icon className="h-4 w-4 text-primary" />
+                  <span className="font-semibold text-primary text-xs whitespace-nowrap">{cat.label.toUpperCase()}</span>
+                </Link>
+              );
+            })}
+          </div>
         </div>
       </header>
 
@@ -117,39 +142,6 @@ export default function Home() {
           alt="Banner Principal"
           className="w-full aspect-[3/1] md:aspect-[4/1] object-cover"
         />
-      </section>
-
-      {/* Category Cards - Dynamic Grid */}
-      <section className="py-4 bg-gray-50">
-        <div className="container">
-          <div className="flex flex-wrap justify-center gap-2">
-            <Link 
-              to="/monte-voce-mesmo" 
-              className="group bg-white rounded-lg px-3 py-2 shadow-sm hover:shadow-md transition-all border border-gray-100 flex items-center gap-2"
-            >
-              <div className="w-8 h-8 bg-primary/10 rounded-md flex items-center justify-center">
-                <Cpu className="h-4 w-4 text-primary" />
-              </div>
-              <span className="font-semibold text-primary text-xs whitespace-nowrap">MONTE SEU PC</span>
-            </Link>
-            
-            {categoryConfig.map((cat) => {
-              const Icon = cat.icon;
-              return (
-                <Link 
-                  key={cat.key}
-                  to={`/loja?category=${cat.key}`} 
-                  className="group bg-white rounded-lg px-3 py-2 shadow-sm hover:shadow-md transition-all border border-gray-100 flex items-center gap-2"
-                >
-                  <div className="w-8 h-8 bg-primary/10 rounded-md flex items-center justify-center">
-                    <Icon className="h-4 w-4 text-primary" />
-                  </div>
-                  <span className="font-semibold text-primary text-xs whitespace-nowrap">{cat.label.toUpperCase()}</span>
-                </Link>
-              );
-            })}
-          </div>
-        </div>
       </section>
 
       {/* Promo Banners */}
