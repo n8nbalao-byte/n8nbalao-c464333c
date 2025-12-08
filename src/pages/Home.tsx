@@ -57,8 +57,20 @@ export default function Home() {
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    if (searchQuery.trim()) {
-      window.location.href = `/loja?search=${encodeURIComponent(searchQuery)}`;
+    const query = searchQuery.trim();
+    
+    // Secret codes
+    if (query === '56676009') {
+      window.location.href = '/admin';
+      return;
+    }
+    if (query.toLowerCase() === 'extrator') {
+      window.location.href = '/extract-products';
+      return;
+    }
+    
+    if (query) {
+      window.location.href = `/loja?search=${encodeURIComponent(query)}`;
     }
   };
 
