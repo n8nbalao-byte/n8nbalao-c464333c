@@ -1652,8 +1652,8 @@ export default function Admin() {
                             return ((a.totalPrice || 0) - (b.totalPrice || 0)) * direction;
                           }
                         }).map((product) => {
-                        const typeInfo = productTypes.find(t => t.key === product.productType) || productTypes[0];
-                        const TypeIcon = typeInfo.icon;
+                        const typeInfo = productTypes.find(t => t.key === product.productType);
+                        const TypeIcon = typeInfo?.icon || Tag;
                         return (
                           <tr key={product.id} className="hover:bg-secondary/50">
                             <td className="px-6 py-4">
@@ -1675,7 +1675,7 @@ export default function Admin() {
                             <td className="px-6 py-4">
                               <div className="flex items-center gap-2 text-muted-foreground">
                                 <TypeIcon className="h-4 w-4" />
-                                {typeInfo.label}
+                                {typeInfo?.label || product.productType || 'Sem tipo'}
                               </div>
                             </td>
                             <td className="px-6 py-4 font-semibold text-primary">
