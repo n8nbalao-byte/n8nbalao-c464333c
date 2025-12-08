@@ -22,32 +22,35 @@ interface ParsedProduct {
   description?: string;
   costPrice: number;
   selected: boolean;
-  detectedCategory?: string;
-  isHardware?: boolean;
+  detectedCategory: string;
+  isHardware: boolean;
 }
 
 // Hardware categories that should be imported as hardware items
 const hardwareCategories = ['processador', 'placa_mae', 'memoria', 'armazenamento', 'gpu', 'fonte', 'cooler', 'gabinete'];
 
-// Category detection keywords mapping
+// Category detection keywords mapping - ORDER MATTERS (more specific first)
 const categoryKeywords: Record<string, string[]> = {
-  'notebook': ['notebook', 'laptop', 'macbook', 'chromebook', 'ultrabook'],
-  'monitor': ['monitor', 'tela', 'display', 'led', 'lcd', 'ips', 'curvo'],
-  'pc': ['desktop', 'computador', 'pc gamer', 'workstation'],
-  'processador': ['processador', 'cpu', 'intel core', 'amd ryzen', 'core i3', 'core i5', 'core i7', 'core i9'],
+  // Hardware - more specific keywords first
+  'processador': ['processador', 'intel core', 'amd ryzen', 'core i3', 'core i5', 'core i7', 'core i9', 'ryzen 3', 'ryzen 5', 'ryzen 7', 'ryzen 9'],
   'placa_mae': ['placa mãe', 'placa-mãe', 'motherboard', 'mainboard'],
-  'memoria': ['memória ram', 'memoria ram', 'ddr4', 'ddr5', 'ram 8gb', 'ram 16gb', 'ram 32gb'],
-  'armazenamento': ['ssd', 'hd ', 'hdd', 'nvme', 'm.2', 'disco rígido', 'kingston', 'wd blue', 'seagate'],
-  'gpu': ['placa de vídeo', 'placa de video', 'rtx', 'gtx', 'radeon', 'geforce', 'rx 5', 'rx 6', 'rx 7'],
-  'fonte': ['fonte', 'psu', 'power supply', '500w', '600w', '700w', '750w', '850w'],
-  'cooler': ['cooler', 'water cooler', 'watercooler', 'air cooler', 'refrigeração'],
-  'gabinete': ['gabinete', 'case gamer', 'torre', 'mid tower', 'full tower'],
-  'teclado': ['teclado', 'keyboard', 'mecânico'],
-  'mouse': ['mouse', 'rato'],
-  'headset': ['headset', 'fone', 'headphone', 'auricular'],
-  'cadeira_gamer': ['cadeira', 'chair gamer'],
-  'acessorio': ['cabo', 'adaptador', 'hub', 'mousepad', 'webcam', 'microfone'],
-  'software': ['software', 'windows', 'office', 'licença', 'antivírus'],
+  'memoria': ['memória ram', 'memoria ram', 'pente de memória', 'ram 8gb', 'ram 16gb', 'ram 32gb', 'fury beast', 'hyperx fury'],
+  'gpu': ['placa de vídeo', 'placa de video', 'rtx 3', 'rtx 4', 'gtx 1', 'radeon rx', 'geforce gtx', 'geforce rtx'],
+  'fonte': ['fonte gamer', 'fonte 500w', 'fonte 600w', 'fonte 700w', 'fonte 750w', 'fonte 850w', 'power supply', 'psu'],
+  'cooler': ['cooler', 'water cooler', 'watercooler', 'air cooler', 'refrigeração', 'ventoinha', 'fan rgb', 'fan 120mm', 'fan gamer'],
+  'gabinete': ['gabinete gamer', 'gabinete mid tower', 'gabinete atx', 'case gamer', 'mid tower', 'full tower'],
+  'armazenamento': ['ssd sata', 'ssd nvme', 'hdd ', 'disco rígido', 'ssd 240', 'ssd 480', 'ssd 500', 'ssd 1tb', 'wd blue', 'seagate barracuda'],
+  
+  // Products
+  'notebook': ['notebook', 'laptop', 'macbook', 'chromebook', 'ultrabook'],
+  'monitor': ['monitor gamer', 'monitor led', 'monitor ips', 'monitor curvo', 'monitor 24', 'monitor 27'],
+  'pc': ['pc gamer', 'desktop gamer', 'computador gamer', 'workstation'],
+  'teclado': ['teclado gamer', 'teclado mecânico', 'teclado rgb', 'keyboard'],
+  'mouse': ['mouse gamer', 'mouse sem fio', 'mouse rgb'],
+  'headset': ['headset gamer', 'headset rgb', 'fone gamer', 'headphone'],
+  'cadeira_gamer': ['cadeira gamer', 'cadeira escritório', 'chair gamer'],
+  'acessorio': ['cabo hdmi', 'cabo usb', 'adaptador', 'hub usb', 'mousepad', 'webcam', 'microfone', 'suporte'],
+  'software': ['windows', 'office', 'licença', 'antivírus', 'software'],
 };
 
 // Icons for each category
@@ -69,10 +72,11 @@ const categoryIcons: Record<string, string> = {
   'cadeira_gamer': 'Armchair',
   'acessorio': 'Cable',
   'software': 'AppWindow',
+  'outros': 'Package',
 };
 
 // Detect category from product title
-const detectCategory = (title: string): { category: string | undefined; isHardware: boolean } => {
+const detectCategory = (title: string): { category: string; isHardware: boolean } => {
   const lowerTitle = title.toLowerCase();
   
   for (const [category, keywords] of Object.entries(categoryKeywords)) {
@@ -86,7 +90,8 @@ const detectCategory = (title: string): { category: string | undefined; isHardwa
     }
   }
   
-  return { category: undefined, isHardware: false };
+  // Default to 'outros' when no category is detected
+  return { category: 'outros', isHardware: false };
 };
 
 const ExtractProducts = () => {
