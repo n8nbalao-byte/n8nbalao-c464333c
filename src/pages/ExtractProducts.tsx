@@ -912,6 +912,12 @@ const ExtractProducts = () => {
       let compatibilityMap: Record<number, any> = {};
       
       try {
+        console.log('Sending hardware items for compatibility detection:', hardwareItems.map((item, idx) => ({
+          index: idx,
+          title: item.title,
+          category: item.hardwareSubcategory || item.detectedCategory
+        })));
+        
         const compatResponse = await fetch('https://www.n8nbalao.com/api/generate-hardware-compat.php', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -924,11 +930,15 @@ const ExtractProducts = () => {
         });
         
         const compatData = await compatResponse.json();
+        console.log('Compatibility API response:', compatData);
         
         if (compatData.success && Array.isArray(compatData.compatibility)) {
-          compatData.compatibility.forEach((compat: any, idx: number) => {
+          compatData.compatibility.forEach((compat: any, arrayIdx: number) => {
             if (compat && typeof compat === 'object') {
-              compatibilityMap[compat.index ?? idx] = compat;
+              // Use index from response if available, otherwise use array position
+              const idx = typeof compat.index === 'number' ? compat.index : arrayIdx;
+              compatibilityMap[idx] = compat;
+              console.log(`Mapped compatibility for index ${idx}:`, compat);
             }
           });
           
@@ -939,6 +949,8 @@ const ExtractProducts = () => {
               description: `Tokens: ${compatData.usage.totalTokens} | Custo: R$ ${compatData.usage.costBRL.toFixed(4)}`
             });
           }
+        } else {
+          console.error('Invalid compatibility response:', compatData);
         }
       } catch (error) {
         console.error('Error getting AI compatibility:', error);

@@ -96,7 +96,7 @@ foreach ($items as $index => $item) {
     ];
 }
 
-$userPrompt = "Analise estes produtos de hardware e retorne a compatibilidade:\n\n" . json_encode($itemsForPrompt, JSON_UNESCAPED_UNICODE);
+$userPrompt = "Analise estes produtos de hardware e retorne a compatibilidade em um array JSON. IMPORTANTE: Cada objeto do array DEVE incluir o campo 'index' correspondente ao índice do produto original.\n\nProdutos:\n" . json_encode($itemsForPrompt, JSON_UNESCAPED_UNICODE) . "\n\nRetorne APENAS o array JSON com os campos de compatibilidade para cada item, incluindo sempre o campo 'index'.";
 
 // Call OpenAI API
 $ch = curl_init('https://api.openai.com/v1/chat/completions');
