@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { api, type Customer, type Order, type Product } from "@/lib/api";
+import { api, type Customer, type Order, type Product, type HardwareItem } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { useOrderNotification } from "@/hooks/useOrderNotification";
 import {
@@ -23,12 +23,14 @@ import {
   Bell,
   BellOff,
   Volume2,
+  Cpu,
 } from "lucide-react";
 
 interface DashboardStats {
   totalCustomers: number;
   totalOrders: number;
   totalProducts: number;
+  totalHardware: number;
   totalRevenue: number;
   pendingOrders: number;
   completedOrders: number;
@@ -66,10 +68,12 @@ export function AdminDashboard() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
+  const [hardware, setHardware] = useState<HardwareItem[]>([]);
   const [stats, setStats] = useState<DashboardStats>({
     totalCustomers: 0,
     totalOrders: 0,
     totalProducts: 0,
+    totalHardware: 0,
     totalRevenue: 0,
     pendingOrders: 0,
     completedOrders: 0,
@@ -129,6 +133,7 @@ export function AdminDashboard() {
       let customersData: Customer[] = [];
       let ordersData: Order[] = [];
       let productsData: Product[] = [];
+      let hardwareData: HardwareItem[] = [];
 
       try {
         customersData = await api.getCustomers();
@@ -148,9 +153,16 @@ export function AdminDashboard() {
         console.log("Products API error");
       }
 
+      try {
+        hardwareData = await api.getHardware();
+      } catch (e) {
+        console.log("Hardware API error");
+      }
+
       setCustomers(Array.isArray(customersData) ? customersData : []);
       setOrders(Array.isArray(ordersData) ? ordersData : []);
       setProducts(Array.isArray(productsData) ? productsData : []);
+      setHardware(Array.isArray(hardwareData) ? hardwareData : []);
 
       // Calculate stats
       const validOrders = Array.isArray(ordersData) ? ordersData : [];
@@ -162,6 +174,7 @@ export function AdminDashboard() {
         totalCustomers: Array.isArray(customersData) ? customersData.length : 0,
         totalOrders: validOrders.length,
         totalProducts: Array.isArray(productsData) ? productsData.length : 0,
+        totalHardware: Array.isArray(hardwareData) ? hardwareData.length : 0,
         totalRevenue,
         pendingOrders: validOrders.filter((o) => o.status === "pending").length,
         completedOrders: validOrders.filter((o) => o.status === "delivered").length,
@@ -287,7 +300,7 @@ export function AdminDashboard() {
   return (
     <div className="space-y-6">
       {/* Stats Cards */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
         <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
           <div className="flex items-center gap-3">
             <div className="rounded-lg bg-blue-100 p-2">
@@ -320,6 +333,18 @@ export function AdminDashboard() {
             <div>
               <p className="text-sm text-gray-500">Produtos</p>
               <p className="text-2xl font-bold text-gray-800">{stats.totalProducts}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="rounded-lg bg-cyan-100 p-2">
+              <Cpu className="h-5 w-5 text-cyan-600" />
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">Hardware</p>
+              <p className="text-2xl font-bold text-gray-800">{stats.totalHardware}</p>
             </div>
           </div>
         </div>
