@@ -478,41 +478,45 @@ export default function MonteVoceMesmo() {
   // PHASE: Quote Display
   if (phase === 'quote') {
     return (
-      <div className="min-h-screen flex flex-col bg-white">
-        <RedWhiteHeader />
-        <main className="flex-1 container py-8 bg-gray-50">
+      <div className="min-h-screen flex flex-col bg-gray-100">
+        {/* Header */}
+        <header className="bg-primary text-white py-4 shadow-md">
+          <div className="container flex items-center justify-between">
+            <Link to="/" className="text-2xl font-bold">Balão da Informática</Link>
+            <Button variant="ghost" onClick={() => setPhase('build')} className="text-white hover:bg-white/20">
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Voltar
+            </Button>
+          </div>
+        </header>
+
+        <main className="flex-1 container py-8">
           <div className="max-w-4xl mx-auto">
-            <div className="flex justify-between items-center mb-6">
-              <Button variant="outline" onClick={() => setPhase('build')}>
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Voltar
+            <div className="flex justify-end gap-2 mb-6 flex-wrap">
+              <Button variant="outline" onClick={printQuote} className="bg-white hover:bg-gray-50">
+                <Printer className="mr-2 h-4 w-4" />
+                Imprimir
               </Button>
-              <div className="flex gap-2 flex-wrap">
-                <Button variant="outline" onClick={printQuote}>
-                  <Printer className="mr-2 h-4 w-4" />
-                  Imprimir
-                </Button>
-                <Button onClick={handleAddToCart} className="bg-primary hover:bg-primary/90">
-                  <ShoppingCart className="mr-2 h-4 w-4" />
-                  Colocar no Carrinho
-                </Button>
-                <Button onClick={handleSendWhatsApp} className="bg-green-600 hover:bg-green-700">
-                  <MessageCircle className="mr-2 h-4 w-4" />
-                  Enviar via WhatsApp
-                </Button>
-              </div>
+              <Button onClick={handleAddToCart} className="bg-primary hover:bg-primary/90 text-white">
+                <ShoppingCart className="mr-2 h-4 w-4" />
+                Adicionar ao Carrinho
+              </Button>
+              <Button onClick={handleSendWhatsApp} className="bg-green-600 hover:bg-green-700 text-white">
+                <MessageCircle className="mr-2 h-4 w-4" />
+                WhatsApp
+              </Button>
             </div>
 
-            <Card className="p-8 bg-white text-gray-800" ref={quoteRef}>
+            <div className="bg-white rounded-xl shadow-lg p-8" ref={quoteRef}>
               <div className="quote-container">
                 <div className="header text-center border-b-4 border-primary pb-6 mb-8">
                   {companyData.logo && (
                     <img src={companyData.logo} alt="Logo" className="h-16 mx-auto mb-4 object-contain" />
                   )}
-                  <div className="logo-title text-3xl font-bold text-primary mb-2">
+                  <div className="text-3xl font-bold text-primary mb-2">
                     {companyData.name || 'Empresa'}
                   </div>
-                  <div className="store-info text-sm text-muted-foreground space-y-1">
+                  <div className="text-sm text-gray-500 space-y-1">
                     {(companyData.address || companyData.city) && (
                       <p>{companyData.address}{companyData.address && companyData.city && ' - '}{companyData.city}</p>
                     )}
@@ -520,26 +524,25 @@ export default function MonteVoceMesmo() {
                       <p>{companyData.phone && `Tel: ${companyData.phone}`}{companyData.phone && companyData.email && ' | '}{companyData.email && `Email: ${companyData.email}`}</p>
                     )}
                     {companyData.cnpj && <p>CNPJ: {companyData.cnpj}</p>}
-                    {companyData.seller && <p>Vendedor: {companyData.seller}</p>}
                   </div>
                 </div>
 
-                <h2 className="quote-title text-2xl font-bold text-center mb-4">ORÇAMENTO</h2>
-                <div className="quote-date text-right text-sm text-muted-foreground mb-6">
+                <h2 className="text-2xl font-bold text-center text-gray-800 mb-4">ORÇAMENTO</h2>
+                <div className="text-right text-sm text-gray-500 mb-6">
                   Data de Emissão: {formatDate(emissionDate)}
                 </div>
 
                 {Object.values(selectedHardware).some(v => v) && (
                   <>
-                    <h3 className="section-title text-lg font-bold border-b-2 border-border pb-2 mb-4">
+                    <h3 className="text-lg font-bold border-b-2 border-gray-200 pb-2 mb-4 text-gray-800">
                       Montagem de PC
                     </h3>
-                    <table className="components-table w-full border-collapse mb-6">
+                    <table className="w-full border-collapse mb-6">
                       <thead>
                         <tr>
-                          <th className="bg-primary text-primary-foreground p-3 text-left">Componente</th>
-                          <th className="bg-primary text-primary-foreground p-3 text-left">Descrição</th>
-                          <th className="bg-primary text-primary-foreground p-3 text-right">Valor</th>
+                          <th className="bg-primary text-white p-3 text-left">Componente</th>
+                          <th className="bg-primary text-white p-3 text-left">Descrição</th>
+                          <th className="bg-primary text-white p-3 text-right">Valor</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -549,25 +552,25 @@ export default function MonteVoceMesmo() {
                           
                           if (Array.isArray(item)) {
                             return item.map((h, idx) => (
-                              <tr key={`${step.key}-${idx}`} className="border-b border-border">
-                                <td className="p-3 font-medium">{step.label} {item.length > 1 ? `#${idx + 1}` : ''}</td>
-                                <td className="p-3">{h.brand} {h.model}</td>
-                                <td className="p-3 text-right">{formatPrice(h.price)}</td>
+                              <tr key={`${step.key}-${idx}`} className="border-b border-gray-200">
+                                <td className="p-3 font-medium text-gray-700">{step.label} {item.length > 1 ? `#${idx + 1}` : ''}</td>
+                                <td className="p-3 text-gray-600">{h.brand} {h.model}</td>
+                                <td className="p-3 text-right text-gray-800">{formatPrice(h.price)}</td>
                               </tr>
                             ));
                           }
                           
                           return (
-                            <tr key={step.key} className="border-b border-border">
-                              <td className="p-3 font-medium">{step.label}</td>
-                              <td className="p-3">{item.brand} {item.model}</td>
-                              <td className="p-3 text-right">{formatPrice(item.price)}</td>
+                            <tr key={step.key} className="border-b border-gray-200">
+                              <td className="p-3 font-medium text-gray-700">{step.label}</td>
+                              <td className="p-3 text-gray-600">{item.brand} {item.model}</td>
+                              <td className="p-3 text-right text-gray-800">{formatPrice(item.price)}</td>
                             </tr>
                           );
                         })}
                         <tr className="bg-primary/10 font-bold">
-                          <td className="p-3" colSpan={2}>Subtotal PC</td>
-                          <td className="p-3 text-right">{formatPrice(calculateHardwareTotal())}</td>
+                          <td className="p-3 text-gray-800" colSpan={2}>Subtotal PC</td>
+                          <td className="p-3 text-right text-primary">{formatPrice(calculateHardwareTotal())}</td>
                         </tr>
                       </tbody>
                     </table>
@@ -576,86 +579,93 @@ export default function MonteVoceMesmo() {
 
                 {selectedProducts.length > 0 && (
                   <>
-                    <h3 className="section-title text-lg font-bold border-b-2 border-border pb-2 mb-4">
+                    <h3 className="text-lg font-bold border-b-2 border-gray-200 pb-2 mb-4 text-gray-800">
                       Itens Adicionais
                     </h3>
-                    <table className="components-table w-full border-collapse mb-6">
+                    <table className="w-full border-collapse mb-6">
                       <thead>
                         <tr>
-                          <th className="bg-primary text-primary-foreground p-3 text-left">Categoria</th>
-                          <th className="bg-primary text-primary-foreground p-3 text-left">Produto</th>
-                          <th className="bg-primary text-primary-foreground p-3 text-right">Valor</th>
+                          <th className="bg-primary text-white p-3 text-left">Categoria</th>
+                          <th className="bg-primary text-white p-3 text-left">Produto</th>
+                          <th className="bg-primary text-white p-3 text-right">Valor</th>
                         </tr>
                       </thead>
                       <tbody>
                         {selectedProducts.map((item) => (
-                          <tr key={item.uniqueKey} className="border-b border-border">
-                            <td className="p-3 font-medium">{getCategoryLabel(item.category)}</td>
-                            <td className="p-3">{item.title}</td>
-                            <td className="p-3 text-right">{formatPrice(item.price)}</td>
+                          <tr key={item.uniqueKey} className="border-b border-gray-200">
+                            <td className="p-3 font-medium text-gray-700">{getCategoryLabel(item.category)}</td>
+                            <td className="p-3 text-gray-600">{item.title}</td>
+                            <td className="p-3 text-right text-gray-800">{formatPrice(item.price)}</td>
                           </tr>
                         ))}
                         <tr className="bg-primary/10 font-bold">
-                          <td className="p-3" colSpan={2}>Subtotal Adicionais</td>
-                          <td className="p-3 text-right">{formatPrice(calculateProductsTotal())}</td>
+                          <td className="p-3 text-gray-800" colSpan={2}>Subtotal Adicionais</td>
+                          <td className="p-3 text-right text-primary">{formatPrice(calculateProductsTotal())}</td>
                         </tr>
                       </tbody>
                     </table>
                   </>
                 )}
 
-                <table className="components-table w-full border-collapse mb-6">
+                <table className="w-full border-collapse mb-6">
                   <tbody>
-                    <tr className="total-row bg-primary/20 font-bold text-lg">
+                    <tr className="bg-gray-900 text-white font-bold text-xl">
                       <td className="p-4">TOTAL GERAL</td>
-                      <td className="p-4 text-right text-primary">{formatPrice(calculateTotal())}</td>
+                      <td className="p-4 text-right">{formatPrice(calculateTotal())}</td>
                     </tr>
                   </tbody>
                 </table>
 
-                <div className="validity bg-yellow-50 border border-yellow-200 p-4 rounded-lg text-center mb-8">
-                  <p>
-                    <strong className="text-yellow-700">⚠️ Validade:</strong>{" "}
-                    <span className="font-semibold">{formatDate(validityDate)}</span> (7 dias)
+                <div className="bg-yellow-50 border border-yellow-300 p-4 rounded-lg text-center mb-8">
+                  <p className="text-yellow-800">
+                    <strong>⚠️ Validade:</strong> {formatDate(validityDate)} (7 dias)
                   </p>
                 </div>
 
-                <div className="footer text-center pt-6 border-t border-border">
-                  <p className="thank-you text-lg font-bold text-primary mb-2">
-                    Obrigado pela preferência!
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    Para confirmar seu pedido, entre em contato conosco.
-                  </p>
+                <div className="text-center pt-6 border-t border-gray-200">
+                  <p className="text-lg font-bold text-primary mb-2">Obrigado pela preferência!</p>
+                  <p className="text-sm text-gray-500">Para confirmar seu pedido, entre em contato conosco.</p>
                 </div>
               </div>
-            </Card>
+            </div>
           </div>
         </main>
-        <RedWhiteFooter />
+
+        {/* Footer */}
+        <footer className="bg-gray-900 text-white py-6">
+          <div className="container text-center text-sm text-gray-400">
+            © {new Date().getFullYear()} Balão da Informática. Todos os direitos reservados.
+          </div>
+        </footer>
       </div>
     );
   }
 
-  // PHASE: Build - StudioPC style
+  // PHASE: Build
   return (
-    <div className="min-h-screen flex flex-col bg-white">
-      <RedWhiteHeader />
+    <div className="min-h-screen flex flex-col bg-gray-100">
+      {/* Header */}
+      <header className="bg-primary text-white py-4 shadow-md">
+        <div className="container flex items-center justify-between">
+          <Link to="/" className="text-2xl font-bold">Balão da Informática</Link>
+          <Link to="/loja" className="text-white hover:underline">Ver Loja</Link>
+        </div>
+      </header>
       
-      <main className="flex-1 container py-8 bg-gray-50">
+      <main className="flex-1 container py-8">
         <div className="max-w-4xl mx-auto">
           {/* Hero Section */}
           <div className="text-center mb-8">
             <div className="flex justify-center mb-4">
-              <div className="p-4 rounded-full bg-primary/20 border-2 border-primary">
-                <Wrench className="h-12 w-12 text-primary" />
+              <div className="p-4 rounded-full bg-primary text-white">
+                <Wrench className="h-12 w-12" />
               </div>
             </div>
-            <h1 className="text-4xl font-bold text-foreground mb-2">MONTE SEU PC</h1>
-            <p className="text-muted-foreground">Escolha cada componente e monte o computador perfeito para você!</p>
+            <h1 className="text-4xl font-bold text-gray-800 mb-2">MONTE SEU PC</h1>
+            <p className="text-gray-600">Escolha cada componente e monte o computador perfeito para você!</p>
           </div>
 
-          {/* Component List - StudioPC Style */}
+          {/* Component List */}
           <div className="space-y-3 mb-8">
             {/* Hardware Components */}
             {hardwareSteps.map((step) => {
@@ -666,26 +676,26 @@ export default function MonteVoceMesmo() {
               return (
                 <div
                   key={step.key}
-                  className={`flex items-center gap-4 p-4 rounded-xl border-2 transition-all ${
+                  className={`flex items-center gap-4 p-4 rounded-xl border-2 transition-all bg-white ${
                     isSelected 
-                      ? 'border-green-500 bg-green-500/10' 
-                      : 'border-border bg-card/50 hover:border-primary/50'
+                      ? 'border-green-500' 
+                      : 'border-gray-200 hover:border-primary'
                   }`}
                 >
                   {/* Icon Column */}
                   <div className={`flex flex-col items-center justify-center w-24 p-3 rounded-lg ${
-                    isSelected ? 'bg-green-500/20' : 'bg-muted'
+                    isSelected ? 'bg-green-100' : 'bg-gray-100'
                   }`}>
-                    <Icon className={`h-6 w-6 mb-1 ${isSelected ? 'text-green-500' : 'text-muted-foreground'}`} />
-                    <span className="text-xs font-medium text-center">{step.label}</span>
+                    <Icon className={`h-6 w-6 mb-1 ${isSelected ? 'text-green-600' : 'text-gray-500'}`} />
+                    <span className="text-xs font-medium text-center text-gray-700">{step.label}</span>
                     {step.required && !isSelected && (
-                      <span className="text-[10px] text-destructive">*Obrigatório</span>
+                      <span className="text-[10px] text-primary font-medium">*Obrigatório</span>
                     )}
                   </div>
                   
                   {/* Selection Info */}
                   <div className="flex-1 min-w-0">
-                    <p className={`font-medium truncate ${isSelected ? 'text-foreground' : 'text-muted-foreground'}`}>
+                    <p className={`font-medium truncate ${isSelected ? 'text-gray-800' : 'text-gray-400'}`}>
                       {getSelectionSummary(step.key)}
                     </p>
                     {isSelected && (
@@ -705,13 +715,13 @@ export default function MonteVoceMesmo() {
                         variant="ghost"
                         size="sm"
                         onClick={() => clearHardwareSelection(step.key)}
-                        className="text-destructive hover:text-destructive"
+                        className="text-red-500 hover:text-red-600 hover:bg-red-50"
                       >
                         <X className="h-4 w-4" />
                       </Button>
                     )}
                     <Button
-                      variant={isSelected ? "secondary" : "default"}
+                      className={isSelected ? "bg-gray-800 hover:bg-gray-700 text-white" : "bg-primary hover:bg-primary/90 text-white"}
                       onClick={() => openHardwareSheet(step)}
                     >
                       {isSelected ? 'Alterar' : 'Selecionar'}
@@ -722,11 +732,10 @@ export default function MonteVoceMesmo() {
             })}
 
             {/* Divider */}
-            <div className="py-4">
-              <div className="border-t border-border" />
-              <p className="text-center text-sm text-muted-foreground -mt-3 bg-background px-4 inline-block relative left-1/2 -translate-x-1/2">
-                Itens Opcionais
-              </p>
+            <div className="py-4 flex items-center">
+              <div className="flex-1 border-t border-gray-300" />
+              <span className="px-4 text-sm text-gray-500 bg-gray-100">Itens Opcionais</span>
+              <div className="flex-1 border-t border-gray-300" />
             </div>
 
             {/* Extra Products */}
@@ -742,23 +751,23 @@ export default function MonteVoceMesmo() {
               return (
                 <div
                   key={cat.key}
-                  className={`flex items-center gap-4 p-4 rounded-xl border-2 transition-all ${
+                  className={`flex items-center gap-4 p-4 rounded-xl border-2 transition-all bg-white ${
                     isSelected 
-                      ? 'border-green-500 bg-green-500/10' 
-                      : 'border-border bg-card/50 hover:border-primary/50'
+                      ? 'border-green-500' 
+                      : 'border-gray-200 hover:border-primary'
                   }`}
                 >
                   {/* Icon Column */}
                   <div className={`flex flex-col items-center justify-center w-24 p-3 rounded-lg ${
-                    isSelected ? 'bg-green-500/20' : 'bg-muted'
+                    isSelected ? 'bg-green-100' : 'bg-gray-100'
                   }`}>
-                    <Package className={`h-6 w-6 mb-1 ${isSelected ? 'text-green-500' : 'text-muted-foreground'}`} />
-                    <span className="text-xs font-medium text-center">{cat.label}</span>
+                    <Package className={`h-6 w-6 mb-1 ${isSelected ? 'text-green-600' : 'text-gray-500'}`} />
+                    <span className="text-xs font-medium text-center text-gray-700">{cat.label}</span>
                   </div>
                   
                   {/* Selection Info */}
                   <div className="flex-1 min-w-0">
-                    <p className={`font-medium truncate ${isSelected ? 'text-foreground' : 'text-muted-foreground'}`}>
+                    <p className={`font-medium truncate ${isSelected ? 'text-gray-800' : 'text-gray-400'}`}>
                       {getExtraCategorySummary(cat.key)}
                     </p>
                     {isSelected && (
@@ -771,7 +780,7 @@ export default function MonteVoceMesmo() {
                   {/* Actions */}
                   <div className="flex items-center gap-2">
                     <Button
-                      variant={isSelected ? "secondary" : "outline"}
+                      className={isSelected ? "bg-gray-800 hover:bg-gray-700 text-white" : "bg-white border-2 border-gray-300 text-gray-700 hover:border-primary hover:text-primary"}
                       onClick={() => openExtraSheet(cat.key)}
                     >
                       {isSelected ? 'Alterar' : 'Selecionar'}
@@ -783,16 +792,16 @@ export default function MonteVoceMesmo() {
           </div>
 
           {/* Price Summary - Sticky Bottom */}
-          <div className="sticky bottom-4 bg-card/95 backdrop-blur-sm border-2 border-primary rounded-xl p-4 shadow-lg">
+          <div className="sticky bottom-4 bg-white border-2 border-primary rounded-xl p-4 shadow-xl">
             <div className="flex items-center justify-between flex-wrap gap-4">
               <div>
-                <p className="text-sm text-muted-foreground">Valor Atual</p>
+                <p className="text-sm text-gray-500">Valor Total</p>
                 <p className="text-3xl font-bold text-primary">{formatPrice(calculateTotal())}</p>
               </div>
               <Button 
                 size="lg" 
                 onClick={generateQuote}
-                className="bg-green-600 hover:bg-green-700"
+                className="bg-green-600 hover:bg-green-700 text-white"
               >
                 <ShoppingCart className="mr-2 h-5 w-5" />
                 Gerar Orçamento
@@ -802,25 +811,30 @@ export default function MonteVoceMesmo() {
         </div>
       </main>
 
-      <RedWhiteFooter />
+      {/* Footer */}
+      <footer className="bg-gray-900 text-white py-6 mt-8">
+        <div className="container text-center text-sm text-gray-400">
+          © {new Date().getFullYear()} Balão da Informática. Todos os direitos reservados.
+        </div>
+      </footer>
 
       {/* Selection Sheet */}
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-        <SheetContent side="right" className="w-full sm:max-w-lg overflow-y-auto">
+        <SheetContent side="right" className="w-full sm:max-w-lg overflow-y-auto bg-white">
           <SheetHeader>
-            <SheetTitle>
+            <SheetTitle className="text-gray-800">
               {activeStep ? activeStep.label : getCategoryLabel(activeExtraCategory || '')}
             </SheetTitle>
           </SheetHeader>
 
           {/* Search */}
           <div className="relative my-4">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
             <Input
               placeholder="Buscar..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
+              className="pl-10 bg-gray-50 border-gray-300 text-gray-800"
             />
           </div>
 
@@ -833,7 +847,7 @@ export default function MonteVoceMesmo() {
             /* Hardware Items */
             <div className="space-y-2">
               {filteredHardware.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
+                <div className="text-center py-8 text-gray-400">
                   <Package className="h-12 w-12 mx-auto mb-2" />
                   <p>Nenhum componente encontrado</p>
                 </div>
@@ -846,16 +860,16 @@ export default function MonteVoceMesmo() {
                     <Tooltip delayDuration={100}>
                       <TooltipTrigger asChild>
                         <div
-                          className={`p-4 rounded-lg border-2 transition-all cursor-pointer ${
+                          className={`p-4 rounded-lg border-2 transition-all cursor-pointer bg-white ${
                             isSelected 
-                              ? 'border-green-500 bg-green-500/10' 
-                              : 'border-border hover:border-primary/50'
+                              ? 'border-green-500' 
+                              : 'border-gray-200 hover:border-primary'
                           }`}
                         >
                           <div className="flex items-start justify-between gap-4">
                             <div className="flex items-center gap-3 flex-1 min-w-0">
                               {/* Thumbnail */}
-                              <div className="w-12 h-12 rounded-lg bg-muted flex-shrink-0 overflow-hidden flex items-center justify-center">
+                              <div className="w-12 h-12 rounded-lg bg-gray-100 flex-shrink-0 overflow-hidden flex items-center justify-center">
                                 {item.image ? (
                                   <img 
                                     src={item.image} 
@@ -863,16 +877,15 @@ export default function MonteVoceMesmo() {
                                     className="w-full h-full object-cover"
                                     onError={(e) => {
                                       (e.target as HTMLImageElement).style.display = 'none';
-                                      (e.target as HTMLImageElement).parentElement!.innerHTML = '<svg class="h-6 w-6 text-muted-foreground" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>';
                                     }}
                                   />
                                 ) : (
-                                  <Package className="h-6 w-6 text-muted-foreground" />
+                                  <Package className="h-6 w-6 text-gray-400" />
                                 )}
                               </div>
                               <div className="min-w-0">
-                                <p className="font-medium">{item.brand} {item.model}</p>
-                                <p className="text-sm text-muted-foreground truncate">{item.name}</p>
+                                <p className="font-medium text-gray-800">{item.brand} {item.model}</p>
+                                <p className="text-sm text-gray-500 truncate">{item.name}</p>
                                 <p className="text-lg font-bold text-primary mt-1">{formatPrice(item.price)}</p>
                               </div>
                             </div>
@@ -882,15 +895,16 @@ export default function MonteVoceMesmo() {
                                 <Button
                                   variant="outline"
                                   size="icon"
+                                  className="border-gray-300"
                                   onClick={(e) => { e.stopPropagation(); removeOneHardwareItem(activeStep.key, item.id); }}
                                   disabled={count === 0}
                                 >
                                   <Minus className="h-4 w-4" />
                                 </Button>
-                                <span className="font-bold w-8 text-center">{count}</span>
+                                <span className="font-bold w-8 text-center text-gray-800">{count}</span>
                                 <Button
-                                  variant="default"
                                   size="icon"
+                                  className="bg-primary hover:bg-primary/90"
                                   onClick={(e) => { e.stopPropagation(); selectHardware(item); }}
                                 >
                                   <Plus className="h-4 w-4" />
@@ -898,7 +912,7 @@ export default function MonteVoceMesmo() {
                               </div>
                             ) : (
                               <Button
-                                variant={isSelected ? "secondary" : "default"}
+                                className={isSelected ? "bg-green-600 hover:bg-green-700 text-white" : "bg-primary hover:bg-primary/90 text-white"}
                                 onClick={(e) => { e.stopPropagation(); selectHardware(item); }}
                               >
                                 {isSelected ? <Check className="h-4 w-4 mr-1" /> : null}
@@ -908,19 +922,19 @@ export default function MonteVoceMesmo() {
                           </div>
                         </div>
                       </TooltipTrigger>
-                      <TooltipContent side="left" className="w-48 p-2 bg-popover">
+                      <TooltipContent side="left" className="w-48 p-2 bg-white border border-gray-200">
                         {item.image ? (
                           <img 
                             src={item.image} 
                             alt={`${item.brand} ${item.model}`}
-                            className="w-full h-32 object-contain rounded-lg bg-muted"
+                            className="w-full h-32 object-contain rounded-lg bg-gray-100"
                           />
                         ) : (
-                          <div className="w-full h-32 bg-muted rounded-lg flex items-center justify-center">
-                            <Package className="h-12 w-12 text-muted-foreground" />
+                          <div className="w-full h-32 bg-gray-100 rounded-lg flex items-center justify-center">
+                            <Package className="h-12 w-12 text-gray-400" />
                           </div>
                         )}
-                        <p className="font-semibold text-sm mt-2 text-center">{item.brand} {item.model}</p>
+                        <p className="font-semibold text-sm mt-2 text-center text-gray-800">{item.brand} {item.model}</p>
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
@@ -929,7 +943,7 @@ export default function MonteVoceMesmo() {
               
               {activeStep.allowMultiple && (
                 <Button 
-                  className="w-full mt-4" 
+                  className="w-full mt-4 bg-primary hover:bg-primary/90" 
                   onClick={() => setSheetOpen(false)}
                 >
                   Confirmar Seleção
@@ -940,7 +954,7 @@ export default function MonteVoceMesmo() {
             /* Product Items */
             <div className="space-y-2">
               {filteredProducts.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
+                <div className="text-center py-8 text-gray-400">
                   <Package className="h-12 w-12 mx-auto mb-2" />
                   <p>Nenhum produto encontrado</p>
                 </div>
@@ -954,16 +968,16 @@ export default function MonteVoceMesmo() {
                     <Tooltip delayDuration={100}>
                       <TooltipTrigger asChild>
                         <div
-                          className={`p-4 rounded-lg border-2 transition-all cursor-pointer ${
+                          className={`p-4 rounded-lg border-2 transition-all cursor-pointer bg-white ${
                             isSelected 
-                              ? 'border-green-500 bg-green-500/10' 
-                              : 'border-border hover:border-primary/50'
+                              ? 'border-green-500' 
+                              : 'border-gray-200 hover:border-primary'
                           }`}
                         >
                           <div className="flex items-start justify-between gap-4">
                             <div className="flex items-center gap-3 flex-1 min-w-0">
                               {/* Thumbnail */}
-                              <div className="w-12 h-12 rounded-lg bg-muted flex-shrink-0 overflow-hidden flex items-center justify-center">
+                              <div className="w-12 h-12 rounded-lg bg-gray-100 flex-shrink-0 overflow-hidden flex items-center justify-center">
                                 {productImage ? (
                                   <img 
                                     src={productImage} 
@@ -974,13 +988,13 @@ export default function MonteVoceMesmo() {
                                     }}
                                   />
                                 ) : (
-                                  <Package className="h-6 w-6 text-muted-foreground" />
+                                  <Package className="h-6 w-6 text-gray-400" />
                                 )}
                               </div>
                               <div className="min-w-0">
-                                <p className="font-medium">{product.title}</p>
+                                <p className="font-medium text-gray-800">{product.title}</p>
                                 {product.subtitle && (
-                                  <p className="text-sm text-muted-foreground truncate">{product.subtitle}</p>
+                                  <p className="text-sm text-gray-500 truncate">{product.subtitle}</p>
                                 )}
                                 <p className="text-lg font-bold text-primary mt-1">{formatPrice(product.totalPrice)}</p>
                               </div>
@@ -990,15 +1004,16 @@ export default function MonteVoceMesmo() {
                               <Button
                                 variant="outline"
                                 size="icon"
+                                className="border-gray-300"
                                 onClick={(e) => { e.stopPropagation(); removeOneProduct(product.id); }}
                                 disabled={count === 0}
                               >
                                 <Minus className="h-4 w-4" />
                               </Button>
-                              <span className="font-bold w-8 text-center">{count}</span>
+                              <span className="font-bold w-8 text-center text-gray-800">{count}</span>
                               <Button
-                                variant="default"
                                 size="icon"
+                                className="bg-primary hover:bg-primary/90"
                                 onClick={(e) => { e.stopPropagation(); addProduct(product); }}
                               >
                                 <Plus className="h-4 w-4" />
@@ -1007,19 +1022,19 @@ export default function MonteVoceMesmo() {
                           </div>
                         </div>
                       </TooltipTrigger>
-                      <TooltipContent side="left" className="w-48 p-2 bg-popover">
+                      <TooltipContent side="left" className="w-48 p-2 bg-white border border-gray-200">
                         {productImage ? (
                           <img 
                             src={productImage} 
                             alt={product.title}
-                            className="w-full h-32 object-contain rounded-lg bg-muted"
+                            className="w-full h-32 object-contain rounded-lg bg-gray-100"
                           />
                         ) : (
-                          <div className="w-full h-32 bg-muted rounded-lg flex items-center justify-center">
-                            <Package className="h-12 w-12 text-muted-foreground" />
+                          <div className="w-full h-32 bg-gray-100 rounded-lg flex items-center justify-center">
+                            <Package className="h-12 w-12 text-gray-400" />
                           </div>
                         )}
-                        <p className="font-semibold text-sm mt-2 text-center">{product.title}</p>
+                        <p className="font-semibold text-sm mt-2 text-center text-gray-800">{product.title}</p>
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
@@ -1027,7 +1042,7 @@ export default function MonteVoceMesmo() {
               })}
               
               <Button 
-                className="w-full mt-4" 
+                className="w-full mt-4 bg-primary hover:bg-primary/90" 
                 onClick={() => setSheetOpen(false)}
               >
                 Confirmar Seleção
