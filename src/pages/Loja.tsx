@@ -178,6 +178,19 @@ export default function Loja() {
   }, [searchParams]);
 
   const isHardwareMode = selectedType === 'hardware';
+  const { viewMode } = useViewMode();
+
+  // Get grid classes based on view mode
+  const getGridClass = () => {
+    switch (viewMode) {
+      case 'list':
+        return 'flex flex-col gap-4';
+      case 'compact':
+        return 'grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6';
+      default:
+        return 'grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4';
+    }
+  };
 
   return (
     <div className="min-h-screen bg-white">
@@ -344,7 +357,7 @@ export default function Loja() {
           ) : isHardwareMode ? (
             // Hardware Grid - shows all hardware by default, or filtered by subcategory
             filteredHardware.length > 0 ? (
-              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              <div className={getGridClass()}>
                 {filteredHardware.map((item) => (
                   <HardwareCard key={item.id} hardware={item} showBuyButton />
                 ))}
@@ -359,7 +372,7 @@ export default function Loja() {
           ) : (
             // Products Grid
             filteredProducts.length > 0 ? (
-              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              <div className={getGridClass()}>
                 {filteredProducts.map((product) => (
                   <ProductCard key={product.id} product={product} />
                 ))}
