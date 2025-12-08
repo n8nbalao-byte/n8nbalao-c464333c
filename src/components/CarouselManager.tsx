@@ -1,0 +1,184 @@
+import { useState, useEffect } from "react";
+import { api } from "@/lib/api";
+import { useToast } from "@/hooks/use-toast";
+import { Plus, Trash2, Upload, Save, Image } from "lucide-react";
+
+interface CarouselConfig {
+  key: string;
+  label: string;
+  description: string;
+}
+
+const CAROUSEL_CONFIGS: CarouselConfig[] = [
+  {
+    key: "nocode_section",
+    label: "Seção No-Code",
+    description: "Imagens na seção 'Interface No-Code quando você precisa'"
+  },
+  {
+    key: "workflow_section",
+    label: "Seção Workflow",
+    description: "Imagens na seção 'Automatize processos complexos'"
+  }
+];
+
+export function CarouselManager() {
+  const { toast } = useToast();
+  const [carousels, setCarousels] = useState<Record<string, string[]>>({});
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchCarousels();
+  }, []);
+
+  async function fetchCarousels() {
+    setLoading(true);
+    const data: Record<string, string[]> = {};
+    
+    for (const config of CAROUSEL_CONFIGS) {
+      const carousel = await api.getCarousel(config.key);
+      data[config.key] = carousel.images || [];
+    }
+    
+    setCarousels(data);
+    setLoading(false);
+  }
+
+  async function handleSave(key: string) {
+    setSaving(key);
+    const success = await api.saveCarousel(key, carousels[key] || []);
+    
+    if (success) {
+      toast({ title: "Sucesso", description: "Carrossel salvo com sucesso!" });
+    } else {
+      toast({ title: "Erro", description: "Falha ao salvar carrossel", variant: "destructive" });
+    }
+    setSaving(null);
+  }
+
+  function handleImageUpload(key: string, e: React.ChangeEvent<HTMLInputElement>) {
+    const files = e.target.files;
+    if (!files) return;
+
+    Array.from(files).forEach(file => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        // Compress image
+        const img = new window.Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const maxWidth = 1200;
+          const scale = Math.min(1, maxWidth / img.width);
+          canvas.width = img.width * scale;
+          canvas.height = img.height * scale;
+          
+          const ctx = canvas.getContext('2d');
+          ctx?.drawImage(img, 0, 0, canvas.width, canvas.height);
+          
+          const compressedImage = canvas.toDataURL('image/jpeg', 0.8);
+          
+          setCarousels(prev => ({
+            ...prev,
+            [key]: [...(prev[key] || []), compressedImage]
+          }));
+        };
+        img.src = reader.result as string;
+      };
+      reader.readAsDataURL(file);
+    });
+    
+    // Reset input
+    e.target.value = '';
+  }
+
+  function handleRemoveImage(key: string, index: number) {
+    setCarousels(prev => ({
+      ...prev,
+      [key]: (prev[key] || []).filter((_, i) => i !== index)
+    }));
+  }
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        {CAROUSEL_CONFIGS.map(config => (
+          <div key={config.key} className="h-48 animate-pulse rounded-xl bg-card" />
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-8">
+      <div className="flex items-center gap-3">
+        <Image className="h-6 w-6 text-primary" />
+        <h2 className="text-2xl font-bold text-foreground">Gerenciar Carrosséis da Home</h2>
+      </div>
+      
+      <p className="text-muted-foreground">
+        Adicione imagens aos carrosséis que aparecem na página inicial. As imagens serão exibidas alternando automaticamente.
+      </p>
+
+      {CAROUSEL_CONFIGS.map(config => (
+        <div key={config.key} className="rounded-xl border border-border bg-card p-6 space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-semibold text-foreground">{config.label}</h3>
+              <p className="text-sm text-muted-foreground">{config.description}</p>
+            </div>
+            <button
+              onClick={() => handleSave(config.key)}
+              disabled={saving === config.key}
+              className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-colors"
+            >
+              <Save className="h-4 w-4" />
+              {saving === config.key ? "Salvando..." : "Salvar"}
+            </button>
+          </div>
+
+          {/* Image Grid */}
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+            {(carousels[config.key] || []).map((image, index) => (
+              <div key={index} className="relative group aspect-video rounded-lg overflow-hidden border border-border">
+                <img
+                  src={image}
+                  alt={`${config.label} ${index + 1}`}
+                  className="w-full h-full object-cover"
+                />
+                <button
+                  onClick={() => handleRemoveImage(config.key, index)}
+                  className="absolute top-2 right-2 p-1.5 rounded-full bg-destructive text-destructive-foreground opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+                <div className="absolute bottom-2 left-2 px-2 py-0.5 rounded bg-background/80 text-xs font-medium">
+                  {index + 1}
+                </div>
+              </div>
+            ))}
+
+            {/* Add Image Button */}
+            <label className="flex flex-col items-center justify-center aspect-video rounded-lg border-2 border-dashed border-border hover:border-primary/50 cursor-pointer transition-colors">
+              <Upload className="h-8 w-8 text-muted-foreground mb-2" />
+              <span className="text-sm text-muted-foreground">Adicionar</span>
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={(e) => handleImageUpload(config.key, e)}
+                className="hidden"
+              />
+            </label>
+          </div>
+
+          {(carousels[config.key] || []).length === 0 && (
+            <p className="text-sm text-muted-foreground italic">
+              Nenhuma imagem adicionada. Adicione imagens para criar o carrossel.
+            </p>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}

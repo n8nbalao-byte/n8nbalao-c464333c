@@ -518,4 +518,30 @@ export const api = {
       return false;
     }
   },
+
+  // Carousel endpoints
+  async getCarousel(key: string): Promise<{ key: string; images: string[] }> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/carousels.php?key=${key}`);
+      if (!response.ok) return { key, images: [] };
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching carousel:', error);
+      return { key, images: [] };
+    }
+  },
+
+  async saveCarousel(key: string, images: string[]): Promise<boolean> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/carousels.php`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key, images }),
+      });
+      return response.ok;
+    } catch (error) {
+      console.error('Error saving carousel:', error);
+      return false;
+    }
+  },
 };

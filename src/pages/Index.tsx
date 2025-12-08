@@ -4,6 +4,7 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Sidebar } from "@/components/Sidebar";
 import { StarryBackground } from "@/components/StarryBackground";
+import { HomeCarousel } from "@/components/HomeCarousel";
 
 import { BenefitsCarousel } from "@/components/BenefitsCarousel";
 import { TestimonialsCarousel } from "@/components/TestimonialsCarousel";
@@ -172,8 +173,9 @@ export default function Index() {
             </div>
             
             <div className="relative">
-              <img
-                src="https://meuwhatsappbot.com.br/images/code.webp"
+              <HomeCarousel
+                carouselKey="nocode_section"
+                fallbackImage="https://meuwhatsappbot.com.br/images/code.webp"
                 alt="Interface No-Code"
                 className="rounded-xl shadow-card"
               />
@@ -192,8 +194,9 @@ export default function Index() {
             Crie workflows poderosos que conectam diferentes ferramentas e serviços, tudo de forma visual e intuitiva.
           </p>
           <div className="max-w-5xl mx-auto">
-            <img
-              src="https://meuwhatsappbot.com.br/images/workflow.png"
+            <HomeCarousel
+              carouselKey="workflow_section"
+              fallbackImage="https://meuwhatsappbot.com.br/images/workflow.png"
               alt="Exemplo de workflow"
               className="rounded-xl shadow-card w-full"
             />
