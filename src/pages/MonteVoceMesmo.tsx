@@ -87,26 +87,41 @@ export default function MonteVoceMesmo() {
     fetchData();
   }, []);
 
-  // Load categories from products
+  // Load categories from products and database
   useEffect(() => {
     async function loadCategories() {
-      if (products.length > 0) {
-        const customCats = await getCustomCategories();
-        const excludedCategories = ['games', 'console', 'controle', 'controles', 'pc', 'kit', 'notebook'];
-        const defaultKeys = defaultExtraCategories.map(c => c.key);
-        const customKeys = customCats.map(c => c.key);
-        
-        const productCategories = products
-          .map(p => p.categories?.[0] || p.productType || '')
-          .filter(cat => cat && !defaultKeys.includes(cat) && !customKeys.includes(cat) && !excludedCategories.includes(cat.toLowerCase()));
-        
-        const uniqueProductCats = [...new Set(productCategories)].map(key => ({
-          key,
-          label: key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, ' ')
-        }));
-        
-        setExtraCategories([...defaultExtraCategories, ...customCats, ...uniqueProductCats]);
-      }
+      const customCats = await getCustomCategories();
+      const excludedCategories = ['games', 'console', 'controle', 'controles'];
+      
+      // Get all unique categories from products
+      const productCategories = products
+        .map(p => p.categories?.[0] || p.productType || '')
+        .filter(cat => cat && !excludedCategories.includes(cat.toLowerCase()));
+      
+      // Combine all categories: default + custom from DB + from products
+      const allCategories = new Map<string, { key: string; label: string }>();
+      
+      // Add defaults
+      defaultExtraCategories.forEach(cat => allCategories.set(cat.key, cat));
+      
+      // Add custom categories from database
+      customCats.forEach(cat => allCategories.set(cat.key, { key: cat.key, label: cat.label }));
+      
+      // Add categories extracted from products
+      productCategories.forEach(key => {
+        if (!allCategories.has(key)) {
+          allCategories.set(key, {
+            key,
+            label: key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, ' ')
+          });
+        }
+      });
+      
+      // Convert map to array and filter excluded
+      const finalCategories = Array.from(allCategories.values())
+        .filter(cat => !excludedCategories.includes(cat.key.toLowerCase()));
+      
+      setExtraCategories(finalCategories);
     }
     loadCategories();
   }, [products]);
