@@ -38,6 +38,30 @@ const testimonials = [
     text: "Os clientes podem marcar, remarcar e cancelar consultas sem precisar falar com um atendente. Economizamos tempo e recursos significativamente.",
     avatar: "FL"
   },
+  {
+    name: "Ricardo Oliveira",
+    role: "Dono de Restaurante",
+    text: "O bot gerencia todos os nossos pedidos de delivery. Os clientes fazem pedidos pelo WhatsApp e recebem confirmação automática. Reduziu erros e aumentou a velocidade do atendimento.",
+    avatar: "RO"
+  },
+  {
+    name: "Patrícia Souza",
+    role: "Corretora de Seguros",
+    text: "Meus clientes recebem cotações instantâneas pelo WhatsApp. O bot coleta todas as informações necessárias e eu só preciso finalizar a venda. Triplicou minha carteira de clientes!",
+    avatar: "PS"
+  },
+  {
+    name: "Eduardo Martins",
+    role: "Proprietário de Academia",
+    text: "Agendamento de aulas, consulta de horários, renovação de planos... tudo automatizado! Meus funcionários agora focam no atendimento presencial enquanto o bot cuida do digital.",
+    avatar: "EM"
+  },
+  {
+    name: "Camila Rodrigues",
+    role: "Loja de Roupas Online",
+    text: "O atendimento 24 horas fez toda diferença. Muitos clientes compram de madrugada e agora são atendidos imediatamente. As vendas noturnas aumentaram 150%!",
+    avatar: "CR"
+  },
 ];
 
 export function TestimonialsCarousel() {

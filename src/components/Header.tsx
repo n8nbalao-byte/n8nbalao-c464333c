@@ -1,4 +1,4 @@
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import logo from "@/assets/logo-white.svg";
 import { ShoppingCart } from "lucide-react";
@@ -6,17 +6,36 @@ import { useCart } from "@/contexts/CartContext";
 import { Button } from "@/components/ui/button";
 
 const navLinks = [
-  { href: "/", label: "Início" },
-  { href: "/#pricing", label: "Preços" },
-  { href: "/#benefits", label: "Benefícios" },
-  { href: "/#testimonials", label: "Depoimentos" },
-  { href: "/loja", label: "Loja" },
-  { href: "/monte-voce-mesmo", label: "Monte Você Mesmo" },
+  { href: "/", label: "Início", scrollTo: null },
+  { href: "/#pricing", label: "Preços", scrollTo: "pricing" },
+  { href: "/#benefits", label: "Benefícios", scrollTo: "benefits" },
+  { href: "/#testimonials", label: "Depoimentos", scrollTo: "testimonials" },
+  { href: "/loja", label: "Loja", scrollTo: null },
+  { href: "/monte-voce-mesmo", label: "Monte Você Mesmo", scrollTo: null },
 ];
 
 export function Header() {
   const location = useLocation();
+  const navigate = useNavigate();
   const { totalItems, setIsOpen } = useCart();
+
+  const handleNavClick = (e: React.MouseEvent, link: typeof navLinks[0]) => {
+    if (link.scrollTo) {
+      e.preventDefault();
+      
+      // If not on home page, navigate first then scroll
+      if (location.pathname !== "/") {
+        navigate("/");
+        setTimeout(() => {
+          const element = document.getElementById(link.scrollTo!);
+          element?.scrollIntoView({ behavior: "smooth" });
+        }, 100);
+      } else {
+        const element = document.getElementById(link.scrollTo);
+        element?.scrollIntoView({ behavior: "smooth" });
+      }
+    }
+  };
 
   return (
     <header className="sticky top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-md">
@@ -30,6 +49,7 @@ export function Header() {
             <Link
               key={link.href}
               to={link.href}
+              onClick={(e) => handleNavClick(e, link)}
               className={cn(
                 "text-sm font-medium transition-colors hover:text-primary",
                 location.pathname === link.href
