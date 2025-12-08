@@ -66,9 +66,9 @@ export function CategoryNavbar({ onCategorySelect, selectedCategory, showMonteSe
   const isOnLoja = location.pathname === '/loja';
 
   return (
-    <nav className="bg-gray-100 border-t border-gray-200">
+    <nav className="bg-gray-100 border-t border-gray-200 py-3">
       <div className="container">
-        <div className="flex items-center gap-1 overflow-x-auto py-2 scrollbar-hide">
+        <div className="flex flex-wrap items-center gap-2">
           {/* Monte seu PC - special link */}
           {showMonteSeuPC && (
             <Link
