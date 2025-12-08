@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Upload, Loader2, Check, Trash2, Package, Percent, Tag, Link as LinkIcon, Globe, FileSpreadsheet } from "lucide-react";
+import { ArrowLeft, Upload, Loader2, Check, Trash2, Package, Percent, Tag, Link as LinkIcon, Globe, FileSpreadsheet, Sparkles, Store } from "lucide-react";
 import { Link } from "react-router-dom";
 import { api, getCustomCategories, addCustomCategory, getHardwareCategories, addHardwareCategory, CustomCategory, HardwareCategoryDef } from "@/lib/api";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -20,6 +20,8 @@ interface ParsedProduct {
   imageUrl: string;
   title: string;
   description?: string;
+  simpleDescription?: string;
+  fullDescription?: string;
   costPrice: number;
   selected: boolean;
   detectedCategory: string;
@@ -116,6 +118,11 @@ const ExtractProducts = () => {
   const [extractUrl, setExtractUrl] = useState('');
   const [isExtracting, setIsExtracting] = useState(false);
   const [isLoadingFile, setIsLoadingFile] = useState(false);
+  
+  // AI Description generation states
+  const [storeText, setStoreText] = useState('');
+  const [isGeneratingDescriptions, setIsGeneratingDescriptions] = useState(false);
+  const [descriptionProgress, setDescriptionProgress] = useState({ current: 0, total: 0 });
 
   useEffect(() => {
     loadCategories();
@@ -647,6 +654,87 @@ const ExtractProducts = () => {
       .replace(/\b\w/g, c => c.toUpperCase());
   };
 
+  // Generate AI descriptions for all selected products
+  const generateDescriptions = async () => {
+    const toProcess = parsedProducts.filter(p => p.selected);
+    if (toProcess.length === 0) {
+      toast({
+        title: "Nenhum produto selecionado",
+        description: "Selecione pelo menos um produto para gerar descrições.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsGeneratingDescriptions(true);
+    setDescriptionProgress({ current: 0, total: toProcess.length });
+
+    try {
+      // Process in batches of 5 to avoid timeout
+      const batchSize = 5;
+      const batches = [];
+      for (let i = 0; i < toProcess.length; i += batchSize) {
+        batches.push(toProcess.slice(i, i + batchSize));
+      }
+
+      let processedCount = 0;
+      const allResults: { id: string; simpleDescription: string; fullDescription: string }[] = [];
+
+      for (const batch of batches) {
+        const response = await fetch('https://www.n8nbalao.com/api/generate-descriptions.php', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            products: batch.map(p => ({ id: p.id, title: p.title })),
+            storeText: storeText.trim()
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to generate descriptions');
+        }
+
+        const data = await response.json();
+        
+        if (data.success && data.results) {
+          allResults.push(...data.results);
+        }
+
+        processedCount += batch.length;
+        setDescriptionProgress({ current: processedCount, total: toProcess.length });
+      }
+
+      // Update products with generated descriptions
+      setParsedProducts(prev => prev.map(product => {
+        const result = allResults.find(r => r.id === product.id);
+        if (result) {
+          return {
+            ...product,
+            simpleDescription: result.simpleDescription || '',
+            fullDescription: result.fullDescription || '',
+            description: result.fullDescription || result.simpleDescription || ''
+          };
+        }
+        return product;
+      }));
+
+      toast({
+        title: "Descrições geradas!",
+        description: `${allResults.length} descrições criadas com IA.`
+      });
+    } catch (error) {
+      console.error('Error generating descriptions:', error);
+      toast({
+        title: "Erro ao gerar descrições",
+        description: "Verifique se a API key do OpenAI está configurada em Admin > Configurações.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsGeneratingDescriptions(false);
+      setDescriptionProgress({ current: 0, total: 0 });
+    }
+  };
+
   const importProducts = async () => {
     const toImport = parsedProducts.filter(p => p.selected);
     if (toImport.length === 0) {
@@ -766,8 +854,8 @@ const ExtractProducts = () => {
 
         await api.createProduct({
           title: product.title,
-          subtitle: '',
-          description: product.description || '',
+          subtitle: product.simpleDescription || '',
+          description: product.fullDescription || product.description || '',
           productType: productTypeValue as any,
           categories: [productCategory],
           media,
@@ -1048,6 +1136,52 @@ const ExtractProducts = () => {
                 <p className="text-xs text-gray-500">Usado quando não detectada</p>
               </div>
             </CardContent>
+            
+            {/* AI Description Generation */}
+            <CardContent className="border-t pt-4">
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 text-gray-700">
+                  <Sparkles className="h-4 w-4" style={{ color: '#DC2626' }} />
+                  <Label className="font-semibold">Gerar Descrições com IA</Label>
+                </div>
+                <div className="flex gap-3">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Store className="h-4 w-4 text-gray-500" />
+                      <span className="text-sm text-gray-600">Texto da Loja (adicionado às descrições)</span>
+                    </div>
+                    <Input
+                      value={storeText}
+                      onChange={(e) => setStoreText(e.target.value)}
+                      placeholder="Ex: Balão da Informática - A melhor loja do Brasil"
+                      className="border-2 bg-white text-gray-800 placeholder:text-gray-400"
+                      style={{ borderColor: '#E5E7EB' }}
+                    />
+                  </div>
+                  <Button
+                    onClick={generateDescriptions}
+                    disabled={isGeneratingDescriptions || selectedCount === 0}
+                    className="self-end text-white hover:opacity-90"
+                    style={{ backgroundColor: '#7C3AED' }}
+                  >
+                    {isGeneratingDescriptions ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        {descriptionProgress.current}/{descriptionProgress.total}
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="h-4 w-4 mr-2" />
+                        Gerar Descrições ({selectedCount})
+                      </>
+                    )}
+                  </Button>
+                </div>
+                <p className="text-xs text-gray-500">
+                  A IA criará descrições simples e completas baseadas no nome de cada produto selecionado.
+                </p>
+              </div>
+            </CardContent>
           </Card>
         )}
 
@@ -1092,6 +1226,7 @@ const ExtractProducts = () => {
                       </TableHead>
                       <TableHead className="w-16">Imagem</TableHead>
                       <TableHead>Título</TableHead>
+                      <TableHead>Descrição IA</TableHead>
                       <TableHead>Categoria Detectada</TableHead>
                       <TableHead className="text-right">Custo</TableHead>
                       <TableHead className="text-right">Custo Ajustado (+{taxa}%)</TableHead>
@@ -1121,8 +1256,22 @@ const ExtractProducts = () => {
                             </div>
                           )}
                         </TableCell>
-                        <TableCell className="max-w-xs truncate text-gray-800" title={product.title}>
+                        <TableCell className="max-w-[200px] truncate text-gray-800" title={product.title}>
                           {product.title}
+                        </TableCell>
+                        <TableCell className="max-w-[250px]">
+                          {product.fullDescription ? (
+                            <div className="space-y-1">
+                              <p className="text-xs text-green-600 font-medium truncate" title={product.simpleDescription}>
+                                ✓ {product.simpleDescription}
+                              </p>
+                              <p className="text-xs text-gray-500 line-clamp-2" title={product.fullDescription}>
+                                {product.fullDescription}
+                              </p>
+                            </div>
+                          ) : (
+                            <span className="text-xs text-gray-400 italic">Não gerada</span>
+                          )}
                         </TableCell>
                         <TableCell>
                           <div className="flex flex-col gap-1">
