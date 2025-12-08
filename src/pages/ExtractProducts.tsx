@@ -5,202 +5,203 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Link as LinkIcon, FileText, Loader2, Check, Plus, Save, Eye, EyeOff } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
-import { api, getCustomCategories, addCustomCategory } from "@/lib/api";
-import { getIconForCategoryName } from "@/lib/icons";
+import { ArrowLeft, Upload, Loader2, Check, Trash2, Package, Percent, Tag
+} from "lucide-react";
+import { Link } from "react-router-dom";
+import { api, getCustomCategories, CustomCategory } from "@/lib/api";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
-interface ExtractedProduct {
+interface ParsedProduct {
+  id: string;
+  imageUrl: string;
   title: string;
-  price: number | null;
-  description: string;
-  brand: string;
-  model: string;
-  category: string;
-  specs: Record<string, string>;
-  images: string[];
-  link: string;
-  imported?: boolean;
-  importing?: boolean;
+  costPrice: number;
+  selected: boolean;
 }
 
 const ExtractProducts = () => {
   const { toast } = useToast();
-  const navigate = useNavigate();
   
-  const [apiKey, setApiKey] = useState('');
-  const [showApiKey, setShowApiKey] = useState(false);
-  const [inputUrl, setInputUrl] = useState('');
-  const [manualHtml, setManualHtml] = useState('');
-  const [inputMode, setInputMode] = useState<'url' | 'html'>('url');
-  const [isLoading, setIsLoading] = useState(false);
-  const [extractedProduct, setExtractedProduct] = useState<ExtractedProduct | null>(null);
+  const [rawData, setRawData] = useState('');
+  const [parsedProducts, setParsedProducts] = useState<ParsedProduct[]>([]);
+  const [margin, setMargin] = useState('30');
+  const [productType, setProductType] = useState('');
+  const [category, setCategory] = useState('');
+  const [categories, setCategories] = useState<CustomCategory[]>([]);
+  const [isImporting, setIsImporting] = useState(false);
+  const [importProgress, setImportProgress] = useState({ current: 0, total: 0 });
 
   useEffect(() => {
-    const savedKey = localStorage.getItem('openai_api_key');
-    if (savedKey) {
-      setApiKey(savedKey);
-    }
+    loadCategories();
   }, []);
 
-  const saveApiKey = () => {
-    localStorage.setItem('openai_api_key', apiKey);
+  const loadCategories = async () => {
+    const cats = await getCustomCategories();
+    setCategories(cats);
+    if (cats.length > 0 && !productType) {
+      setProductType(cats[0].key);
+      setCategory(cats[0].key);
+    }
+  };
+
+  const parseScraperData = () => {
+    if (!rawData.trim()) {
+      toast({
+        title: "Dados necessários",
+        description: "Cole os dados do scraper na área de texto.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const lines = rawData.trim().split('\n');
+    const products: ParsedProduct[] = [];
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
+      if (!line || line.startsWith('imageCard')) continue; // Skip header
+
+      // Split by tab
+      const parts = line.split('\t');
+      if (parts.length < 3) continue;
+
+      const imageUrl = parts[0]?.trim() || '';
+      const title = parts[1]?.trim() || '';
+      const priceText = parts[2]?.trim() || '';
+
+      // Parse price: "R$ 1.000,00" -> 1000.00
+      const priceMatch = priceText.match(/R\$\s*([\d.,]+)/);
+      let costPrice = 0;
+      if (priceMatch) {
+        costPrice = parseFloat(
+          priceMatch[1]
+            .replace(/\./g, '') // Remove thousand separators
+            .replace(',', '.') // Convert decimal separator
+        );
+      }
+
+      if (title && costPrice > 0) {
+        products.push({
+          id: crypto.randomUUID(),
+          imageUrl,
+          title,
+          costPrice,
+          selected: true
+        });
+      }
+    }
+
+    if (products.length === 0) {
+      toast({
+        title: "Nenhum produto encontrado",
+        description: "Verifique se os dados estão no formato correto.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setParsedProducts(products);
     toast({
-      title: "API Key salva",
-      description: "Sua chave OpenAI foi salva localmente."
+      title: "Produtos carregados",
+      description: `${products.length} produtos encontrados.`
     });
   };
 
-  const extractProduct = async () => {
-    if (!apiKey) {
-      toast({
-        title: "API Key necessária",
-        description: "Configure sua chave OpenAI primeiro.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    if (inputMode === 'url' && !inputUrl) {
-      toast({
-        title: "URL necessária",
-        description: "Digite a URL do produto.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    if (inputMode === 'html' && !manualHtml) {
-      toast({
-        title: "HTML necessário",
-        description: "Cole o código HTML da página.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setIsLoading(true);
-    setExtractedProduct(null);
-
-    try {
-      const response = await fetch('https://www.n8nbalao.com/api/extract.php', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          apiKey,
-          url: inputMode === 'url' ? inputUrl : '',
-          manualHtml: inputMode === 'html' ? manualHtml : ''
-        })
-      });
-
-      const data = await response.json();
-
-      if (!data.success) {
-        toast({
-          title: "Erro na extração",
-          description: data.error || "Não foi possível extrair o produto.",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      setExtractedProduct(data.product);
-      toast({
-        title: "Produto extraído",
-        description: `"${data.product.title}" encontrado.`
-      });
-
-    } catch (error) {
-      console.error('Extraction error:', error);
-      toast({
-        title: "Erro",
-        description: "Falha na conexão com o servidor.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsLoading(false);
-    }
+  const calculateFinalPrice = (costPrice: number) => {
+    const marginPercent = parseFloat(margin) || 0;
+    return costPrice * (1 + marginPercent / 100);
   };
 
-  const importProduct = async () => {
-    if (!extractedProduct) return;
+  const toggleProduct = (id: string) => {
+    setParsedProducts(prev => 
+      prev.map(p => p.id === id ? { ...p, selected: !p.selected } : p)
+    );
+  };
 
-    setExtractedProduct(prev => prev ? { ...prev, importing: true } : null);
+  const toggleAll = (selected: boolean) => {
+    setParsedProducts(prev => prev.map(p => ({ ...p, selected })));
+  };
 
-    try {
-      // Check if category exists, create if not
-      const customCategories = await getCustomCategories();
-      const categoryKey = extractedProduct.category?.toLowerCase().replace(/\s+/g, '_') || 'outros';
-      
-      // Check for existing category (match by key or label, case insensitive)
-      const existingCategory = customCategories.find(
-        cat => cat.key.toLowerCase() === categoryKey || 
-               cat.label.toLowerCase() === extractedProduct.category?.toLowerCase()
-      );
+  const removeProduct = (id: string) => {
+    setParsedProducts(prev => prev.filter(p => p.id !== id));
+  };
 
-      let finalCategoryKey = categoryKey;
-      
-      if (existingCategory) {
-        // Use existing category key
-        finalCategoryKey = existingCategory.key;
-      } else if (extractedProduct.category) {
-        // Create new category with smart icon
-        const categoryLabel = extractedProduct.category.charAt(0).toUpperCase() + extractedProduct.category.slice(1);
-        const smartIcon = getIconForCategoryName(extractedProduct.category);
-        await addCustomCategory(categoryKey, categoryLabel, smartIcon);
-        finalCategoryKey = categoryKey;
-      }
+  const selectedCount = parsedProducts.filter(p => p.selected).length;
 
-      // Prepare media from images
-      const media = extractedProduct.images?.slice(0, 5).map(url => ({
-        type: 'image' as const,
-        url
-      })) || [];
-
-      // Prepare specs
-      const specs: Record<string, string> = {};
-      if (extractedProduct.specs) {
-        Object.entries(extractedProduct.specs).forEach(([key, value]) => {
-          if (value) specs[key] = String(value);
-        });
-      }
-
-      await api.createProduct({
-        title: extractedProduct.title || 'Produto Importado',
-        subtitle: extractedProduct.brand ? `${extractedProduct.brand} ${extractedProduct.model || ''}`.trim() : '',
-        description: extractedProduct.description || '',
-        productType: finalCategoryKey as any,
-        categories: [finalCategoryKey],
-        media,
-        specs,
-        totalPrice: extractedProduct.price || 0,
-        components: {},
-        downloadUrl: ''
-      });
-
-      setExtractedProduct(prev => prev ? { ...prev, imported: true, importing: false } : null);
-
+  const importProducts = async () => {
+    if (!productType || !category) {
       toast({
-        title: "Produto importado",
-        description: `"${extractedProduct.title}" foi adicionado ao catálogo.`
-      });
-
-    } catch (error) {
-      console.error('Import error:', error);
-      setExtractedProduct(prev => prev ? { ...prev, importing: false } : null);
-      toast({
-        title: "Erro ao importar",
-        description: "Não foi possível salvar o produto.",
+        title: "Configuração necessária",
+        description: "Selecione o tipo e categoria dos produtos.",
         variant: "destructive"
       });
+      return;
     }
+
+    const toImport = parsedProducts.filter(p => p.selected);
+    if (toImport.length === 0) {
+      toast({
+        title: "Nenhum produto selecionado",
+        description: "Selecione pelo menos um produto para importar.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsImporting(true);
+    setImportProgress({ current: 0, total: toImport.length });
+
+    let successCount = 0;
+    let errorCount = 0;
+
+    for (let i = 0; i < toImport.length; i++) {
+      const product = toImport[i];
+      setImportProgress({ current: i + 1, total: toImport.length });
+
+      try {
+        const finalPrice = calculateFinalPrice(product.costPrice);
+        
+        const media = product.imageUrl ? [{ type: 'image' as const, url: product.imageUrl }] : [];
+
+        await api.createProduct({
+          title: product.title,
+          subtitle: '',
+          description: '',
+          productType: productType as any,
+          categories: [category],
+          media,
+          specs: {},
+          totalPrice: Math.round(finalPrice * 100) / 100,
+          components: {},
+          downloadUrl: ''
+        });
+
+        successCount++;
+      } catch (error) {
+        console.error('Error importing product:', error);
+        errorCount++;
+      }
+    }
+
+    setIsImporting(false);
+    
+    // Remove imported products from list
+    setParsedProducts(prev => prev.filter(p => !p.selected));
+
+    toast({
+      title: "Importação concluída",
+      description: `${successCount} produtos importados${errorCount > 0 ? `, ${errorCount} erros` : ''}.`
+    });
   };
+
+  const totalCost = parsedProducts.filter(p => p.selected).reduce((sum, p) => sum + p.costPrice, 0);
+  const totalSale = parsedProducts.filter(p => p.selected).reduce((sum, p) => sum + calculateFinalPrice(p.costPrice), 0);
 
   return (
     <div className="min-h-screen bg-background p-6">
-      <div className="max-w-4xl mx-auto space-y-6">
+      <div className="max-w-6xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex items-center gap-4">
           <Link to="/admin">
@@ -209,212 +210,229 @@ const ExtractProducts = () => {
             </Button>
           </Link>
           <div>
-            <h1 className="text-2xl font-bold">Extrair Produto</h1>
-            <p className="text-muted-foreground">Extraia informações de produtos usando IA</p>
+            <h1 className="text-2xl font-bold">Importar Produtos em Massa</h1>
+            <p className="text-muted-foreground">Cole os dados do scraper para importar múltiplos produtos</p>
           </div>
         </div>
 
-        {/* API Key */}
+        {/* Data Input */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Configuração OpenAI</CardTitle>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Upload className="h-5 w-5" />
+              Dados do Scraper
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex gap-2">
-              <div className="flex-1 relative">
-                <Input
-                  type={showApiKey ? "text" : "password"}
-                  value={apiKey}
-                  onChange={(e) => setApiKey(e.target.value)}
-                  placeholder="sk-..."
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="absolute right-2 top-1/2 -translate-y-1/2 h-6 w-6"
-                  onClick={() => setShowApiKey(!showApiKey)}
-                >
-                  {showApiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </Button>
-              </div>
-              <Button onClick={saveApiKey} variant="outline">
-                <Save className="h-4 w-4 mr-2" />
-                Salvar
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Input Mode Selection */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Fonte dos Dados</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex gap-2">
-              <Button
-                variant={inputMode === 'url' ? 'default' : 'outline'}
-                onClick={() => setInputMode('url')}
-                className="flex-1"
-              >
-                <LinkIcon className="h-4 w-4 mr-2" />
-                URL do Produto
-              </Button>
-              <Button
-                variant={inputMode === 'html' ? 'default' : 'outline'}
-                onClick={() => setInputMode('html')}
-                className="flex-1"
-              >
-                <FileText className="h-4 w-4 mr-2" />
-                Colar HTML
-              </Button>
-            </div>
-
-            {inputMode === 'url' ? (
-              <div className="space-y-2">
-                <Label>URL do Produto</Label>
-                <Input
-                  value={inputUrl}
-                  onChange={(e) => setInputUrl(e.target.value)}
-                  placeholder="https://www.mercadolivre.com.br/produto..."
-                />
-                <p className="text-xs text-muted-foreground">
-                  Cole a URL direta do produto. Para sites com proteção anti-bot, use "Colar HTML".
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                <Label>Código HTML</Label>
-                <Textarea
-                  value={manualHtml}
-                  onChange={(e) => setManualHtml(e.target.value)}
-                  placeholder="Cole aqui o HTML da página (Ctrl+U no navegador)..."
-                  className="min-h-[200px] font-mono text-xs"
-                />
-                <p className="text-xs text-muted-foreground">
-                  Abra a página do produto, pressione Ctrl+U, copie todo o conteúdo e cole aqui.
-                </p>
-              </div>
-            )}
-
-            <Button 
-              onClick={extractProduct} 
-              disabled={isLoading}
-              className="w-full"
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Extraindo...
-                </>
-              ) : (
-                <>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Extrair Produto
-                </>
-              )}
+            <Textarea
+              value={rawData}
+              onChange={(e) => setRawData(e.target.value)}
+              placeholder={`Cole aqui os dados do scraper (formato tab-separated):
+imageCard src	titulo	preço	...
+https://images.kabum.com.br/...	Gift Card KaBuM: 1.000 Reais	R$ 1.000,00	...`}
+              className="min-h-[200px] font-mono text-xs"
+            />
+            <Button onClick={parseScraperData} className="w-full">
+              <Package className="h-4 w-4 mr-2" />
+              Carregar Produtos
             </Button>
           </CardContent>
         </Card>
 
-        {/* Extracted Product */}
-        {extractedProduct && (
+        {/* Configuration */}
+        {parsedProducts.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Configuração da Importação</CardTitle>
+            </CardHeader>
+            <CardContent className="grid md:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  <Percent className="h-4 w-4" />
+                  Margem de Lucro (%)
+                </Label>
+                <Input
+                  type="number"
+                  value={margin}
+                  onChange={(e) => setMargin(e.target.value)}
+                  placeholder="30"
+                  min="0"
+                  max="500"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  <Tag className="h-4 w-4" />
+                  Tipo do Produto
+                </Label>
+                <Select value={productType} onValueChange={setProductType}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o tipo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categories.map(cat => (
+                      <SelectItem key={cat.key} value={cat.key}>
+                        {cat.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  <Package className="h-4 w-4" />
+                  Categoria
+                </Label>
+                <Select value={category} onValueChange={setCategory}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione a categoria" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categories.map(cat => (
+                      <SelectItem key={cat.key} value={cat.key}>
+                        {cat.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Products List */}
+        {parsedProducts.length > 0 && (
           <Card>
             <CardHeader>
               <CardTitle className="text-lg flex items-center justify-between">
-                Produto Extraído
-                {extractedProduct.imported && (
-                  <span className="text-sm text-green-500 flex items-center gap-1">
-                    <Check className="h-4 w-4" />
-                    Importado
-                  </span>
-                )}
+                <span>Produtos ({parsedProducts.length})</span>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => toggleAll(true)}
+                  >
+                    Selecionar Todos
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => toggleAll(false)}
+                  >
+                    Desmarcar Todos
+                  </Button>
+                </div>
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex gap-4">
-                {extractedProduct.images?.[0] && (
-                  <img 
-                    src={extractedProduct.images[0]} 
-                    alt={extractedProduct.title}
-                    className="w-32 h-32 object-contain rounded-lg bg-muted"
-                  />
-                )}
-                <div className="flex-1 space-y-2">
-                  <h3 className="font-semibold text-lg">{extractedProduct.title}</h3>
-                  {extractedProduct.brand && (
-                    <p className="text-sm text-muted-foreground">
-                      {extractedProduct.brand} {extractedProduct.model}
-                    </p>
-                  )}
-                  {extractedProduct.price && (
-                    <p className="text-xl font-bold text-primary">
-                      R$ {extractedProduct.price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                    </p>
-                  )}
-                  {extractedProduct.category && (
-                    <span className="inline-block px-2 py-1 bg-muted rounded text-xs">
-                      {extractedProduct.category}
-                    </span>
-                  )}
+            <CardContent>
+              <div className="rounded-md border overflow-hidden">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-12">
+                        <Checkbox
+                          checked={selectedCount === parsedProducts.length}
+                          onCheckedChange={(checked) => toggleAll(!!checked)}
+                        />
+                      </TableHead>
+                      <TableHead className="w-16">Imagem</TableHead>
+                      <TableHead>Título</TableHead>
+                      <TableHead className="text-right">Custo</TableHead>
+                      <TableHead className="text-right">Venda (+{margin}%)</TableHead>
+                      <TableHead className="w-12"></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {parsedProducts.map((product) => (
+                      <TableRow key={product.id} className={!product.selected ? 'opacity-50' : ''}>
+                        <TableCell>
+                          <Checkbox
+                            checked={product.selected}
+                            onCheckedChange={() => toggleProduct(product.id)}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          {product.imageUrl ? (
+                            <img
+                              src={product.imageUrl}
+                              alt=""
+                              className="w-12 h-12 object-contain rounded bg-muted"
+                            />
+                          ) : (
+                            <div className="w-12 h-12 bg-muted rounded flex items-center justify-center">
+                              <Package className="h-4 w-4 text-muted-foreground" />
+                            </div>
+                          )}
+                        </TableCell>
+                        <TableCell className="max-w-xs truncate" title={product.title}>
+                          {product.title}
+                        </TableCell>
+                        <TableCell className="text-right text-muted-foreground">
+                          R$ {product.costPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        </TableCell>
+                        <TableCell className="text-right font-medium text-primary">
+                          R$ {calculateFinalPrice(product.costPrice).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-destructive hover:text-destructive"
+                            onClick={() => removeProduct(product.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* Summary */}
+              <div className="mt-4 p-4 bg-muted/50 rounded-lg flex flex-wrap gap-6 justify-between items-center">
+                <div className="space-y-1">
+                  <p className="text-sm text-muted-foreground">Selecionados</p>
+                  <p className="text-xl font-bold">{selectedCount} produtos</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm text-muted-foreground">Total Custo</p>
+                  <p className="text-xl font-bold">
+                    R$ {totalCost.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  </p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm text-muted-foreground">Total Venda (+{margin}%)</p>
+                  <p className="text-xl font-bold text-primary">
+                    R$ {totalSale.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  </p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm text-muted-foreground">Lucro Estimado</p>
+                  <p className="text-xl font-bold text-green-500">
+                    R$ {(totalSale - totalCost).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  </p>
                 </div>
               </div>
 
-              {extractedProduct.description && (
-                <div>
-                  <Label className="text-sm font-medium">Descrição</Label>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    {extractedProduct.description.substring(0, 300)}
-                    {extractedProduct.description.length > 300 && '...'}
-                  </p>
-                </div>
-              )}
-
-              {extractedProduct.specs && Object.keys(extractedProduct.specs).length > 0 && (
-                <div>
-                  <Label className="text-sm font-medium">Especificações</Label>
-                  <div className="grid grid-cols-2 gap-2 mt-2">
-                    {Object.entries(extractedProduct.specs).slice(0, 6).map(([key, value]) => (
-                      <div key={key} className="text-xs">
-                        <span className="text-muted-foreground">{key}:</span>{' '}
-                        <span>{value}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {extractedProduct.link && (
-                <a 
-                  href={extractedProduct.link} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="text-xs text-primary hover:underline block"
-                >
-                  Ver produto original →
-                </a>
-              )}
-
+              {/* Import Button */}
               <Button
-                onClick={importProduct}
-                disabled={extractedProduct.imported || extractedProduct.importing}
-                className="w-full"
+                onClick={importProducts}
+                disabled={isImporting || selectedCount === 0 || !productType || !category}
+                className="w-full mt-4"
+                size="lg"
               >
-                {extractedProduct.importing ? (
+                {isImporting ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Importando...
-                  </>
-                ) : extractedProduct.imported ? (
-                  <>
-                    <Check className="h-4 w-4 mr-2" />
-                    Importado
+                    Importando {importProgress.current}/{importProgress.total}...
                   </>
                 ) : (
                   <>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Importar Produto
+                    <Check className="h-4 w-4 mr-2" />
+                    Importar {selectedCount} Produtos
                   </>
                 )}
               </Button>
