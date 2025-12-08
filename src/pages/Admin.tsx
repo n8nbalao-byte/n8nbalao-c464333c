@@ -1693,8 +1693,8 @@ export default function Admin() {
   // Login Screen
   if (!isAuthenticated) {
     return (
-      <div className="flex min-h-screen items-center justify-center p-4" style={{ backgroundColor: '#FEF2F2' }}>
-        <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-xl border-2" style={{ borderColor: '#DC2626' }}>
+      <div className="flex min-h-screen items-center justify-center p-4" style={{ backgroundColor: '#DC2626' }}>
+        <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-xl">
           <div className="mb-8 text-center">
             <img src={balaoLogoFull} alt="Balão da Informática" className="mx-auto h-20 mb-4" />
             <p className="mt-2 text-gray-600">Acesso restrito</p>
