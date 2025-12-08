@@ -11,14 +11,29 @@ interface CarouselConfig {
 
 const CAROUSEL_CONFIGS: CarouselConfig[] = [
   {
+    key: "home_hero_banner",
+    label: "Banner Principal",
+    description: "Banner principal no topo da página inicial (recomendado: 1920x480px)"
+  },
+  {
+    key: "home_promo_left",
+    label: "Banner Promoção Esquerda",
+    description: "Banner promocional lado esquerdo (recomendado: 800x400px)"
+  },
+  {
+    key: "home_promo_right",
+    label: "Banner Promoção Direita",
+    description: "Banner promocional lado direito (recomendado: 800x400px)"
+  },
+  {
     key: "nocode_section",
-    label: "Seção No-Code",
-    description: "Imagens na seção 'Interface No-Code quando você precisa'"
+    label: "Seção No-Code (Automação)",
+    description: "Imagens na página de Automação - seção 'Interface No-Code'"
   },
   {
     key: "workflow_section",
-    label: "Seção Workflow",
-    description: "Imagens na seção 'Automatize processos complexos'"
+    label: "Seção Workflow (Automação)",
+    description: "Imagens na página de Automação - seção 'Automatize processos'"
   }
 ];
 

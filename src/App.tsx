@@ -5,7 +5,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { CartProvider } from "@/contexts/CartContext";
 import { CartDrawer } from "@/components/CartDrawer";
-import Index from "./pages/Index";
+import Home from "./pages/Home";
+import Automacao from "./pages/Automacao";
 import Loja from "./pages/Loja";
 import Produto from "./pages/Produto";
 import Admin from "./pages/Admin";
@@ -29,7 +30,8 @@ const App = () => (
           <Sonner />
           <CartDrawer />
           <Routes>
-            <Route path="/" element={<Index />} />
+            <Route path="/" element={<Home />} />
+            <Route path="/automacao" element={<Automacao />} />
             <Route path="/loja" element={<Loja />} />
             <Route path="/produto/:id" element={<Produto />} />
             <Route path="/hardware/:id" element={<Hardware />} />
