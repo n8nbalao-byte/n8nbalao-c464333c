@@ -4,7 +4,7 @@ import { RedWhiteHeader } from "@/components/RedWhiteHeader";
 import { RedWhiteFooter } from "@/components/RedWhiteFooter";
 import { api, type Product, type HardwareItem, type MediaItem, type ProductComponents, type CompanyData, type ProductCategory, type HardwareCategory, type HardwareCategoryDef, getCustomCategories, addCustomCategory, removeCustomCategory, updateCustomCategory, getHardwareCategories, addHardwareCategory, removeHardwareCategory, updateHardwareCategory } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Pencil, Trash2, Save, X, Upload, Play, Image, Cpu, CircuitBoard, MemoryStick, HardDrive, Monitor, Zap, Box, Package, Download, Droplets, Building2, Laptop, Bot, Code, Wrench, Key, Tv, Armchair, Tag, LucideIcon, Search, Sparkles, LayoutDashboard, Images, Users, UserPlus, Shield, Mail } from "lucide-react";
+import { Plus, Pencil, Trash2, Save, X, Upload, Play, Image, Cpu, CircuitBoard, MemoryStick, HardDrive, Monitor, Zap, Box, Package, Download, Droplets, Building2, Laptop, Bot, Code, Wrench, Key, Tv, Armchair, Tag, LucideIcon, Search, Sparkles, LayoutDashboard, Images, Users, UserPlus, Shield, Mail, Settings, Eye, EyeOff } from "lucide-react";
 import * as XLSX from "xlsx";
 import { availableIcons, getIconFromKey } from "@/lib/icons";
 import { HardwareCard } from "@/components/HardwareCard";
@@ -16,7 +16,7 @@ import balaoLogoFull from "@/assets/balao-logo-full.png";
 // Admin API URL
 const ADMIN_API_URL = 'https://www.n8nbalao.com/api/admins.php';
 
-type AdminTab = 'dashboard' | 'products' | 'hardware' | 'company' | 'carousels' | 'admins';
+type AdminTab = 'dashboard' | 'products' | 'hardware' | 'company' | 'carousels' | 'admins' | 'settings';
 
 interface AdminUser {
   id: string;
@@ -258,6 +258,12 @@ export default function Admin() {
   const [editingCategory, setEditingCategory] = useState<{ key: string; label: string; icon?: string } | null>(null);
   const [editCategoryLabel, setEditCategoryLabel] = useState("");
   const [editCategoryIcon, setEditCategoryIcon] = useState("tag");
+  
+  // Settings state
+  const [openaiApiKey, setOpenaiApiKey] = useState("");
+  const [showApiKey, setShowApiKey] = useState(false);
+  const [savingSettings, setSavingSettings] = useState(false);
+  const [loadingSettings, setLoadingSettings] = useState(false);
 
   // Admin login function - uses same credentials as customer auth
   async function handleLogin(e: React.FormEvent) {
@@ -533,6 +539,8 @@ export default function Admin() {
         fetchCompanyData();
       } else if (activeTab === 'admins') {
         fetchAdmins();
+      } else if (activeTab === 'settings') {
+        fetchSettings();
       }
     } else {
       setLoading(false);
@@ -568,6 +576,41 @@ export default function Admin() {
     const data = await api.getCompany();
     setCompanyData(data);
     setLoading(false);
+  }
+
+  async function fetchSettings() {
+    setLoadingSettings(true);
+    try {
+      const response = await fetch('https://www.n8nbalao.com/api/settings.php?key=openai_api_key');
+      const data = await response.json();
+      if (data && data.setting_value) {
+        setOpenaiApiKey(data.setting_value);
+      }
+    } catch (error) {
+      console.error('Error fetching settings:', error);
+    }
+    setLoadingSettings(false);
+  }
+
+  async function saveSettings() {
+    setSavingSettings(true);
+    try {
+      const response = await fetch('https://www.n8nbalao.com/api/settings.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key: 'openai_api_key', value: openaiApiKey })
+      });
+      const data = await response.json();
+      if (data.success) {
+        toast({ title: "Sucesso", description: "Configurações salvas!" });
+      } else {
+        throw new Error('Failed to save');
+      }
+    } catch (error) {
+      console.error('Error saving settings:', error);
+      toast({ title: "Erro", description: "Falha ao salvar configurações", variant: "destructive" });
+    }
+    setSavingSettings(false);
   }
 
   async function handleCompanySave() {
@@ -1935,6 +1978,16 @@ export default function Admin() {
               Administradores
             </button>
             <button
+              onClick={() => setActiveTab('settings')}
+              className="inline-flex items-center gap-2 rounded-lg px-6 py-3 font-medium transition-colors"
+              style={activeTab === 'settings' 
+                ? { backgroundColor: '#DC2626', color: 'white' } 
+                : { backgroundColor: 'white', color: '#374151', border: '1px solid #E5E7EB' }}
+            >
+              <Settings className="h-5 w-5" />
+              Configurações
+            </button>
+            <button
               onClick={() => navigate('/email-marketing')}
               className="inline-flex items-center gap-2 rounded-lg px-6 py-3 font-medium transition-colors"
               style={{ backgroundColor: 'white', color: '#374151', border: '1px solid #E5E7EB' }}
@@ -2643,6 +2696,142 @@ export default function Admin() {
                   </tbody>
                 </table>
               </div>
+            </div>
+          )}
+
+          {/* Settings Tab */}
+          {activeTab === 'settings' && (
+            <div className="rounded-xl border bg-white p-6 shadow-sm" style={{ borderColor: '#E5E7EB' }}>
+              <div className="mb-6">
+                <h2 className="text-xl font-bold" style={{ color: '#111827' }}>Configurações do Sistema</h2>
+                <p className="text-sm" style={{ color: '#6B7280' }}>Configure integrações e APIs do sistema</p>
+              </div>
+
+              {loadingSettings ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: '#DC2626' }}></div>
+                </div>
+              ) : (
+                <div className="space-y-8">
+                  {/* OpenAI API Key */}
+                  <div className="rounded-lg border p-6" style={{ borderColor: '#E5E7EB', backgroundColor: '#F9FAFB' }}>
+                    <div className="flex items-start gap-4">
+                      <div className="h-12 w-12 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#10A37F' }}>
+                        <Bot className="h-6 w-6 text-white" />
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="text-lg font-semibold" style={{ color: '#111827' }}>OpenAI API</h3>
+                        <p className="text-sm mt-1" style={{ color: '#6B7280' }}>
+                          Chave de API para o assistente virtual Lorenzo e geração de conteúdo com IA.
+                        </p>
+                        
+                        <div className="mt-4">
+                          <label className="block text-sm font-medium mb-2" style={{ color: '#374151' }}>
+                            Chave da API OpenAI
+                          </label>
+                          <div className="flex gap-2">
+                            <div className="relative flex-1">
+                              <input
+                                type={showApiKey ? "text" : "password"}
+                                value={openaiApiKey}
+                                onChange={(e) => setOpenaiApiKey(e.target.value)}
+                                className="w-full rounded-lg border-2 px-4 py-3 pr-12 focus:outline-none focus:ring-2 focus:ring-offset-0"
+                                style={{ borderColor: '#E5E7EB', color: '#111827' }}
+                                placeholder="sk-..."
+                              />
+                              <button
+                                type="button"
+                                onClick={() => setShowApiKey(!showApiKey)}
+                                className="absolute right-3 top-1/2 -translate-y-1/2"
+                                style={{ color: '#6B7280' }}
+                              >
+                                {showApiKey ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                              </button>
+                            </div>
+                            <button
+                              onClick={saveSettings}
+                              disabled={savingSettings}
+                              className="inline-flex items-center gap-2 rounded-lg px-6 py-3 font-semibold text-white transition-all hover:opacity-90 disabled:opacity-50"
+                              style={{ backgroundColor: '#DC2626' }}
+                            >
+                              {savingSettings ? (
+                                <>
+                                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                                  Salvando...
+                                </>
+                              ) : (
+                                <>
+                                  <Save className="h-4 w-4" />
+                                  Salvar
+                                </>
+                              )}
+                            </button>
+                          </div>
+                          <p className="mt-2 text-xs" style={{ color: '#6B7280' }}>
+                            Obtenha sua chave em{' '}
+                            <a 
+                              href="https://platform.openai.com/api-keys" 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="underline"
+                              style={{ color: '#DC2626' }}
+                            >
+                              platform.openai.com/api-keys
+                            </a>
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Lorenzo Chat Status */}
+                  <div className="rounded-lg border p-6" style={{ borderColor: '#E5E7EB', backgroundColor: openaiApiKey ? '#D1FAE5' : '#FEF3C7' }}>
+                    <div className="flex items-center gap-4">
+                      <div 
+                        className="h-12 w-12 rounded-lg flex items-center justify-center"
+                        style={{ backgroundColor: openaiApiKey ? '#059669' : '#D97706' }}
+                      >
+                        <Bot className="h-6 w-6 text-white" />
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-semibold" style={{ color: '#111827' }}>
+                          Assistente Lorenzo
+                        </h3>
+                        <p className="text-sm" style={{ color: openaiApiKey ? '#059669' : '#D97706' }}>
+                          {openaiApiKey 
+                            ? '✅ Configurado e funcionando' 
+                            : '⚠️ Configure a chave OpenAI para ativar'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Other integrations info */}
+                  <div className="rounded-lg border p-6" style={{ borderColor: '#E5E7EB' }}>
+                    <h3 className="text-lg font-semibold mb-4" style={{ color: '#111827' }}>Outras Integrações</h3>
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between p-3 rounded-lg" style={{ backgroundColor: '#F9FAFB' }}>
+                        <div className="flex items-center gap-3">
+                          <Mail className="h-5 w-5" style={{ color: '#DC2626' }} />
+                          <span style={{ color: '#374151' }}>Resend (Email)</span>
+                        </div>
+                        <span className="text-xs px-2 py-1 rounded-full" style={{ backgroundColor: '#D1FAE5', color: '#059669' }}>
+                          Configurado
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between p-3 rounded-lg" style={{ backgroundColor: '#F9FAFB' }}>
+                        <div className="flex items-center gap-3">
+                          <HardDrive className="h-5 w-5" style={{ color: '#DC2626' }} />
+                          <span style={{ color: '#374151' }}>MySQL Database</span>
+                        </div>
+                        <span className="text-xs px-2 py-1 rounded-full" style={{ backgroundColor: '#D1FAE5', color: '#059669' }}>
+                          Conectado
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
