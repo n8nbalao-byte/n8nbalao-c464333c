@@ -14,14 +14,39 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit();
 }
 
+// Database connection to get API key from settings
+$host = 'localhost';
+$dbname = 'u770915504_n8nbalao';
+$username = 'u770915504_n8nbalao';
+$password = 'Balao2025';
+
+try {
+    $pdo = new PDO("mysql:host=$host;dbname=$dbname;charset=utf8mb4", $username, $password);
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+} catch (PDOException $e) {
+    echo json_encode(['success' => false, 'error' => 'Database connection failed']);
+    exit();
+}
+
+// Get OpenAI API key from settings table
+$stmt = $pdo->prepare("SELECT `value` FROM settings WHERE `key` = 'openai_api_key' LIMIT 1");
+$stmt->execute();
+$result = $stmt->fetch(PDO::FETCH_ASSOC);
+
+if (!$result || empty($result['value'])) {
+    echo json_encode(['success' => false, 'error' => 'Chave API da OpenAI não configurada. Configure no painel Admin > Configurações.']);
+    exit();
+}
+
+$apiKey = $result['value'];
+
 $input = json_decode(file_get_contents('php://input'), true);
 
 $productName = $input['productName'] ?? '';
 $productType = $input['productType'] ?? '';
-$apiKey = $input['apiKey'] ?? '';
 
-if (empty($productName) || empty($apiKey)) {
-    echo json_encode(['success' => false, 'error' => 'Nome do produto e API Key são obrigatórios']);
+if (empty($productName)) {
+    echo json_encode(['success' => false, 'error' => 'Nome do produto é obrigatório']);
     exit();
 }
 
