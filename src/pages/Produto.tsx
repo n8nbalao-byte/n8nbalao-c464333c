@@ -208,7 +208,7 @@ export default function Produto() {
               )}
 
               {/* CTA Buttons */}
-              <div className="flex flex-col gap-4 pt-4 sm:flex-row">
+              <div className="flex flex-col gap-3 pt-4">
                 {isAutomacao && product.downloadUrl ? (
                   <a
                     href={product.downloadUrl}
@@ -220,29 +220,31 @@ export default function Produto() {
                     Baixar Agora
                   </a>
                 ) : (
-                  <>
-                    <Button
-                      size="lg"
-                      className="gap-2 px-8 py-6 text-lg shadow-glow"
-                      onClick={() => addToCart(product)}
-                    >
-                      <ShoppingCart className="h-5 w-5" />
-                      Adicionar ao Carrinho
-                    </Button>
-                    <a
-                      href={`https://wa.me/5519981470446?text=Olá! Tenho interesse no produto: ${product.title}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center justify-center gap-2 rounded-lg border border-border px-8 py-4 text-lg font-semibold text-foreground transition-colors hover:bg-secondary"
-                    >
-                      <MessageCircle className="h-5 w-5" />
-                      Falar no WhatsApp
-                    </a>
-                  </>
+                  <Button
+                    size="lg"
+                    className="w-full gap-2 px-8 py-6 text-lg shadow-glow"
+                    onClick={() => addToCart(product)}
+                  >
+                    <ShoppingCart className="h-5 w-5" />
+                    Adicionar ao Carrinho
+                  </Button>
                 )}
+                
+                {!isAutomacao && (
+                  <a
+                    href={`https://wa.me/5519981470446?text=Olá! Tenho interesse no produto: ${product.title}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-green-600 px-8 py-4 text-lg font-semibold text-white transition-colors hover:bg-green-700"
+                  >
+                    <MessageCircle className="h-5 w-5" />
+                    Falar no WhatsApp
+                  </a>
+                )}
+                
                 <Link
                   to="/loja"
-                  className="inline-flex items-center justify-center gap-2 rounded-lg border border-border px-8 py-4 text-lg font-semibold text-foreground transition-colors hover:bg-secondary"
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-border bg-card px-8 py-4 text-lg font-semibold text-foreground transition-colors hover:bg-secondary"
                 >
                   <ArrowLeft className="h-5 w-5" />
                   Ver Outros Produtos
