@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import { api } from '@/lib/api';
+import { api, getCustomCategories, addCustomCategory } from '@/lib/api';
 
 interface ExtractedProduct {
   title: string;
@@ -219,6 +219,17 @@ const ExtractProducts = () => {
       }
       
       const category = product.category || 'acessorio';
+      
+      // Check if category exists, if not create it
+      const existingCategories = await getCustomCategories();
+      const categoryExists = existingCategories.some(c => c.key === category);
+      
+      if (!categoryExists) {
+        // Create the category automatically
+        const categoryLabel = category.charAt(0).toUpperCase() + category.slice(1).replace(/_/g, ' ');
+        await addCustomCategory(category, categoryLabel, 'Package');
+        console.log(`Categoria "${categoryLabel}" criada automaticamente`);
+      }
       
       await api.createProduct({
         title: product.title || 'Produto Importado',
