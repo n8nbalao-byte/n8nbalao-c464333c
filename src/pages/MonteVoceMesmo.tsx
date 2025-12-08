@@ -4,7 +4,8 @@ import { Footer } from "@/components/Footer";
 import { StarryBackground } from "@/components/StarryBackground";
 import { api, type Product, type HardwareItem, type CompanyData, type HardwareCategory, getCustomCategories } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
-import { Check, Printer, ShoppingCart, ArrowLeft, Plus, X, Search, Package, ChevronRight, Cpu, Minus, CircuitBoard, MemoryStick, HardDrive, Monitor, Zap, Box, Droplets, Wrench } from "lucide-react";
+import { useCart } from "@/contexts/CartContext";
+import { Check, Printer, ShoppingCart, ArrowLeft, Plus, X, Search, Package, ChevronRight, Cpu, Minus, CircuitBoard, MemoryStick, HardDrive, Monitor, Zap, Box, Droplets, Wrench, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -63,6 +64,7 @@ type Phase = 'build' | 'quote';
 
 export default function MonteVoceMesmo() {
   const { toast } = useToast();
+  const { addToCart, setIsOpen } = useCart();
   const [phase, setPhase] = useState<Phase>('build');
   const [hardware, setHardware] = useState<HardwareItem[]>([]);
   const [selectedHardware, setSelectedHardware] = useState<SelectedHardware>({});
@@ -341,7 +343,65 @@ export default function MonteVoceMesmo() {
     printWindow.print();
   }
 
-  function handleBuy() {
+  function handleAddToCart() {
+    // Add hardware items as products to cart
+    hardwareSteps.forEach(step => {
+      const value = selectedHardware[step.key];
+      if (value) {
+        if (Array.isArray(value)) {
+          value.forEach((item) => {
+            const productFromHardware: Product = {
+              id: item.id,
+              title: `${item.brand} ${item.model}`,
+              subtitle: step.label,
+              categories: ['hardware'],
+              media: item.image ? [{ type: 'image' as const, url: item.image }] : [],
+              specs: {},
+              components: {},
+              totalPrice: item.price,
+              createdAt: new Date().toISOString(),
+              productType: 'acessorio'
+            };
+            addToCart(productFromHardware);
+          });
+        } else {
+          const productFromHardware: Product = {
+            id: value.id,
+            title: `${value.brand} ${value.model}`,
+            subtitle: step.label,
+            categories: ['hardware'],
+            media: value.image ? [{ type: 'image' as const, url: value.image }] : [],
+            specs: {},
+            components: {},
+            totalPrice: value.price,
+            createdAt: new Date().toISOString(),
+            productType: 'acessorio'
+          };
+          addToCart(productFromHardware);
+        }
+      }
+    });
+
+    // Add extra products to cart
+    selectedProducts.forEach(item => {
+      const product = products.find(p => p.id === item.id);
+      if (product) {
+        addToCart(product);
+      }
+    });
+
+    setIsOpen(true);
+    toast({
+      title: "Itens adicionados ao carrinho!",
+      description: "Todos os componentes do orçamento foram adicionados.",
+    });
+  }
+
+  function handleSendWhatsApp() {
+    const emissionDate = new Date();
+    const validityDate = new Date(emissionDate);
+    validityDate.setDate(validityDate.getDate() + 7);
+
     let message = `*ORÇAMENTO - ${companyData.name || 'Loja'}*\n`;
     message += `Data: ${formatDate(emissionDate)}\n`;
     message += `Validade: ${formatDate(validityDate)}\n\n`;
@@ -380,7 +440,16 @@ export default function MonteVoceMesmo() {
     message += `*TOTAL: ${formatPrice(calculateTotal())}*`;
 
     const phone = companyData.phone?.replace(/\D/g, '') || '';
-    const whatsappUrl = `https://wa.me/55${phone}?text=${encodeURIComponent(message)}`;
+    if (!phone) {
+      toast({
+        title: "Telefone não configurado",
+        description: "Configure o telefone da empresa no painel administrativo.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    const whatsappUrl = `https://api.whatsapp.com/send?phone=55${phone}&text=${encodeURIComponent(message)}`;
     window.open(whatsappUrl, '_blank');
   }
 
@@ -418,14 +487,18 @@ export default function MonteVoceMesmo() {
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Voltar
               </Button>
-              <div className="flex gap-3">
+              <div className="flex gap-2 flex-wrap">
                 <Button variant="outline" onClick={printQuote}>
                   <Printer className="mr-2 h-4 w-4" />
                   Imprimir
                 </Button>
-                <Button onClick={handleBuy} className="bg-green-600 hover:bg-green-700">
+                <Button onClick={handleAddToCart} className="bg-primary hover:bg-primary/90">
                   <ShoppingCart className="mr-2 h-4 w-4" />
-                  Comprar
+                  Colocar no Carrinho
+                </Button>
+                <Button onClick={handleSendWhatsApp} className="bg-green-600 hover:bg-green-700">
+                  <MessageCircle className="mr-2 h-4 w-4" />
+                  Enviar via WhatsApp
                 </Button>
               </div>
             </div>
