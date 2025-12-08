@@ -1,46 +1,76 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation, useSearchParams } from "react-router-dom";
-import { getCustomCategories } from "@/lib/api";
+import { getCategories, Category } from "@/lib/api";
 import { getIconFromKey } from "@/lib/icons";
-import { Package, Cpu, Bot, Home, ChevronRight, HardDrive } from "lucide-react";
+import { Package, Cpu, Bot, Home, ChevronRight, ChevronDown, HardDrive, LucideIcon } from "lucide-react";
 
-// Only system categories (not deletable by user)
-const systemCategories = [
-  { key: 'all', label: 'Todos', icon: Package },
-  { key: 'hardware', label: 'Hardware', icon: HardDrive },
-];
+interface CategoryWithIcon extends Category {
+  IconComponent: LucideIcon;
+}
 
 interface CategorySidebarProps {
   onCategorySelect?: (category: string) => void;
   selectedCategory?: string;
+  selectedSubcategory?: string;
+  onSubcategorySelect?: (subcategory: string | null) => void;
 }
 
-export function CategorySidebar({ onCategorySelect, selectedCategory }: CategorySidebarProps) {
-  const [categories, setCategories] = useState(systemCategories);
+export function CategorySidebar({ 
+  onCategorySelect, 
+  selectedCategory,
+  selectedSubcategory,
+  onSubcategorySelect
+}: CategorySidebarProps) {
+  const [categories, setCategories] = useState<CategoryWithIcon[]>([]);
+  const [hardwareSubcategories, setHardwareSubcategories] = useState<CategoryWithIcon[]>([]);
+  const [isHardwareExpanded, setIsHardwareExpanded] = useState(false);
   const [searchParams] = useSearchParams();
   const location = useLocation();
   
   // Determine active category from props or URL
   const activeCategory = selectedCategory || searchParams.get('category') || 'all';
+  const activeSubcategory = selectedSubcategory || searchParams.get('subcategory') || null;
+  
+  // Expand hardware when it's selected
+  useEffect(() => {
+    if (activeCategory === 'hardware') {
+      setIsHardwareExpanded(true);
+    }
+  }, [activeCategory]);
 
   useEffect(() => {
     async function loadCategories() {
       try {
-        const customCats = await getCustomCategories();
         const excludedCategories = ['games', 'console', 'controle', 'controles'];
         
-        // Get all categories from database, excluding system ones and excluded ones
-        const systemKeys = systemCategories.map(c => c.key);
-        const dbCategories = customCats
-          .filter(c => !systemKeys.includes(c.key) && !excludedCategories.includes(c.key.toLowerCase()))
+        // Get all top-level categories
+        const topLevelCats = await getCategories({ parent: null });
+        
+        // Add "Todos" at the beginning
+        const allCategory: CategoryWithIcon = {
+          key: 'all',
+          label: 'Todos',
+          icon: 'package',
+          IconComponent: Package,
+          isSystem: true
+        };
+        
+        const mappedCategories: CategoryWithIcon[] = topLevelCats
+          .filter(c => !excludedCategories.includes(c.key.toLowerCase()))
           .map(c => ({
-            key: c.key,
-            label: c.label,
-            icon: getIconFromKey(c.icon)
+            ...c,
+            IconComponent: c.key === 'hardware' ? HardDrive : (getIconFromKey(c.icon) || Package)
           }));
         
-        // System categories first, then database categories
-        setCategories([...systemCategories, ...dbCategories]);
+        setCategories([allCategory, ...mappedCategories]);
+        
+        // Load hardware subcategories
+        const hardwareSubs = await getCategories({ parent: 'hardware' });
+        setHardwareSubcategories(hardwareSubs.map(c => ({
+          ...c,
+          IconComponent: getIconFromKey(c.icon) || Cpu
+        })));
+        
       } catch (error) {
         console.error('Failed to load categories:', error);
       }
@@ -51,6 +81,22 @@ export function CategorySidebar({ onCategorySelect, selectedCategory }: Category
   const handleClick = (categoryKey: string) => {
     if (onCategorySelect) {
       onCategorySelect(categoryKey);
+    }
+    if (categoryKey === 'hardware') {
+      setIsHardwareExpanded(!isHardwareExpanded);
+    }
+    // Reset subcategory when changing categories
+    if (categoryKey !== 'hardware' && onSubcategorySelect) {
+      onSubcategorySelect(null);
+    }
+  };
+
+  const handleSubcategoryClick = (subcategoryKey: string) => {
+    if (onSubcategorySelect) {
+      onSubcategorySelect(subcategoryKey);
+    }
+    if (onCategorySelect) {
+      onCategorySelect('hardware');
     }
   };
 
@@ -95,42 +141,131 @@ export function CategorySidebar({ onCategorySelect, selectedCategory }: Category
         {/* Category Links */}
         <nav className="space-y-1">
           {categories.map((cat) => {
-            const Icon = cat.icon;
+            const Icon = cat.IconComponent;
             const isActive = activeCategory === cat.key;
+            const isHardware = cat.key === 'hardware';
+            
+            const buttonContent = (
+              <>
+                <Icon className="h-5 w-5" />
+                <span className="flex-1">{cat.label}</span>
+                {isHardware && hardwareSubcategories.length > 0 ? (
+                  isHardwareExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />
+                ) : isActive ? (
+                  <ChevronRight className="h-4 w-4" />
+                ) : null}
+              </>
+            );
             
             // If we have an onCategorySelect handler, use button, otherwise use Link
             if (onCategorySelect && isOnLoja) {
               return (
-                <button
-                  key={cat.key}
-                  onClick={() => handleClick(cat.key)}
-                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-left ${
+                <div key={cat.key}>
+                  <button
+                    onClick={() => handleClick(cat.key)}
+                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-left ${
+                      isActive 
+                        ? 'bg-red-50 text-red-600 font-medium' 
+                        : 'text-gray-700 hover:bg-gray-100'
+                    }`}
+                  >
+                    {buttonContent}
+                  </button>
+                  
+                  {/* Hardware Subcategories */}
+                  {isHardware && isHardwareExpanded && hardwareSubcategories.length > 0 && (
+                    <div className="ml-6 mt-1 space-y-1">
+                      {/* "Todos" option for hardware */}
+                      <button
+                        onClick={() => {
+                          if (onSubcategorySelect) onSubcategorySelect(null);
+                          if (onCategorySelect) onCategorySelect('hardware');
+                        }}
+                        className={`w-full flex items-center gap-2 px-3 py-1.5 rounded-lg transition-colors text-sm text-left ${
+                          isActive && !activeSubcategory 
+                            ? 'bg-red-50 text-red-600 font-medium' 
+                            : 'text-gray-600 hover:bg-gray-100'
+                        }`}
+                      >
+                        <Package className="h-4 w-4" />
+                        <span>Todos</span>
+                      </button>
+                      
+                      {hardwareSubcategories.map(sub => {
+                        const SubIcon = sub.IconComponent;
+                        const isSubActive = activeSubcategory === sub.key;
+                        
+                        return (
+                          <button
+                            key={sub.key}
+                            onClick={() => handleSubcategoryClick(sub.key)}
+                            className={`w-full flex items-center gap-2 px-3 py-1.5 rounded-lg transition-colors text-sm text-left ${
+                              isSubActive 
+                                ? 'bg-red-50 text-red-600 font-medium' 
+                                : 'text-gray-600 hover:bg-gray-100'
+                            }`}
+                          >
+                            <SubIcon className="h-4 w-4" />
+                            <span>{sub.label}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            }
+            
+            return (
+              <div key={cat.key}>
+                <Link
+                  to={cat.key === 'all' ? '/loja' : `/loja?category=${cat.key}`}
+                  className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
                     isActive 
                       ? 'bg-red-50 text-red-600 font-medium' 
                       : 'text-gray-700 hover:bg-gray-100'
                   }`}
                 >
-                  <Icon className="h-5 w-5" />
-                  <span className="flex-1">{cat.label}</span>
-                  {isActive && <ChevronRight className="h-4 w-4" />}
-                </button>
-              );
-            }
-            
-            return (
-              <Link
-                key={cat.key}
-                to={cat.key === 'all' ? '/loja' : `/loja?category=${cat.key}`}
-                className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
-                  isActive 
-                    ? 'bg-red-50 text-red-600 font-medium' 
-                    : 'text-gray-700 hover:bg-gray-100'
-                }`}
-              >
-                <Icon className="h-5 w-5" />
-                <span className="flex-1">{cat.label}</span>
-                {isActive && <ChevronRight className="h-4 w-4" />}
-              </Link>
+                  {buttonContent}
+                </Link>
+                
+                {/* Hardware Subcategories for Link mode */}
+                {isHardware && isActive && hardwareSubcategories.length > 0 && (
+                  <div className="ml-6 mt-1 space-y-1">
+                    <Link
+                      to="/loja?category=hardware"
+                      className={`flex items-center gap-2 px-3 py-1.5 rounded-lg transition-colors text-sm ${
+                        !activeSubcategory 
+                          ? 'bg-red-50 text-red-600 font-medium' 
+                          : 'text-gray-600 hover:bg-gray-100'
+                      }`}
+                    >
+                      <Package className="h-4 w-4" />
+                      <span>Todos</span>
+                    </Link>
+                    
+                    {hardwareSubcategories.map(sub => {
+                      const SubIcon = sub.IconComponent;
+                      const isSubActive = activeSubcategory === sub.key;
+                      
+                      return (
+                        <Link
+                          key={sub.key}
+                          to={`/loja?category=hardware&subcategory=${sub.key}`}
+                          className={`flex items-center gap-2 px-3 py-1.5 rounded-lg transition-colors text-sm ${
+                            isSubActive 
+                              ? 'bg-red-50 text-red-600 font-medium' 
+                              : 'text-gray-600 hover:bg-gray-100'
+                          }`}
+                        >
+                          <SubIcon className="h-4 w-4" />
+                          <span>{sub.label}</span>
+                        </Link>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             );
           })}
         </nav>

@@ -1,20 +1,42 @@
 // API Configuration - connects to your PHP backend on Hostinger
 const API_BASE_URL = 'https://www.n8nbalao.com/api';
 
-export type ProductCategory = 'pc' | 'kit' | 'notebook' | 'automacao' | 'software' | 'acessorio' | 'licenca' | 'monitor' | 'cadeira_gamer';
+// =====================================================
+// UNIFIED CATEGORY SYSTEM
+// =====================================================
 
-// Custom categories stored in database
-export interface CustomCategory {
+// Unified category interface - used for ALL categories (products, hardware subcategories, etc.)
+export interface Category {
   key: string;
   label: string;
   icon?: string;
-  type?: 'product_type' | 'product_category';
+  parentKey?: string | null; // null = top-level, 'hardware' = hardware subcategory
+  isSystem?: boolean; // System categories cannot be deleted (e.g., 'hardware')
+  sortOrder?: number;
+  filters?: {
+    field: string;
+    label: string;
+    options: string[];
+  }[];
 }
 
-// Fetch custom categories from database
-export async function getCustomCategories(): Promise<CustomCategory[]> {
+// Fetch all categories (top-level only by default)
+export async function getCategories(options?: { parent?: string | null; all?: boolean }): Promise<Category[]> {
   try {
-    const response = await fetch(`${API_BASE_URL}/categories.php?type=product_type`);
+    let url = `${API_BASE_URL}/categories.php`;
+    const params = new URLSearchParams();
+    
+    if (options?.all) {
+      params.append('all', 'true');
+    } else if (options?.parent !== undefined) {
+      params.append('parent', options.parent === null ? 'null' : options.parent);
+    }
+    
+    if (params.toString()) {
+      url += `?${params.toString()}`;
+    }
+    
+    const response = await fetch(url);
     if (!response.ok) return [];
     return await response.json();
   } catch {
@@ -22,13 +44,13 @@ export async function getCustomCategories(): Promise<CustomCategory[]> {
   }
 }
 
-// Save category to database
-export async function addCustomCategory(key: string, label: string, icon?: string): Promise<boolean> {
+// Add a new category
+export async function addCategory(category: Omit<Category, 'isSystem'>): Promise<boolean> {
   try {
     const response = await fetch(`${API_BASE_URL}/categories.php`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ key, label, icon, type: 'product_type' }),
+      body: JSON.stringify(category),
     });
     return response.ok;
   } catch {
@@ -36,8 +58,22 @@ export async function addCustomCategory(key: string, label: string, icon?: strin
   }
 }
 
-// Remove category from database
-export async function removeCustomCategory(key: string): Promise<boolean> {
+// Update a category
+export async function updateCategory(key: string, updates: Partial<Category> & { newLabel?: string; newIcon?: string; newKey?: string }): Promise<boolean> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/categories.php`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key, ...updates }),
+    });
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
+
+// Delete a category (system categories cannot be deleted)
+export async function deleteCategory(key: string): Promise<boolean> {
   try {
     const response = await fetch(`${API_BASE_URL}/categories.php?key=${key}`, {
       method: 'DELETE',
@@ -48,34 +84,106 @@ export async function removeCustomCategory(key: string): Promise<boolean> {
   }
 }
 
-// Update category in database
-export async function updateCustomCategory(key: string, newLabel: string, newIcon?: string, newKey?: string): Promise<boolean> {
-  try {
-    const response = await fetch(`${API_BASE_URL}/categories.php`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ key, newLabel, newIcon, newKey }),
-    });
-    return response.ok;
-  } catch {
-    return false;
-  }
+// =====================================================
+// LEGACY COMPATIBILITY - These map to the new unified system
+// =====================================================
+
+export type ProductCategory = string;
+
+export interface CustomCategory {
+  key: string;
+  label: string;
+  icon?: string;
+  type?: string;
 }
+
+// Legacy: Get product categories (top-level, excluding 'hardware')
+export async function getCustomCategories(): Promise<CustomCategory[]> {
+  const categories = await getCategories({ parent: null });
+  return categories.map(c => ({ key: c.key, label: c.label, icon: c.icon }));
+}
+
+// Legacy: Add product category
+export async function addCustomCategory(key: string, label: string, icon?: string): Promise<boolean> {
+  return addCategory({ key, label, icon, parentKey: null });
+}
+
+// Legacy: Remove product category
+export async function removeCustomCategory(key: string): Promise<boolean> {
+  return deleteCategory(key);
+}
+
+// Legacy: Update product category
+export async function updateCustomCategory(key: string, newLabel: string, newIcon?: string, newKey?: string): Promise<boolean> {
+  return updateCategory(key, { newLabel, newIcon, newKey });
+}
+
+// Hardware category type (legacy compatibility)
+export type HardwareCategory = string;
+
+export interface HardwareCategoryDef {
+  key: string;
+  label: string;
+  icon?: string;
+  filters?: {
+    field: string;
+    label: string;
+    options: string[];
+  }[];
+}
+
+// Legacy: Get hardware subcategories
+export async function getHardwareCategories(): Promise<HardwareCategoryDef[]> {
+  const categories = await getCategories({ parent: 'hardware' });
+  return categories.map(c => ({ 
+    key: c.key, 
+    label: c.label, 
+    icon: c.icon,
+    filters: c.filters 
+  }));
+}
+
+// Legacy: Add hardware subcategory
+export async function addHardwareCategory(category: HardwareCategoryDef): Promise<boolean> {
+  return addCategory({ 
+    key: category.key, 
+    label: category.label, 
+    icon: category.icon,
+    parentKey: 'hardware',
+    filters: category.filters
+  });
+}
+
+// Legacy: Update hardware subcategory
+export async function updateHardwareCategory(key: string, category: Partial<HardwareCategoryDef>): Promise<boolean> {
+  return updateCategory(key, { 
+    newLabel: category.label,
+    newIcon: category.icon,
+    filters: category.filters
+  });
+}
+
+// Legacy: Remove hardware subcategory
+export async function removeHardwareCategory(key: string): Promise<boolean> {
+  return deleteCategory(key);
+}
+
+// =====================================================
+// PRODUCT & HARDWARE TYPES
+// =====================================================
 
 export interface Product {
   id: string;
   title: string;
   subtitle: string;
-  description?: string; // Free text field for product details
+  description?: string;
   categories: string[];
   media: MediaItem[];
   specs: Record<string, string>;
   components: ProductComponents;
   totalPrice: number;
   createdAt: string;
-  // For automações - download link
   downloadUrl?: string;
-  // Product type to identify if it's a PC assembly or simple product
   productType?: ProductCategory;
 }
 
@@ -95,7 +203,6 @@ export interface ProductComponents {
   cooler?: HardwareItem;
 }
 
-// Component IDs only for saving to database (lighter payload)
 export interface ProductComponentIds {
   processor?: string;
   motherboard?: string;
@@ -107,7 +214,6 @@ export interface ProductComponentIds {
   cooler?: string;
 }
 
-// Helper to extract only IDs from components
 function extractComponentIds(components: ProductComponents): ProductComponentIds {
   const ids: ProductComponentIds = {};
   for (const [key, value] of Object.entries(components)) {
@@ -116,79 +222,6 @@ function extractComponentIds(components: ProductComponents): ProductComponentIds
     }
   }
   return ids;
-}
-
-// Hardware is for PC components only - dynamic from database
-export type HardwareCategory = string;
-
-// Hardware category definition
-export interface HardwareCategoryDef {
-  key: string;
-  label: string;
-  icon?: string;
-  // Filter options for this category
-  filters?: {
-    field: string;
-    label: string;
-    options: string[];
-  }[];
-}
-
-// Fetch hardware categories from database
-export async function getHardwareCategories(): Promise<HardwareCategoryDef[]> {
-  try {
-    const response = await fetch(`${API_BASE_URL}/categories.php?type=hardware_category`);
-    if (!response.ok) return [];
-    return await response.json();
-  } catch {
-    return [];
-  }
-}
-
-// Add hardware category
-export async function addHardwareCategory(category: HardwareCategoryDef): Promise<boolean> {
-  try {
-    const response = await fetch(`${API_BASE_URL}/categories.php`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...category, type: 'hardware_category' }),
-    });
-    return response.ok;
-  } catch {
-    return false;
-  }
-}
-
-// Update hardware category
-export async function updateHardwareCategory(key: string, category: Partial<HardwareCategoryDef>): Promise<boolean> {
-  try {
-    const response = await fetch(`${API_BASE_URL}/categories.php`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
-        key, 
-        type: 'hardware_category', 
-        newLabel: category.label,
-        newIcon: category.icon,
-        filters: category.filters
-      }),
-    });
-    return response.ok;
-  } catch {
-    return false;
-  }
-}
-
-// Remove hardware category
-export async function removeHardwareCategory(key: string): Promise<boolean> {
-  try {
-    const response = await fetch(`${API_BASE_URL}/categories.php?key=${key}&type=hardware_category`, {
-      method: 'DELETE',
-    });
-    return response.ok;
-  } catch {
-    return false;
-  }
 }
 
 export interface HardwareItem {
@@ -201,7 +234,6 @@ export interface HardwareItem {
   specs: Record<string, string>;
   category: HardwareCategory;
   createdAt: string;
-  // Compatibility fields
   socket?: string;
   memoryType?: string;
   formFactor?: string;
@@ -255,8 +287,12 @@ export interface OrderItem {
   quantity: number;
 }
 
+// =====================================================
+// API OBJECT
+// =====================================================
+
 export const api = {
-  // Fetch all products
+  // Products
   async getProducts(): Promise<Product[]> {
     try {
       const response = await fetch(`${API_BASE_URL}/products.php`);
@@ -268,7 +304,6 @@ export const api = {
     }
   },
 
-  // Fetch single product by ID
   async getProduct(id: string): Promise<Product | null> {
     try {
       const response = await fetch(`${API_BASE_URL}/products.php?id=${id}`);
@@ -280,20 +315,16 @@ export const api = {
     }
   },
 
-  // Create a new product
   async createProduct(product: Omit<Product, 'id' | 'createdAt'>): Promise<boolean> {
     try {
-      // Extract only component IDs to reduce payload size (for PC products)
       const componentIds = product.components ? extractComponentIds(product.components) : {};
       
       const response = await fetch(`${API_BASE_URL}/products.php`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...product,
-          components: componentIds, // Only IDs, not full objects
+          components: componentIds,
           id: crypto.randomUUID(),
           createdAt: new Date().toISOString(),
         }),
@@ -305,10 +336,8 @@ export const api = {
     }
   },
 
-  // Update a product
   async updateProduct(id: string, product: Partial<Product>): Promise<boolean> {
     try {
-      // Extract only component IDs if components are provided
       const payload: Record<string, unknown> = { id, ...product };
       if (product.components) {
         payload.components = extractComponentIds(product.components);
@@ -316,9 +345,7 @@ export const api = {
       
       const response = await fetch(`${API_BASE_URL}/products.php`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
       return response.ok;
@@ -328,7 +355,6 @@ export const api = {
     }
   },
 
-  // Delete a product
   async deleteProduct(id: string): Promise<boolean> {
     try {
       const response = await fetch(`${API_BASE_URL}/products.php?id=${id}`, {
@@ -341,7 +367,7 @@ export const api = {
     }
   },
 
-  // Hardware endpoints (only for PC components)
+  // Hardware
   async getHardware(category?: string): Promise<HardwareItem[]> {
     try {
       const url = category 
@@ -400,7 +426,7 @@ export const api = {
     }
   },
 
-  // Company endpoints
+  // Company
   async getCompany(): Promise<CompanyData> {
     try {
       const response = await fetch(`${API_BASE_URL}/company.php`);
@@ -435,7 +461,7 @@ export const api = {
     }
   },
 
-  // Customer endpoints
+  // Customers
   async getCustomers(): Promise<Customer[]> {
     try {
       const response = await fetch(`${API_BASE_URL}/customers.php`);
@@ -470,7 +496,7 @@ export const api = {
     }
   },
 
-  // Order endpoints
+  // Orders
   async getOrders(): Promise<Order[]> {
     try {
       const response = await fetch(`${API_BASE_URL}/orders.php`);
@@ -519,7 +545,7 @@ export const api = {
     }
   },
 
-  // Carousel endpoints
+  // Carousels
   async getCarousel(key: string): Promise<{ key: string; images: string[] }> {
     try {
       const response = await fetch(`${API_BASE_URL}/carousels.php?key=${key}`);

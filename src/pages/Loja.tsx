@@ -3,9 +3,9 @@ import { Link, useSearchParams } from "react-router-dom";
 import { ProductCard } from "@/components/ProductCard";
 import { HardwareCard } from "@/components/HardwareCard";
 import { CategorySidebar } from "@/components/CategorySidebar";
-import { api, type Product, type HardwareItem, getCustomCategories, getHardwareCategories, type HardwareCategoryDef } from "@/lib/api";
+import { api, type Product, type HardwareItem, getCategories, type Category } from "@/lib/api";
 import { getIconFromKey } from "@/lib/icons";
-import { Search, ArrowUpDown, Package, Cpu, ChevronLeft, ShoppingCart, Menu, HardDrive, Monitor, Laptop, Bot } from "lucide-react";
+import { Search, ArrowUpDown, Package, Cpu, ShoppingCart } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
 import { useViewMode } from "@/contexts/ViewModeContext";
 import { ViewModeSelector } from "@/components/ViewModeSelector";
@@ -14,17 +14,6 @@ import balaoLogo from "@/assets/balao-logo.png";
 
 type ProductType = 'all' | 'hardware' | string;
 
-const defaultHardwareCategories: HardwareCategoryDef[] = [
-  { key: 'processor', label: 'Processadores', icon: 'cpu', filters: [{ field: 'socket', label: 'Socket', options: ['LGA1700', 'LGA1200', 'LGA1155', 'LGA1150', 'LGA1151', 'AM4', 'AM5', 'AM3+'] }] },
-  { key: 'motherboard', label: 'Placas-mãe', icon: 'cpu', filters: [{ field: 'socket', label: 'Socket', options: ['LGA1700', 'LGA1200', 'LGA1155', 'LGA1150', 'LGA1151', 'AM4', 'AM5', 'AM3+'] }, { field: 'memoryType', label: 'Tipo de Memória', options: ['DDR3', 'DDR4', 'DDR5'] }] },
-  { key: 'memory', label: 'Memórias', icon: 'cpu', filters: [{ field: 'memoryType', label: 'Tipo de Memória', options: ['DDR3', 'DDR4', 'DDR5'] }] },
-  { key: 'storage', label: 'Armazenamento', icon: 'cpu', filters: [{ field: 'formFactor', label: 'Tipo', options: ['SSD SATA', 'SSD NVMe', 'HDD'] }] },
-  { key: 'gpu', label: 'Placas de Vídeo', icon: 'cpu' },
-  { key: 'cooler', label: 'Coolers', icon: 'cpu' },
-  { key: 'psu', label: 'Fontes', icon: 'cpu', filters: [{ field: 'tdp', label: 'Potência', options: ['500W', '600W', '700W', '800W', '1000W+'] }] },
-  { key: 'case', label: 'Gabinetes', icon: 'cpu', filters: [{ field: 'formFactor', label: 'Form Factor', options: ['ATX', 'Micro-ATX', 'Mini-ITX'] }] },
-];
-
 export default function Loja() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [products, setProducts] = useState<Product[]>([]);
@@ -32,62 +21,29 @@ export default function Loja() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState(searchParams.get('search') || "");
   const [selectedType, setSelectedType] = useState<ProductType>(searchParams.get('category') || "all");
-  const [selectedHardwareCategory, setSelectedHardwareCategory] = useState<string | null>(null);
+  const [selectedHardwareCategory, setSelectedHardwareCategory] = useState<string | null>(searchParams.get('subcategory') || null);
   const [selectedFilters, setSelectedFilters] = useState<Record<string, string>>({});
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
-  const [productTypes, setProductTypes] = useState<{ key: ProductType; label: string; icon: React.ElementType }[]>([]);
-  const [hardwareCategoriesList, setHardwareCategoriesList] = useState<HardwareCategoryDef[]>(defaultHardwareCategories);
+  const [hardwareSubcategories, setHardwareSubcategories] = useState<Category[]>([]);
   const { totalItems, setIsOpen } = useCart();
 
   useEffect(() => {
     async function fetchData() {
-      const [productsData, hardwareData, customCategories, dbHardwareCategories] = await Promise.all([
+      const [productsData, hardwareData, hwSubcategories] = await Promise.all([
         api.getProducts(),
         api.getHardware(),
-        getCustomCategories(),
-        getHardwareCategories()
+        getCategories({ parent: 'hardware' })
       ]);
       setProducts(productsData);
       setHardware(hardwareData);
-      
-      // Merge default hardware categories with database ones
-      const mergedHardwareCategories = [...defaultHardwareCategories];
-      dbHardwareCategories.forEach(dbCat => {
-        const existingIndex = mergedHardwareCategories.findIndex(c => c.key === dbCat.key);
-        if (existingIndex >= 0) {
-          mergedHardwareCategories[existingIndex] = { ...mergedHardwareCategories[existingIndex], ...dbCat };
-        } else {
-          mergedHardwareCategories.push(dbCat);
-        }
-      });
-      setHardwareCategoriesList(mergedHardwareCategories);
-      
-      // Categories to exclude from display
-      const excludedCategories = ['games', 'console', 'controle', 'controles'];
-      
-      // Build category list from database only (no fixed categories)
-      const dbCategories = customCategories
-        .filter(c => !excludedCategories.includes(c.key.toLowerCase()))
-        .map(c => ({ 
-          key: c.key, 
-          label: c.label, 
-          icon: getIconFromKey(c.icon) 
-        }));
-      
-      // Always include "Todos" and "Hardware" as special system categories
-      setProductTypes([
-        { key: 'all', label: 'Todos', icon: Package },
-        { key: 'hardware', label: 'Hardware', icon: Cpu },
-        ...dbCategories
-      ]);
-      
+      setHardwareSubcategories(hwSubcategories);
       setLoading(false);
     }
     fetchData();
   }, []);
 
   // Get current hardware category definition
-  const currentHardwareCategory = hardwareCategoriesList.find(c => c.key === selectedHardwareCategory);
+  const currentHardwareCategory = hardwareSubcategories.find(c => c.key === selectedHardwareCategory);
 
   const filteredProducts = products
     .filter((product) => {
@@ -159,15 +115,36 @@ export default function Loja() {
     // Update URL
     if (type === 'all') {
       setSearchParams({});
+    } else if (type === 'hardware' && selectedHardwareCategory) {
+      setSearchParams({ category: type, subcategory: selectedHardwareCategory });
     } else {
       setSearchParams({ category: type });
     }
   };
 
-  const handleHardwareCategorySelect = (category: string) => {
+  const handleHardwareCategorySelect = (category: string | null) => {
     setSelectedHardwareCategory(category);
     setSelectedFilters({});
+    // Update URL with subcategory
+    if (category) {
+      setSearchParams({ category: 'hardware', subcategory: category });
+    } else {
+      setSearchParams({ category: 'hardware' });
+    }
   };
+
+  // Sync URL params with state
+  useEffect(() => {
+    const categoryParam = searchParams.get('category');
+    const subcategoryParam = searchParams.get('subcategory');
+    
+    if (categoryParam && categoryParam !== selectedType) {
+      setSelectedType(categoryParam);
+    }
+    if (subcategoryParam !== selectedHardwareCategory) {
+      setSelectedHardwareCategory(subcategoryParam);
+    }
+  }, [searchParams]);
 
   // Sync URL params with state
   useEffect(() => {
@@ -254,6 +231,8 @@ export default function Loja() {
         <CategorySidebar 
           onCategorySelect={handleTypeSelect}
           selectedCategory={selectedType}
+          selectedSubcategory={selectedHardwareCategory || undefined}
+          onSubcategorySelect={handleHardwareCategorySelect}
         />
 
         {/* Main Content */}
@@ -288,7 +267,7 @@ export default function Loja() {
                     {hardware.length}
                   </span>
                 </button>
-                {hardwareCategoriesList.map((cat) => {
+                {hardwareSubcategories.map((cat) => {
                   const count = hardware.filter(h => h.category === cat.key).length;
                   return (
                     <button

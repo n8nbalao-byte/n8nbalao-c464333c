@@ -30,36 +30,81 @@ try {
     exit();
 }
 
-// Create categories table if it doesn't exist
+// Create unified categories table if it doesn't exist
 $pdo->exec("CREATE TABLE IF NOT EXISTS categories (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    category_key VARCHAR(50) NOT NULL,
+    category_key VARCHAR(50) NOT NULL UNIQUE,
     label VARCHAR(100) NOT NULL,
     icon VARCHAR(50),
-    category_type VARCHAR(50) DEFAULT 'product_type',
+    parent_key VARCHAR(50) DEFAULT NULL,
+    is_system BOOLEAN DEFAULT FALSE,
     filters TEXT,
-    createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE KEY unique_key_type (category_key, category_type)
+    sort_order INT DEFAULT 0,
+    createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
 )");
 
-// Add filters column if it doesn't exist
+// Add columns if they don't exist (for migration)
+try {
+    $pdo->exec("ALTER TABLE categories ADD COLUMN parent_key VARCHAR(50) DEFAULT NULL");
+} catch (PDOException $e) {}
+
+try {
+    $pdo->exec("ALTER TABLE categories ADD COLUMN is_system BOOLEAN DEFAULT FALSE");
+} catch (PDOException $e) {}
+
+try {
+    $pdo->exec("ALTER TABLE categories ADD COLUMN sort_order INT DEFAULT 0");
+} catch (PDOException $e) {}
+
 try {
     $pdo->exec("ALTER TABLE categories ADD COLUMN filters TEXT");
-} catch (PDOException $e) {
-    // Column already exists, ignore
+} catch (PDOException $e) {}
+
+// Remove the old category_type based unique key if it exists and add new unique on category_key only
+try {
+    $pdo->exec("ALTER TABLE categories DROP INDEX unique_key_type");
+} catch (PDOException $e) {}
+
+try {
+    $pdo->exec("ALTER TABLE categories ADD UNIQUE INDEX unique_category_key (category_key)");
+} catch (PDOException $e) {}
+
+// Ensure 'hardware' system category exists
+$checkHardware = $pdo->prepare("SELECT id FROM categories WHERE category_key = 'hardware'");
+$checkHardware->execute();
+if (!$checkHardware->fetch()) {
+    $pdo->exec("INSERT INTO categories (category_key, label, icon, is_system, sort_order) VALUES ('hardware', 'Hardware', 'hard-drive', TRUE, 0)");
 }
+
+// Update hardware to be system category if not already
+$pdo->exec("UPDATE categories SET is_system = TRUE WHERE category_key = 'hardware'");
 
 $method = $_SERVER['REQUEST_METHOD'];
 
 switch ($method) {
     case 'GET':
-        // Get all categories, optionally filtered by type
-        if (isset($_GET['type'])) {
-            $stmt = $pdo->prepare("SELECT * FROM categories WHERE category_type = ? ORDER BY label ASC");
-            $stmt->execute([$_GET['type']]);
+        // Get categories
+        // ?parent=hardware - get subcategories of hardware
+        // ?parent=null or no param - get top-level categories
+        // ?all=true - get ALL categories (including subcategories)
+        
+        if (isset($_GET['all']) && $_GET['all'] === 'true') {
+            // Get all categories
+            $stmt = $pdo->query("SELECT * FROM categories ORDER BY sort_order ASC, label ASC");
+        } else if (isset($_GET['parent'])) {
+            if ($_GET['parent'] === 'null' || $_GET['parent'] === '') {
+                // Get top-level categories (no parent)
+                $stmt = $pdo->query("SELECT * FROM categories WHERE parent_key IS NULL ORDER BY sort_order ASC, label ASC");
+            } else {
+                // Get subcategories of a parent
+                $stmt = $pdo->prepare("SELECT * FROM categories WHERE parent_key = ? ORDER BY sort_order ASC, label ASC");
+                $stmt->execute([$_GET['parent']]);
+            }
         } else {
-            $stmt = $pdo->query("SELECT * FROM categories ORDER BY label ASC");
+            // Default: get top-level categories only
+            $stmt = $pdo->query("SELECT * FROM categories WHERE parent_key IS NULL ORDER BY sort_order ASC, label ASC");
         }
+        
         $categories = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
         // Transform to expected format
@@ -68,7 +113,9 @@ switch ($method) {
                 'key' => $cat['category_key'],
                 'label' => $cat['label'],
                 'icon' => $cat['icon'],
-                'type' => $cat['category_type']
+                'parentKey' => $cat['parent_key'],
+                'isSystem' => (bool)$cat['is_system'],
+                'sortOrder' => (int)$cat['sort_order']
             ];
             // Parse filters JSON if exists
             if (!empty($cat['filters'])) {
@@ -89,9 +136,9 @@ switch ($method) {
             exit();
         }
 
-        // Check if already exists with same key AND type
-        $checkStmt = $pdo->prepare("SELECT id FROM categories WHERE category_key = ? AND category_type = ?");
-        $checkStmt->execute([$data['key'], $data['type'] ?? 'product_type']);
+        // Check if already exists
+        $checkStmt = $pdo->prepare("SELECT id FROM categories WHERE category_key = ?");
+        $checkStmt->execute([$data['key']]);
         if ($checkStmt->fetch()) {
             echo json_encode(['success' => true, 'message' => 'Category already exists']);
             exit();
@@ -102,14 +149,16 @@ switch ($method) {
             $filtersJson = json_encode($data['filters']);
         }
 
-        $stmt = $pdo->prepare("INSERT INTO categories (category_key, label, icon, category_type, filters) VALUES (?, ?, ?, ?, ?)");
+        $stmt = $pdo->prepare("INSERT INTO categories (category_key, label, icon, parent_key, is_system, filters, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?)");
         
         $success = $stmt->execute([
             $data['key'],
             $data['label'],
             $data['icon'] ?? null,
-            $data['type'] ?? 'product_type',
-            $filtersJson
+            $data['parentKey'] ?? null,
+            isset($data['isSystem']) ? (bool)$data['isSystem'] : false,
+            $filtersJson,
+            $data['sortOrder'] ?? 0
         ]);
 
         if ($success) {
@@ -127,14 +176,19 @@ switch ($method) {
             exit();
         }
 
-        // If type is specified, delete only matching type
-        if (isset($_GET['type'])) {
-            $stmt = $pdo->prepare("DELETE FROM categories WHERE category_key = ? AND category_type = ?");
-            $success = $stmt->execute([$_GET['key'], $_GET['type']]);
-        } else {
-            $stmt = $pdo->prepare("DELETE FROM categories WHERE category_key = ?");
-            $success = $stmt->execute([$_GET['key']]);
+        // Check if it's a system category (cannot delete)
+        $checkSystem = $pdo->prepare("SELECT is_system FROM categories WHERE category_key = ?");
+        $checkSystem->execute([$_GET['key']]);
+        $cat = $checkSystem->fetch(PDO::FETCH_ASSOC);
+        
+        if ($cat && $cat['is_system']) {
+            http_response_code(403);
+            echo json_encode(['error' => 'Cannot delete system category']);
+            exit();
         }
+
+        $stmt = $pdo->prepare("DELETE FROM categories WHERE category_key = ?");
+        $success = $stmt->execute([$_GET['key']]);
 
         if ($success) {
             echo json_encode(['success' => true]);
@@ -168,9 +222,17 @@ switch ($method) {
             $updates[] = "category_key = ?";
             $params[] = $data['newKey'];
         }
+        if (isset($data['parentKey'])) {
+            $updates[] = "parent_key = ?";
+            $params[] = $data['parentKey'] === '' ? null : $data['parentKey'];
+        }
         if (isset($data['filters'])) {
             $updates[] = "filters = ?";
             $params[] = json_encode($data['filters']);
+        }
+        if (isset($data['sortOrder'])) {
+            $updates[] = "sort_order = ?";
+            $params[] = (int)$data['sortOrder'];
         }
 
         if (empty($updates)) {
@@ -180,14 +242,7 @@ switch ($method) {
         }
 
         $params[] = $data['key'];
-        
-        // If type is specified, update only matching type
-        if (isset($data['type'])) {
-            $params[] = $data['type'];
-            $sql = "UPDATE categories SET " . implode(", ", $updates) . " WHERE category_key = ? AND category_type = ?";
-        } else {
-            $sql = "UPDATE categories SET " . implode(", ", $updates) . " WHERE category_key = ?";
-        }
+        $sql = "UPDATE categories SET " . implode(", ", $updates) . " WHERE category_key = ?";
         
         $stmt = $pdo->prepare($sql);
         $success = $stmt->execute($params);
