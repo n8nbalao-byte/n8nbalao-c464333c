@@ -19,9 +19,15 @@ $input = json_decode(file_get_contents('php://input'), true);
 $url = $input['url'] ?? '';
 $apiKey = $input['apiKey'] ?? '';
 $extractType = $input['extractType'] ?? 'product';
+$manualHtml = $input['html'] ?? '';
 
-if (empty($url) || empty($apiKey)) {
-    echo json_encode(['success' => false, 'error' => 'URL e API Key são obrigatórios']);
+if (empty($apiKey)) {
+    echo json_encode(['success' => false, 'error' => 'API Key é obrigatória']);
+    exit();
+}
+
+if (empty($url) && empty($manualHtml)) {
+    echo json_encode(['success' => false, 'error' => 'URL ou HTML são obrigatórios']);
     exit();
 }
 
@@ -262,13 +268,18 @@ function extractProductLinks($html, $baseUrl) {
     return array_values(array_unique($links));
 }
 
-$fetchResult = fetchPageHtml($url);
-if (!$fetchResult['success']) {
-    echo json_encode($fetchResult);
-    exit();
+// Use manual HTML if provided, otherwise fetch from URL
+if (!empty($manualHtml)) {
+    $html = $manualHtml;
+} else {
+    $fetchResult = fetchPageHtml($url);
+    if (!$fetchResult['success']) {
+        echo json_encode($fetchResult);
+        exit();
+    }
+    $html = $fetchResult['html'];
 }
 
-$html = $fetchResult['html'];
 $jsonLdData = extractJsonLd($html);
 $metaTags = extractMetaTags($html);
 $foundImages = extractImages($html);
