@@ -6,7 +6,7 @@ import { api, type Product, type HardwareItem, type CompanyData, type HardwareCa
 import { useToast } from "@/hooks/use-toast";
 import { useCart } from "@/contexts/CartContext";
 import { Check, Printer, ShoppingCart, ArrowLeft, Plus, X, Search, Package, ChevronRight, Cpu, Minus, CircuitBoard, MemoryStick, HardDrive, Monitor, Zap, Box, Droplets, Wrench, MessageCircle } from "lucide-react";
-import logoWhite from "@/assets/logo-white.svg";
+import balaoLogo from "@/assets/balao-logo-red.png";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -496,10 +496,10 @@ export default function MonteVoceMesmo() {
     return (
       <div className="min-h-screen flex flex-col bg-gray-100">
         {/* Header */}
-        <header className="bg-primary text-white py-4 shadow-md">
+        <header className="bg-white py-4 shadow-md">
           <div className="container flex items-center justify-between">
-            <Link to="/"><img src={logoWhite} alt="Balão da Informática" className="h-10" /></Link>
-            <Button variant="ghost" onClick={() => setPhase('build')} className="text-white hover:bg-white/20">
+            <Link to="/"><img src={balaoLogo} alt="Balão da Informática" className="h-12" /></Link>
+            <Button variant="ghost" onClick={() => setPhase('build')} className="text-primary hover:bg-primary/10">
               <ArrowLeft className="mr-2 h-4 w-4" />
               Voltar
             </Button>
@@ -661,10 +661,10 @@ export default function MonteVoceMesmo() {
   return (
     <div className="min-h-screen flex flex-col bg-gray-100">
       {/* Header */}
-      <header className="bg-primary text-white py-4 shadow-md">
+      <header className="bg-white py-4 shadow-md">
         <div className="container flex items-center justify-between">
-          <Link to="/"><img src={logoWhite} alt="Balão da Informática" className="h-10" /></Link>
-          <Link to="/loja" className="text-white hover:underline">Ver Loja</Link>
+          <Link to="/"><img src={balaoLogo} alt="Balão da Informática" className="h-12" /></Link>
+          <Link to="/loja" className="text-primary hover:underline font-medium">Ver Loja</Link>
         </div>
       </header>
       
