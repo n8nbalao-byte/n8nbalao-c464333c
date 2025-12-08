@@ -28,6 +28,7 @@ export default function Home() {
   const [currentPromoSlide, setCurrentPromoSlide] = useState(0);
   const { addToCart } = useCart();
   const [searchQuery, setSearchQuery] = useState("");
+  const [showAdminChoice, setShowAdminChoice] = useState(false);
 
   useEffect(() => {
     async function fetchData() {
@@ -59,13 +60,10 @@ export default function Home() {
     e.preventDefault();
     const query = searchQuery.trim();
     
-    // Secret codes
-    if (query === '56676009') {
-      window.location.href = '/admin';
-      return;
-    }
-    if (query.toLowerCase() === 'extrator') {
-      window.location.href = '/extract-products';
+    // Secret code - show choice dialog
+    if (query.toLowerCase() === 'admin010203') {
+      setShowAdminChoice(true);
+      setSearchQuery('');
       return;
     }
     
@@ -74,8 +72,45 @@ export default function Home() {
     }
   };
 
+  const handleAdminChoice = (choice: 'admin' | 'extrator') => {
+    setShowAdminChoice(false);
+    if (choice === 'admin') {
+      window.location.href = '/admin';
+    } else {
+      window.location.href = '/extract-products';
+    }
+  };
+
   return (
     <div className="min-h-screen bg-white">
+      {/* Admin Choice Modal */}
+      {showAdminChoice && (
+        <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl p-6 max-w-sm w-full shadow-2xl">
+            <h3 className="text-lg font-bold text-gray-800 mb-4 text-center">Onde deseja ir?</h3>
+            <div className="flex flex-col gap-3">
+              <button
+                onClick={() => handleAdminChoice('admin')}
+                className="w-full py-3 px-4 bg-primary text-white rounded-lg font-medium hover:bg-primary/90 transition-colors"
+              >
+                Painel Administrativo
+              </button>
+              <button
+                onClick={() => handleAdminChoice('extrator')}
+                className="w-full py-3 px-4 bg-gray-800 text-white rounded-lg font-medium hover:bg-gray-700 transition-colors"
+              >
+                Extrator de Produtos
+              </button>
+              <button
+                onClick={() => setShowAdminChoice(false)}
+                className="w-full py-2 text-gray-500 hover:text-gray-700 transition-colors text-sm"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {/* Top Bar */}
       <div className="bg-primary text-white py-2 text-sm">
         <div className="container flex justify-between items-center">
