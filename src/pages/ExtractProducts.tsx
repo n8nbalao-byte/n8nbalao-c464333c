@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Search, Package, Store, Loader2, Check, X, Download, Save, Plus } from 'lucide-react';
+import { ArrowLeft, Search, Package, Store, Loader2, Check, X, Download, Save, Plus, Code, Link } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -32,7 +32,9 @@ const ExtractProducts = () => {
   
   const [apiKey, setApiKey] = useState(() => localStorage.getItem('openai_api_key') || '');
   const [url, setUrl] = useState('');
+  const [manualHtml, setManualHtml] = useState('');
   const [extractType, setExtractType] = useState<'product' | 'store'>('product');
+  const [inputMode, setInputMode] = useState<'url' | 'html'>('url');
   const [isLoading, setIsLoading] = useState(false);
   const [extractedProducts, setExtractedProducts] = useState<ExtractedProduct[]>([]);
   const [isSavingAll, setIsSavingAll] = useState(false);
@@ -55,10 +57,19 @@ const ExtractProducts = () => {
       return;
     }
 
-    if (!url) {
+    if (inputMode === 'url' && !url) {
       toast({
         title: 'URL necessária',
         description: 'Por favor, insira a URL do produto ou loja.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (inputMode === 'html' && !manualHtml) {
+      toast({
+        title: 'HTML necessário',
+        description: 'Por favor, cole o código HTML da página.',
         variant: 'destructive',
       });
       return;
@@ -74,7 +85,8 @@ const ExtractProducts = () => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          url,
+          url: inputMode === 'url' ? url : 'manual-html',
+          html: inputMode === 'html' ? manualHtml : undefined,
           apiKey,
           extractType,
         }),
@@ -333,6 +345,32 @@ const ExtractProducts = () => {
             <CardTitle className="text-lg">Extrair Produtos</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
+            {/* Input Mode Selection */}
+            <div className="flex gap-2 p-1 bg-muted rounded-lg w-fit">
+              <button
+                onClick={() => setInputMode('url')}
+                className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                  inputMode === 'url' 
+                    ? 'bg-background text-foreground shadow-sm' 
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                <Link className="h-4 w-4" />
+                Via URL
+              </button>
+              <button
+                onClick={() => setInputMode('html')}
+                className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                  inputMode === 'html' 
+                    ? 'bg-background text-foreground shadow-sm' 
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                <Code className="h-4 w-4" />
+                Colar HTML
+              </button>
+            </div>
+
             <Tabs value={extractType} onValueChange={(v) => setExtractType(v as 'product' | 'store')}>
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="product" className="flex items-center gap-2">
@@ -346,39 +384,86 @@ const ExtractProducts = () => {
               </TabsList>
               <TabsContent value="product" className="mt-4">
                 <p className="text-sm text-muted-foreground mb-2">
-                  Cole a URL de uma página de produto para extrair nome, preço, descrição, especificações e imagens.
+                  {inputMode === 'url' 
+                    ? 'Cole a URL de uma página de produto para extrair nome, preço, descrição, especificações e imagens.'
+                    : 'Cole o código HTML de uma página de produto (Ctrl+U no navegador).'}
                 </p>
               </TabsContent>
               <TabsContent value="store" className="mt-4">
                 <p className="text-sm text-muted-foreground mb-2">
-                  Cole a URL de uma página de loja ou listagem para extrair múltiplos produtos de uma vez.
+                  {inputMode === 'url' 
+                    ? 'Cole a URL de uma página de loja para extrair múltiplos produtos.'
+                    : 'Cole o código HTML de uma página de listagem para extrair múltiplos produtos.'}
                   <br />
-                  <span className="text-yellow-600">⚠️ Alguns sites (Kabum, Amazon) podem bloquear. Use links de produtos individuais nesses casos.</span>
+                  {inputMode === 'url' && (
+                    <span className="text-yellow-600">⚠️ Sites como Mercado Livre podem bloquear. Use "Colar HTML" nesses casos.</span>
+                  )}
+                  {inputMode === 'html' && (
+                    <span className="text-green-600">✅ Modo HTML bypassa proteções anti-bot!</span>
+                  )}
                 </p>
               </TabsContent>
             </Tabs>
 
-            <div className="flex gap-2">
-              <Input
-                placeholder="https://www.exemplo.com/produto..."
-                value={url}
-                onChange={(e) => setUrl(e.target.value)}
-                className="flex-1"
-              />
-              <Button onClick={extractProducts} disabled={isLoading}>
-                {isLoading ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Extraindo...
-                  </>
-                ) : (
-                  <>
-                    <Search className="h-4 w-4 mr-2" />
-                    Extrair
-                  </>
-                )}
-              </Button>
-            </div>
+            {inputMode === 'url' ? (
+              <div className="flex gap-2">
+                <Input
+                  placeholder="https://www.exemplo.com/produto..."
+                  value={url}
+                  onChange={(e) => setUrl(e.target.value)}
+                  className="flex-1"
+                />
+                <Button onClick={extractProducts} disabled={isLoading}>
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Extraindo...
+                    </>
+                  ) : (
+                    <>
+                      <Search className="h-4 w-4 mr-2" />
+                      Extrair
+                    </>
+                  )}
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
+                  <p className="text-sm text-blue-400 font-medium mb-2">📋 Como copiar o HTML:</p>
+                  <ol className="text-xs text-muted-foreground space-y-1 list-decimal list-inside">
+                    <li>Abra a página do produto/loja no navegador</li>
+                    <li>Pressione <kbd className="px-1 py-0.5 bg-secondary rounded text-xs">Ctrl+U</kbd> (Windows) ou <kbd className="px-1 py-0.5 bg-secondary rounded text-xs">Cmd+Option+U</kbd> (Mac)</li>
+                    <li>Selecione tudo (<kbd className="px-1 py-0.5 bg-secondary rounded text-xs">Ctrl+A</kbd>) e copie (<kbd className="px-1 py-0.5 bg-secondary rounded text-xs">Ctrl+C</kbd>)</li>
+                    <li>Cole aqui abaixo</li>
+                  </ol>
+                </div>
+                <textarea
+                  placeholder="Cole o código HTML da página aqui..."
+                  value={manualHtml}
+                  onChange={(e) => setManualHtml(e.target.value)}
+                  className="w-full h-32 rounded-lg border border-border bg-background px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary font-mono"
+                />
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-muted-foreground">
+                    {manualHtml.length > 0 ? `${(manualHtml.length / 1024).toFixed(1)} KB de HTML` : 'Nenhum HTML colado'}
+                  </span>
+                  <Button onClick={extractProducts} disabled={isLoading || !manualHtml}>
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Extraindo...
+                      </>
+                    ) : (
+                      <>
+                        <Search className="h-4 w-4 mr-2" />
+                        Extrair do HTML
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 
