@@ -1,11 +1,32 @@
 import { Link } from "react-router-dom";
+import { useEffect, useState } from "react";
 import balaoLogo from "@/assets/balao-logo.png";
+import { api, getCustomCategories, type CompanyData, type CustomCategory } from "@/lib/api";
 
 interface RedWhiteFooterProps {
   hideFooter?: boolean;
 }
 
 export function RedWhiteFooter({ hideFooter }: RedWhiteFooterProps) {
+  const [categories, setCategories] = useState<CustomCategory[]>([]);
+  const [company, setCompany] = useState<CompanyData | null>(null);
+
+  useEffect(() => {
+    // Load categories from database
+    getCustomCategories().then(cats => {
+      // Filter out hardware category and take first 6
+      const filtered = cats.filter(c => c.key !== 'hardware').slice(0, 6);
+      setCategories(filtered);
+    });
+
+    // Load company data
+    api.getCompany().then(data => {
+      if (data) {
+        setCompany(data);
+      }
+    });
+  }, []);
+
   if (hideFooter) {
     return null;
   }
@@ -34,24 +55,38 @@ export function RedWhiteFooter({ hideFooter }: RedWhiteFooterProps) {
           <div>
             <h4 className="font-bold mb-4 text-gray-800">Categorias</h4>
             <ul className="space-y-2 text-gray-600 text-sm">
-              <li><Link to="/loja?category=pc" className="hover:text-primary transition-colors">PCs Montados</Link></li>
-              <li><Link to="/loja?category=notebook" className="hover:text-primary transition-colors">Notebooks</Link></li>
-              <li><Link to="/loja?category=hardware" className="hover:text-primary transition-colors">Hardware</Link></li>
-              <li><Link to="/loja?category=acessorio" className="hover:text-primary transition-colors">Acessórios</Link></li>
+              {categories.length > 0 ? (
+                categories.map(cat => (
+                  <li key={cat.key}>
+                    <Link to={`/loja?category=${cat.key}`} className="hover:text-primary transition-colors">
+                      {cat.label}
+                    </Link>
+                  </li>
+                ))
+              ) : (
+                <li className="text-gray-400 italic">Carregando...</li>
+              )}
             </ul>
           </div>
           
           <div>
             <h4 className="font-bold mb-4 text-gray-800">Contato</h4>
             <ul className="space-y-2 text-gray-600 text-sm">
-              <li>WhatsApp: (19) 98147-0446</li>
-              <li>Email: contato@balao.info</li>
+              {company?.phone && (
+                <li>WhatsApp: {company.phone}</li>
+              )}
+              {company?.email && (
+                <li>Email: {company.email}</li>
+              )}
+              {!company?.phone && !company?.email && (
+                <li className="text-gray-400 italic">Carregando...</li>
+              )}
             </ul>
           </div>
         </div>
         
         <div className="border-t border-gray-200 mt-8 pt-8 text-center text-gray-500 text-sm">
-          © {new Date().getFullYear()} Balão da Informática. Todos os direitos reservados.
+          © {new Date().getFullYear()} {company?.name || 'Balão da Informática'}. Todos os direitos reservados.
         </div>
       </div>
     </footer>
