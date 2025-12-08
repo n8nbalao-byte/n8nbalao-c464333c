@@ -161,24 +161,24 @@ export function CarouselManager() {
     <div className="space-y-8">
       <div className="flex items-center gap-3">
         <Image className="h-6 w-6 text-primary" />
-        <h2 className="text-2xl font-bold text-foreground">Gerenciar Carrosséis da Home</h2>
+        <h2 className="text-2xl font-bold text-gray-800">Gerenciar Carrosséis da Home</h2>
       </div>
       
-      <p className="text-muted-foreground">
+      <p className="text-gray-600">
         Adicione imagens aos carrosséis que aparecem na página inicial. As imagens serão exibidas alternando automaticamente.
       </p>
 
       {carouselConfigs.map(config => (
-        <div key={config.key} className="rounded-xl border border-border bg-card p-6 space-y-4">
+        <div key={config.key} className="rounded-xl border border-gray-200 bg-white p-6 space-y-4 shadow-sm">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-lg font-semibold text-foreground">{config.label}</h3>
-              <p className="text-sm text-muted-foreground">{config.description}</p>
+              <h3 className="text-lg font-semibold text-gray-800">{config.label}</h3>
+              <p className="text-sm text-gray-500">{config.description}</p>
             </div>
             <button
               onClick={() => handleSave(config.key)}
               disabled={saving === config.key}
-              className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-colors"
+              className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90 disabled:opacity-50 transition-colors"
             >
               <Save className="h-4 w-4" />
               {saving === config.key ? "Salvando..." : "Salvar"}
@@ -188,7 +188,7 @@ export function CarouselManager() {
           {/* Image Grid */}
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
             {(carousels[config.key] || []).map((image, index) => (
-              <div key={index} className="relative group aspect-video rounded-lg overflow-hidden border border-border">
+              <div key={index} className="relative group aspect-video rounded-lg overflow-hidden border border-gray-200">
                 <img
                   src={image}
                   alt={`${config.label} ${index + 1}`}
@@ -196,20 +196,20 @@ export function CarouselManager() {
                 />
                 <button
                   onClick={() => handleRemoveImage(config.key, index)}
-                  className="absolute top-2 right-2 p-1.5 rounded-full bg-destructive text-destructive-foreground opacity-0 group-hover:opacity-100 transition-opacity"
+                  className="absolute top-2 right-2 p-1.5 rounded-full bg-red-500 text-white opacity-0 group-hover:opacity-100 transition-opacity"
                 >
                   <Trash2 className="h-4 w-4" />
                 </button>
-                <div className="absolute bottom-2 left-2 px-2 py-0.5 rounded bg-background/80 text-xs font-medium">
+                <div className="absolute bottom-2 left-2 px-2 py-0.5 rounded bg-white/80 text-xs font-medium text-gray-700">
                   {index + 1}
                 </div>
               </div>
             ))}
 
             {/* Add Image Button */}
-            <label className="flex flex-col items-center justify-center aspect-video rounded-lg border-2 border-dashed border-border hover:border-primary/50 cursor-pointer transition-colors">
-              <Upload className="h-8 w-8 text-muted-foreground mb-2" />
-              <span className="text-sm text-muted-foreground">Adicionar</span>
+            <label className="flex flex-col items-center justify-center aspect-video rounded-lg border-2 border-dashed border-gray-300 hover:border-primary/50 cursor-pointer transition-colors bg-gray-50">
+              <Upload className="h-8 w-8 text-gray-400 mb-2" />
+              <span className="text-sm text-gray-500">Adicionar</span>
               <input
                 type="file"
                 accept="image/*"
@@ -221,7 +221,7 @@ export function CarouselManager() {
           </div>
 
           {(carousels[config.key] || []).length === 0 && (
-            <p className="text-sm text-muted-foreground italic">
+            <p className="text-sm text-gray-500 italic">
               Nenhuma imagem adicionada. Adicione imagens para criar o carrossel.
             </p>
           )}

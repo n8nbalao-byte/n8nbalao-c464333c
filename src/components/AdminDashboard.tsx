@@ -43,11 +43,11 @@ const statusLabels: Record<Order["status"], string> = {
 };
 
 const statusColors: Record<Order["status"], string> = {
-  pending: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30",
-  confirmed: "bg-blue-500/20 text-blue-400 border-blue-500/30",
-  shipped: "bg-purple-500/20 text-purple-400 border-purple-500/30",
-  delivered: "bg-green-500/20 text-green-400 border-green-500/30",
-  cancelled: "bg-red-500/20 text-red-400 border-red-500/30",
+  pending: "bg-yellow-100 text-yellow-700 border-yellow-300",
+  confirmed: "bg-blue-100 text-blue-700 border-blue-300",
+  shipped: "bg-purple-100 text-purple-700 border-purple-300",
+  delivered: "bg-green-100 text-green-700 border-green-300",
+  cancelled: "bg-red-100 text-red-700 border-red-300",
 };
 
 const statusIcons: Record<Order["status"], React.ElementType> = {
@@ -288,88 +288,88 @@ export function AdminDashboard() {
     <div className="space-y-6">
       {/* Stats Cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-        <div className="rounded-xl border border-border bg-card p-4">
+        <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
           <div className="flex items-center gap-3">
-            <div className="rounded-lg bg-blue-500/20 p-2">
-              <Users className="h-5 w-5 text-blue-400" />
+            <div className="rounded-lg bg-blue-100 p-2">
+              <Users className="h-5 w-5 text-blue-600" />
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Clientes</p>
-              <p className="text-2xl font-bold">{stats.totalCustomers}</p>
+              <p className="text-sm text-gray-500">Clientes</p>
+              <p className="text-2xl font-bold text-gray-800">{stats.totalCustomers}</p>
             </div>
           </div>
         </div>
 
-        <div className="rounded-xl border border-border bg-card p-4">
+        <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
           <div className="flex items-center gap-3">
-            <div className="rounded-lg bg-purple-500/20 p-2">
-              <ShoppingCart className="h-5 w-5 text-purple-400" />
+            <div className="rounded-lg bg-purple-100 p-2">
+              <ShoppingCart className="h-5 w-5 text-purple-600" />
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Pedidos</p>
-              <p className="text-2xl font-bold">{stats.totalOrders}</p>
+              <p className="text-sm text-gray-500">Pedidos</p>
+              <p className="text-2xl font-bold text-gray-800">{stats.totalOrders}</p>
             </div>
           </div>
         </div>
 
-        <div className="rounded-xl border border-border bg-card p-4">
+        <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
           <div className="flex items-center gap-3">
-            <div className="rounded-lg bg-orange-500/20 p-2">
-              <Package className="h-5 w-5 text-orange-400" />
+            <div className="rounded-lg bg-orange-100 p-2">
+              <Package className="h-5 w-5 text-orange-600" />
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Produtos</p>
-              <p className="text-2xl font-bold">{stats.totalProducts}</p>
+              <p className="text-sm text-gray-500">Produtos</p>
+              <p className="text-2xl font-bold text-gray-800">{stats.totalProducts}</p>
             </div>
           </div>
         </div>
 
-        <div className="rounded-xl border border-border bg-card p-4">
+        <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
           <div className="flex items-center gap-3">
-            <div className="rounded-lg bg-green-500/20 p-2">
-              <DollarSign className="h-5 w-5 text-green-400" />
+            <div className="rounded-lg bg-green-100 p-2">
+              <DollarSign className="h-5 w-5 text-green-600" />
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Receita</p>
-              <p className="text-xl font-bold">{formatPrice(stats.totalRevenue)}</p>
+              <p className="text-sm text-gray-500">Receita</p>
+              <p className="text-xl font-bold text-gray-800">{formatPrice(stats.totalRevenue)}</p>
             </div>
           </div>
         </div>
 
-        <div className="rounded-xl border border-border bg-card p-4">
+        <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
           <div className="flex items-center gap-3">
-            <div className="rounded-lg bg-yellow-500/20 p-2">
-              <Clock className="h-5 w-5 text-yellow-400" />
+            <div className="rounded-lg bg-yellow-100 p-2">
+              <Clock className="h-5 w-5 text-yellow-600" />
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Pendentes</p>
-              <p className="text-2xl font-bold">{stats.pendingOrders}</p>
+              <p className="text-sm text-gray-500">Pendentes</p>
+              <p className="text-2xl font-bold text-gray-800">{stats.pendingOrders}</p>
             </div>
           </div>
         </div>
 
-        <div className="rounded-xl border border-border bg-card p-4">
+        <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
           <div className="flex items-center gap-3">
-            <div className="rounded-lg bg-emerald-500/20 p-2">
-              <TrendingUp className="h-5 w-5 text-emerald-400" />
+            <div className="rounded-lg bg-emerald-100 p-2">
+              <TrendingUp className="h-5 w-5 text-emerald-600" />
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Entregues</p>
-              <p className="text-2xl font-bold">{stats.completedOrders}</p>
+              <p className="text-sm text-gray-500">Entregues</p>
+              <p className="text-2xl font-bold text-gray-800">{stats.completedOrders}</p>
             </div>
           </div>
         </div>
       </div>
 
       {/* View Tabs */}
-      <div className="flex items-center justify-between border-b border-border pb-4">
+      <div className="flex items-center justify-between border-b border-gray-200 pb-4">
         <div className="flex gap-2">
           <button
             onClick={() => setActiveView("overview")}
             className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
               activeView === "overview"
-                ? "bg-primary text-primary-foreground"
-                : "text-muted-foreground hover:bg-secondary"
+                ? "bg-primary text-white"
+                : "text-gray-600 hover:bg-gray-100"
             }`}
           >
             Visão Geral
@@ -378,8 +378,8 @@ export function AdminDashboard() {
             onClick={() => setActiveView("customers")}
             className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
               activeView === "customers"
-                ? "bg-primary text-primary-foreground"
-                : "text-muted-foreground hover:bg-secondary"
+                ? "bg-primary text-white"
+                : "text-gray-600 hover:bg-gray-100"
             }`}
           >
             Clientes ({customers.length})
@@ -388,8 +388,8 @@ export function AdminDashboard() {
             onClick={() => setActiveView("orders")}
             className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
               activeView === "orders"
-                ? "bg-primary text-primary-foreground"
-                : "text-muted-foreground hover:bg-secondary"
+                ? "bg-primary text-white"
+                : "text-gray-600 hover:bg-gray-100"
             }`}
           >
             Pedidos ({orders.length})
@@ -400,7 +400,7 @@ export function AdminDashboard() {
         <div className="flex items-center gap-2">
           <button
             onClick={() => playNotificationSound()}
-            className="rounded-lg p-2 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
+            className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-colors"
             title="Testar som de notificação"
           >
             <Volume2 className="h-4 w-4" />
@@ -409,8 +409,8 @@ export function AdminDashboard() {
             onClick={() => setNotificationsEnabled(!notificationsEnabled)}
             className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
               notificationsEnabled
-                ? "bg-green-500/20 text-green-400 border border-green-500/30"
-                : "bg-secondary text-muted-foreground"
+                ? "bg-green-100 text-green-700 border border-green-300"
+                : "bg-gray-100 text-gray-500"
             }`}
             title={notificationsEnabled ? "Notificações ativadas" : "Notificações desativadas"}
           >
@@ -433,23 +433,23 @@ export function AdminDashboard() {
       {(activeView === "customers" || activeView === "orders") && (
         <div className="flex flex-wrap gap-4">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
             <input
               type="text"
               placeholder={activeView === "customers" ? "Buscar cliente..." : "Buscar pedido..."}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full rounded-lg border border-border bg-card py-2 pl-10 pr-4 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+              className="w-full rounded-lg border border-gray-200 bg-white py-2 pl-10 pr-4 text-gray-800 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary"
             />
           </div>
 
           {activeView === "orders" && (
             <div className="flex items-center gap-2">
-              <Filter className="h-4 w-4 text-muted-foreground" />
+              <Filter className="h-4 w-4 text-gray-400" />
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value as Order["status"] | "all")}
-                className="rounded-lg border border-border bg-card px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-gray-800 focus:outline-none focus:ring-2 focus:ring-primary"
               >
                 <option value="all">Todos</option>
                 <option value="pending">Pendentes</option>
@@ -463,7 +463,7 @@ export function AdminDashboard() {
 
           <button
             onClick={fetchData}
-            className="flex items-center gap-2 rounded-lg border border-border px-4 py-2 text-foreground transition-colors hover:bg-secondary"
+            className="flex items-center gap-2 rounded-lg border border-gray-200 px-4 py-2 text-gray-700 transition-colors hover:bg-gray-100"
           >
             <RefreshCw className="h-4 w-4" />
             Atualizar
@@ -475,21 +475,21 @@ export function AdminDashboard() {
       {activeView === "overview" && (
         <div className="grid gap-6 lg:grid-cols-2">
           {/* Recent Orders */}
-          <div className="rounded-xl border border-border bg-card p-6">
-            <h3 className="mb-4 text-lg font-semibold">Pedidos Recentes</h3>
+          <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+            <h3 className="mb-4 text-lg font-semibold text-gray-800">Pedidos Recentes</h3>
             <div className="space-y-3">
               {orders.slice(0, 5).map((order) => {
                 const StatusIcon = statusIcons[order.status];
                 return (
                   <div
                     key={order.id}
-                    className="flex items-center justify-between rounded-lg border border-border bg-background p-3"
+                    className="flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 p-3"
                   >
                     <div className="flex items-center gap-3">
-                      <StatusIcon className="h-5 w-5 text-muted-foreground" />
+                      <StatusIcon className="h-5 w-5 text-gray-500" />
                       <div>
-                        <p className="font-medium">{order.customerName || "Cliente"}</p>
-                        <p className="text-sm text-muted-foreground">
+                        <p className="font-medium text-gray-800">{order.customerName || "Cliente"}</p>
+                        <p className="text-sm text-gray-500">
                           {order.items?.length || 0} itens
                         </p>
                       </div>
@@ -508,34 +508,34 @@ export function AdminDashboard() {
                 );
               })}
               {orders.length === 0 && (
-                <p className="py-8 text-center text-muted-foreground">Nenhum pedido ainda</p>
+                <p className="py-8 text-center text-gray-500">Nenhum pedido ainda</p>
               )}
             </div>
           </div>
 
           {/* Recent Customers */}
-          <div className="rounded-xl border border-border bg-card p-6">
-            <h3 className="mb-4 text-lg font-semibold">Clientes Recentes</h3>
+          <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+            <h3 className="mb-4 text-lg font-semibold text-gray-800">Clientes Recentes</h3>
             <div className="space-y-3">
               {customers.slice(0, 5).map((customer) => (
                 <div
                   key={customer.id}
-                  className="flex items-center justify-between rounded-lg border border-border bg-background p-3"
+                  className="flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 p-3"
                 >
                   <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/20 text-primary">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/20 text-primary font-bold">
                       {customer.name.charAt(0).toUpperCase()}
                     </div>
                     <div>
-                      <p className="font-medium">{customer.name}</p>
-                      <p className="text-sm text-muted-foreground">{customer.email}</p>
+                      <p className="font-medium text-gray-800">{customer.name}</p>
+                      <p className="text-sm text-gray-500">{customer.email}</p>
                     </div>
                   </div>
-                  <p className="text-sm text-muted-foreground">{customer.phone}</p>
+                  <p className="text-sm text-gray-500">{customer.phone}</p>
                 </div>
               ))}
               {customers.length === 0 && (
-                <p className="py-8 text-center text-muted-foreground">Nenhum cliente ainda</p>
+                <p className="py-8 text-center text-gray-500">Nenhum cliente ainda</p>
               )}
             </div>
           </div>
@@ -544,77 +544,77 @@ export function AdminDashboard() {
 
       {/* Customers List */}
       {activeView === "customers" && (
-        <div className="rounded-xl border border-border bg-card overflow-hidden">
+        <div className="rounded-xl border border-gray-200 bg-white overflow-hidden shadow-sm">
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="border-b border-border bg-secondary/50">
+              <thead className="border-b border-gray-200 bg-gray-50">
                 <tr>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">
+                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">
                     Cliente
                   </th>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">
+                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">
                     Contato
                   </th>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">
+                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">
                     Endereço
                   </th>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">
+                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">
                     Cadastro
                   </th>
-                  <th className="px-4 py-3 text-right text-sm font-medium text-muted-foreground">
+                  <th className="px-4 py-3 text-right text-sm font-medium text-gray-600">
                     Ações
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-border">
+              <tbody className="divide-y divide-gray-100">
                 {filteredCustomers.map((customer) => (
-                  <tr key={customer.id} className="hover:bg-secondary/30">
+                  <tr key={customer.id} className="hover:bg-gray-50">
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
                         <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/20 text-primary font-semibold">
                           {customer.name.charAt(0).toUpperCase()}
                         </div>
                         <div>
-                          <p className="font-medium">{customer.name}</p>
+                          <p className="font-medium text-gray-800">{customer.name}</p>
                           {customer.cpf && (
-                            <p className="text-sm text-muted-foreground">CPF: {customer.cpf}</p>
+                            <p className="text-sm text-gray-500">CPF: {customer.cpf}</p>
                           )}
                         </div>
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      <p>{customer.email}</p>
-                      <p className="text-sm text-muted-foreground">{customer.phone}</p>
+                      <p className="text-gray-800">{customer.email}</p>
+                      <p className="text-sm text-gray-500">{customer.phone}</p>
                     </td>
                     <td className="px-4 py-3">
                       {customer.address ? (
                         <div>
-                          <p className="text-sm">{customer.address}</p>
-                          <p className="text-sm text-muted-foreground">
+                          <p className="text-sm text-gray-800">{customer.address}</p>
+                          <p className="text-sm text-gray-500">
                             {customer.city}
                             {customer.state && ` - ${customer.state}`}
                             {customer.cep && ` | ${customer.cep}`}
                           </p>
                         </div>
                       ) : (
-                        <span className="text-muted-foreground">-</span>
+                        <span className="text-gray-400">-</span>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-sm text-muted-foreground">
+                    <td className="px-4 py-3 text-sm text-gray-500">
                       {formatDate(customer.createdAt)}
                     </td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-1">
                         <button
                           onClick={() => handleResetPassword(customer.id, customer.name)}
-                          className="rounded-lg p-2 text-yellow-500 hover:bg-yellow-500/10"
+                          className="rounded-lg p-2 text-yellow-600 hover:bg-yellow-100"
                           title="Resetar Senha"
                         >
                           <KeyRound className="h-4 w-4" />
                         </button>
                         <button
                           onClick={() => handleDeleteCustomer(customer.id)}
-                          className="rounded-lg p-2 text-destructive hover:bg-destructive/10"
+                          className="rounded-lg p-2 text-red-500 hover:bg-red-100"
                           title="Excluir Cliente"
                         >
                           <Trash2 className="h-4 w-4" />
@@ -627,7 +627,7 @@ export function AdminDashboard() {
             </table>
           </div>
           {filteredCustomers.length === 0 && (
-            <p className="py-12 text-center text-muted-foreground">Nenhum cliente encontrado</p>
+            <p className="py-12 text-center text-gray-500">Nenhum cliente encontrado</p>
           )}
         </div>
       )}
@@ -642,19 +642,19 @@ export function AdminDashboard() {
             return (
               <div
                 key={order.id}
-                className="rounded-xl border border-border bg-card overflow-hidden"
+                className="rounded-xl border border-gray-200 bg-white overflow-hidden shadow-sm"
               >
                 <div
-                  className="flex cursor-pointer items-center justify-between p-4 hover:bg-secondary/30"
+                  className="flex cursor-pointer items-center justify-between p-4 hover:bg-gray-50"
                   onClick={() => setExpandedOrder(isExpanded ? null : order.id)}
                 >
                   <div className="flex items-center gap-4">
-                    <StatusIcon className="h-6 w-6 text-muted-foreground" />
+                    <StatusIcon className="h-6 w-6 text-gray-500" />
                     <div>
-                      <p className="font-medium">
+                      <p className="font-medium text-gray-800">
                         Pedido #{order.id.slice(0, 8)}
                       </p>
-                      <p className="text-sm text-muted-foreground">
+                      <p className="text-sm text-gray-500">
                         {order.customerName || "Cliente"} • {formatDate(order.createdAt)}
                       </p>
                     </div>
@@ -672,24 +672,24 @@ export function AdminDashboard() {
                       </span>
                     </div>
                     {isExpanded ? (
-                      <ChevronUp className="h-5 w-5 text-muted-foreground" />
+                      <ChevronUp className="h-5 w-5 text-gray-500" />
                     ) : (
-                      <ChevronDown className="h-5 w-5 text-muted-foreground" />
+                      <ChevronDown className="h-5 w-5 text-gray-500" />
                     )}
                   </div>
                 </div>
 
                 {isExpanded && (
-                  <div className="border-t border-border bg-secondary/20 p-4">
+                  <div className="border-t border-gray-200 bg-gray-50 p-4">
                     <div className="mb-4 grid gap-4 sm:grid-cols-2">
                       <div>
-                        <h4 className="mb-2 font-medium">Cliente</h4>
-                        <p>{order.customerName}</p>
-                        <p className="text-sm text-muted-foreground">{order.customerEmail}</p>
-                        <p className="text-sm text-muted-foreground">{order.customerPhone}</p>
+                        <h4 className="mb-2 font-medium text-gray-800">Cliente</h4>
+                        <p className="text-gray-800">{order.customerName}</p>
+                        <p className="text-sm text-gray-500">{order.customerEmail}</p>
+                        <p className="text-sm text-gray-500">{order.customerPhone}</p>
                       </div>
                       <div>
-                        <h4 className="mb-2 font-medium">Alterar Status</h4>
+                        <h4 className="mb-2 font-medium text-gray-800">Alterar Status</h4>
                         <div className="flex flex-wrap gap-2">
                           {(["pending", "confirmed", "shipped", "delivered", "cancelled"] as Order["status"][]).map(
                             (status) => (
@@ -700,7 +700,7 @@ export function AdminDashboard() {
                                 className={`rounded-lg px-3 py-1 text-sm transition-colors ${
                                   order.status === status
                                     ? statusColors[status]
-                                    : "bg-secondary hover:bg-secondary/80"
+                                    : "bg-gray-100 hover:bg-gray-200 text-gray-700"
                                 }`}
                               >
                                 {statusLabels[status]}
@@ -711,36 +711,36 @@ export function AdminDashboard() {
                       </div>
                     </div>
 
-                    <h4 className="mb-2 font-medium">Itens do Pedido</h4>
+                    <h4 className="mb-2 font-medium text-gray-800">Itens do Pedido</h4>
                     <div className="mb-4 space-y-2">
                       {order.items?.map((item, index) => (
                         <div
                           key={index}
-                          className="flex items-center justify-between rounded-lg border border-border bg-background p-3"
+                          className="flex items-center justify-between rounded-lg border border-gray-200 bg-white p-3"
                         >
                           <div>
-                            <p className="font-medium">{item.title}</p>
-                            <p className="text-sm text-muted-foreground">
+                            <p className="font-medium text-gray-800">{item.title}</p>
+                            <p className="text-sm text-gray-500">
                               {item.quantity}x {formatPrice(item.price)}
                             </p>
                           </div>
-                          <p className="font-semibold">
+                          <p className="font-semibold text-gray-800">
                             {formatPrice(item.price * item.quantity)}
                           </p>
                         </div>
                       ))}
                     </div>
 
-                    <div className="flex items-center justify-between border-t border-border pt-4">
+                    <div className="flex items-center justify-between border-t border-gray-200 pt-4">
                       <button
                         onClick={() => handleDeleteOrder(order.id)}
-                        className="flex items-center gap-2 rounded-lg bg-destructive/10 px-4 py-2 text-destructive hover:bg-destructive/20"
+                        className="flex items-center gap-2 rounded-lg bg-red-100 px-4 py-2 text-red-600 hover:bg-red-200"
                       >
                         <Trash2 className="h-4 w-4" />
                         Excluir Pedido
                       </button>
                       <div className="text-right">
-                        <p className="text-sm text-muted-foreground">Total</p>
+                        <p className="text-sm text-gray-500">Total</p>
                         <p className="text-xl font-bold text-primary">
                           {formatPrice(order.totalPrice)}
                         </p>
@@ -752,7 +752,7 @@ export function AdminDashboard() {
             );
           })}
           {filteredOrders.length === 0 && (
-            <p className="py-12 text-center text-muted-foreground">Nenhum pedido encontrado</p>
+            <p className="py-12 text-center text-gray-500">Nenhum pedido encontrado</p>
           )}
         </div>
       )}
