@@ -32,7 +32,7 @@ const baseCategoryConfig = [
   { key: 'cadeira_gamer', label: 'Cadeiras Gamer', icon: Armchair },
 ];
 
-export default function Index() {
+export default function Automacao() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [categoryConfig, setCategoryConfig] = useState(baseCategoryConfig);
@@ -65,11 +65,10 @@ export default function Index() {
   };
 
   return (
-    <div className="min-h-screen relative">
+    <div className="min-h-screen relative dark bg-background text-foreground">
       <StarryBackground />
       <Header />
       <Sidebar />
-      
 
       {/* Hero Section */}
       <section className="relative overflow-hidden py-20 lg:py-32">
