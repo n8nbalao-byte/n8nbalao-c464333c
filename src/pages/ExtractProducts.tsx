@@ -86,18 +86,27 @@ const ExtractProducts = () => {
         console.log('HTML truncated to 500KB');
       }
 
+      console.log('Iniciando extração...', { extractType, inputMode, urlLength: url.length, htmlLength: htmlToSend?.length || 0 });
+
+      const requestBody = {
+        url: inputMode === 'url' ? url : 'manual-html',
+        html: htmlToSend,
+        apiKey,
+        extractType,
+      };
+
+      console.log('Enviando para:', `${API_BASE_URL}/extract.php`);
+      console.log('Payload size:', JSON.stringify(requestBody).length, 'bytes');
+
       const response = await fetch(`${API_BASE_URL}/extract.php`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          url: inputMode === 'url' ? url : 'manual-html',
-          html: htmlToSend,
-          apiKey,
-          extractType,
-        }),
+        body: JSON.stringify(requestBody),
       });
+
+      console.log('Response status:', response.status);
 
       if (!response.ok) {
         const errorText = await response.text();
