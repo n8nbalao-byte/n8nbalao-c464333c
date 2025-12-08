@@ -7,6 +7,8 @@ import { api, type Product, type HardwareItem, getCustomCategories, getHardwareC
 import { getIconFromKey } from "@/lib/icons";
 import { Search, ArrowUpDown, Package, Cpu, ChevronLeft, ShoppingCart, Menu, HardDrive, Monitor, Laptop, Bot } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
+import { useViewMode } from "@/contexts/ViewModeContext";
+import { ViewModeSelector } from "@/components/ViewModeSelector";
 import LorenzoChatWidget from "@/components/LorenzoChatWidget";
 import balaoLogo from "@/assets/balao-logo.png";
 
@@ -244,11 +246,14 @@ export default function Loja() {
         {/* Main Content */}
         <main className="flex-1 py-8 px-6 bg-gray-50">
           {/* Page Header */}
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-800">Nossa Loja</h1>
-            <p className="mt-2 text-gray-600">
-              Escolha o produto ideal para suas necessidades
-            </p>
+          <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-800">Nossa Loja</h1>
+              <p className="mt-2 text-gray-600">
+                Escolha o produto ideal para suas necessidades
+              </p>
+            </div>
+            <ViewModeSelector />
           </div>
 
           {/* Hardware Subcategories */}
