@@ -42,12 +42,15 @@ export function HomeCarousel({ carouselKey, fallbackImage, className = "", alt =
 
   if (loading) {
     return (
-      <div className={`animate-pulse bg-card rounded-xl ${className}`} />
+      <div className={`animate-pulse bg-gray-200 rounded-xl ${className}`} />
     );
   }
 
-  // If no images, show fallback
+  // If no images and no fallback, return null (hide completely)
   if (images.length === 0) {
+    if (!fallbackImage) {
+      return null;
+    }
     return (
       <img
         src={fallbackImage}
