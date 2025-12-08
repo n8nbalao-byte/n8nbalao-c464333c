@@ -170,14 +170,66 @@ export default function MonteVoceMesmo() {
     const processor = Array.isArray(processorValue) ? processorValue[0] : processorValue;
     const motherboardValue = selectedHardware['motherboard'];
     const motherboard = Array.isArray(motherboardValue) ? motherboardValue[0] : motherboardValue;
+    const gpuValue = selectedHardware['gpu'];
+    const gpu = Array.isArray(gpuValue) ? gpuValue[0] : gpuValue;
+    const caseValue = selectedHardware['case'];
+    const selectedCase = Array.isArray(caseValue) ? caseValue[0] : caseValue;
 
     return items.filter(item => {
+      // Motherboard must match processor socket
       if (category === 'motherboard' && processor?.socket && item.socket) {
         if (item.socket !== processor.socket) return false;
       }
+      
+      // Memory must match motherboard memory type (DDR4, DDR5, etc.)
       if (category === 'memory' && motherboard?.memoryType && item.memoryType) {
         if (item.memoryType !== motherboard.memoryType) return false;
       }
+      
+      // Cooler must match processor socket OR be universal
+      if (category === 'cooler' && processor?.socket && item.socket) {
+        if (item.socket !== 'Universal' && item.socket !== processor.socket) return false;
+      }
+      
+      // Cooler form factor must fit in case (watercooler size)
+      if (category === 'cooler' && selectedCase?.formFactor && item.formFactor) {
+        // Map case sizes to maximum cooler radiator sizes
+        const caseToMaxRadiator: Record<string, string[]> = {
+          'Mini-ITX': ['120mm', '140mm', 'Air Cooler'],
+          'Micro-ATX': ['120mm', '140mm', '240mm', 'Air Cooler'],
+          'ATX': ['120mm', '140mm', '240mm', '280mm', '360mm', 'Air Cooler'],
+          'Full Tower': ['120mm', '140mm', '240mm', '280mm', '360mm', '420mm', 'Air Cooler'],
+          'E-ATX': ['120mm', '140mm', '240mm', '280mm', '360mm', '420mm', 'Air Cooler'],
+        };
+        const allowedSizes = caseToMaxRadiator[selectedCase.formFactor] || [];
+        if (allowedSizes.length > 0 && item.formFactor && !allowedSizes.includes(item.formFactor)) {
+          return false;
+        }
+      }
+      
+      // PSU must have enough wattage for GPU TDP (with safety margin)
+      if (category === 'psu' && gpu?.tdp && item.tdp) {
+        // GPU TDP + 200W for CPU and other components (safety margin)
+        const requiredWattage = gpu.tdp + 250;
+        if (item.tdp < requiredWattage) return false;
+      }
+      
+      // Case must match motherboard form factor
+      if (category === 'case' && motherboard?.formFactor && item.formFactor) {
+        // Map which cases can fit which motherboards
+        const caseToMotherboard: Record<string, string[]> = {
+          'Mini-ITX': ['Mini-ITX'],
+          'Micro-ATX': ['Mini-ITX', 'Micro-ATX'],
+          'ATX': ['Mini-ITX', 'Micro-ATX', 'ATX'],
+          'Full Tower': ['Mini-ITX', 'Micro-ATX', 'ATX', 'E-ATX'],
+          'E-ATX': ['Mini-ITX', 'Micro-ATX', 'ATX', 'E-ATX'],
+        };
+        const supportedMobo = caseToMotherboard[item.formFactor] || [];
+        if (supportedMobo.length > 0 && !supportedMobo.includes(motherboard.formFactor)) {
+          return false;
+        }
+      }
+      
       return true;
     });
   }

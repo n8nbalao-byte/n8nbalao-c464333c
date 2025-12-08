@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Upload, Loader2, Check, Trash2, Package, Percent, Tag, Link as LinkIcon, Globe, FileSpreadsheet, Sparkles, Store } from "lucide-react";
+import { ArrowLeft, Upload, Loader2, Check, Trash2, Package, Percent, Tag, Link as LinkIcon, Globe, FileSpreadsheet, Sparkles, Store, Wrench, ShoppingBag } from "lucide-react";
 import { Link } from "react-router-dom";
 import { api, getCustomCategories, addCustomCategory, getHardwareCategories, addHardwareCategory, CustomCategory, HardwareCategoryDef } from "@/lib/api";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -26,6 +26,7 @@ interface ParsedProduct {
   selected: boolean;
   detectedCategory: string;
   isHardware: boolean;
+  hardwareSubcategory?: string; // For hardware items: processor, motherboard, memory, etc.
 }
 
 // Hardware categories that should be imported as hardware items
@@ -82,15 +83,17 @@ const categoryIcons: Record<string, string> = {
 };
 
 // Detect category from product title
-const detectCategory = (title: string): { category: string; isHardware: boolean } => {
+const detectCategory = (title: string): { category: string; isHardware: boolean; hardwareSubcategory?: string } => {
   const lowerTitle = title.toLowerCase();
   
   for (const [category, keywords] of Object.entries(categoryKeywords)) {
     for (const keyword of keywords) {
       if (lowerTitle.includes(keyword.toLowerCase())) {
+        const isHw = hardwareCategories.includes(category);
         return { 
           category, 
-          isHardware: hardwareCategories.includes(category) 
+          isHardware: isHw,
+          hardwareSubcategory: isHw ? category : undefined
         };
       }
     }
@@ -514,7 +517,8 @@ const ExtractProducts = () => {
           costPrice,
           selected: true,
           detectedCategory: detected.category,
-          isHardware: detected.isHardware
+          isHardware: detected.isHardware,
+          hardwareSubcategory: detected.hardwareSubcategory
         });
       }
 
@@ -914,7 +918,7 @@ const ExtractProducts = () => {
           body: JSON.stringify({
             items: hardwareItems.map((item, idx) => ({
               title: item.title,
-              category: item.detectedCategory
+              category: item.hardwareSubcategory || item.detectedCategory
             }))
           })
         });
@@ -961,6 +965,9 @@ const ExtractProducts = () => {
           // Get AI-detected compatibility
           const compat = compatibilityMap[i] || {};
 
+          // Use hardwareSubcategory if available, fallback to detectedCategory
+          const hardwareCategory = item.hardwareSubcategory || item.detectedCategory;
+          
           await api.createHardware({
             name: item.title,
             brand,
@@ -968,7 +975,7 @@ const ExtractProducts = () => {
             price: Math.round(finalPrice * 100) / 100,
             image: item.imageUrl || '',
             specs: {},
-            category: item.detectedCategory as any,
+            category: hardwareCategory as any,
             // Compatibility fields from AI
             socket: compat.socket || undefined,
             memoryType: compat.memoryType || undefined,
@@ -1404,11 +1411,11 @@ const ExtractProducts = () => {
                       <TableHead className="w-16">Imagem</TableHead>
                       <TableHead>Título</TableHead>
                       <TableHead>Descrição IA</TableHead>
-                      <TableHead>Categoria Detectada</TableHead>
+                      <TableHead>Categoria / Subcategoria</TableHead>
                       <TableHead className="text-right">Custo</TableHead>
                       <TableHead className="text-right">Custo Ajustado (+{taxa}%)</TableHead>
                       <TableHead className="text-right">Venda (+{margin}%)</TableHead>
-                      <TableHead className="w-12"></TableHead>
+                      <TableHead className="w-20">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -1452,22 +1459,40 @@ const ExtractProducts = () => {
                         </TableCell>
                         <TableCell>
                           <div className="flex flex-col gap-1">
-                            {product.detectedCategory ? (
-                              <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                                product.isHardware 
-                                  ? 'bg-blue-100 text-blue-800' 
-                                  : 'bg-green-100 text-green-800'
-                              }`}>
+                            {product.isHardware ? (
+                              <>
+                                <Select
+                                  value={product.hardwareSubcategory || product.detectedCategory}
+                                  onValueChange={(value) => {
+                                    setParsedProducts(prev => prev.map(p => 
+                                      p.id === product.id 
+                                        ? { ...p, hardwareSubcategory: value, detectedCategory: value }
+                                        : p
+                                    ));
+                                  }}
+                                >
+                                  <SelectTrigger className="h-7 text-xs bg-blue-50 border-blue-200">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent className="bg-white">
+                                    {hardwareCategories.map(cat => (
+                                      <SelectItem key={cat} value={cat} className="text-sm">
+                                        {formatCategoryLabel(cat)}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                <span className="text-xs text-blue-600 font-medium">
+                                  → Hardware
+                                </span>
+                              </>
+                            ) : product.detectedCategory ? (
+                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
                                 {formatCategoryLabel(product.detectedCategory)}
                               </span>
                             ) : (
                               <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-500">
                                 {category && category !== '_auto' ? formatCategoryLabel(category) : 'Outro'}
-                              </span>
-                            )}
-                            {product.isHardware && (
-                              <span className="text-xs text-blue-600 font-medium">
-                                → Hardware
                               </span>
                             )}
                           </div>
@@ -1482,14 +1507,37 @@ const ExtractProducts = () => {
                           R$ {calculateFinalPrice(product.costPrice).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                         </TableCell>
                         <TableCell>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-red-500 hover:text-red-700"
-                            onClick={() => removeProduct(product.id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          <div className="flex items-center gap-1">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className={`h-8 w-8 ${product.isHardware ? 'text-blue-500 hover:text-blue-700' : 'text-green-500 hover:text-green-700'}`}
+                              onClick={() => {
+                                setParsedProducts(prev => prev.map(p => {
+                                  if (p.id === product.id) {
+                                    const newIsHardware = !p.isHardware;
+                                    return { 
+                                      ...p, 
+                                      isHardware: newIsHardware,
+                                      hardwareSubcategory: newIsHardware ? 'processor' : undefined
+                                    };
+                                  }
+                                  return p;
+                                }));
+                              }}
+                              title={product.isHardware ? 'Converter para Produto' : 'Converter para Hardware'}
+                            >
+                              {product.isHardware ? <ShoppingBag className="h-4 w-4" /> : <Wrench className="h-4 w-4" />}
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-red-500 hover:text-red-700"
+                              onClick={() => removeProduct(product.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
