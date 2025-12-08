@@ -229,7 +229,7 @@ export default function Loja() {
               filteredHardware.length > 0 ? (
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                   {filteredHardware.map((item) => (
-                    <HardwareCard key={item.id} hardware={item} />
+                    <HardwareCard key={item.id} hardware={item} showBuyButton />
                   ))}
                 </div>
               ) : (
