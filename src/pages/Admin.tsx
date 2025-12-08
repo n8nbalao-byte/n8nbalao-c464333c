@@ -173,6 +173,9 @@ export default function Admin() {
   const [productSortDirection, setProductSortDirection] = useState<'asc' | 'desc'>('asc');
   const [productSearchTerm, setProductSearchTerm] = useState("");
   const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set());
+  const [showBulkEditModal, setShowBulkEditModal] = useState(false);
+  const [bulkEditType, setBulkEditType] = useState<ProductCategory | "">("");
+  const [bulkEditCategory, setBulkEditCategory] = useState<string>("");
 
   // Hardware state
   const [activeHardwareCategory, setActiveHardwareCategory] = useState<HardwareCategory>('processor');
@@ -698,6 +701,56 @@ export default function Admin() {
       setSelectedProducts(new Set());
       fetchProductsData();
     }
+  }
+
+  async function handleBulkEditProducts() {
+    if (selectedProducts.size === 0) return;
+    
+    const updates: { productType?: ProductCategory; categories?: string[] } = {};
+    
+    if (bulkEditType) {
+      updates.productType = bulkEditType;
+    }
+    
+    if (bulkEditCategory) {
+      updates.categories = [bulkEditCategory];
+    }
+    
+    if (!updates.productType && !updates.categories) {
+      toast({ title: "Erro", description: "Selecione o tipo ou categoria para aplicar", variant: "destructive" });
+      return;
+    }
+    
+    let successCount = 0;
+    for (const id of selectedProducts) {
+      const product = products.find(p => p.id === id);
+      if (!product) continue;
+      
+      const updateData: any = { ...updates };
+      
+      // If adding category, merge with existing ones
+      if (bulkEditCategory && product.categories) {
+        const existingCategories = product.categories || [];
+        if (!existingCategories.includes(bulkEditCategory)) {
+          updateData.categories = [...existingCategories, bulkEditCategory];
+        } else {
+          updateData.categories = existingCategories;
+        }
+      }
+      
+      const success = await api.updateProduct(id, updateData);
+      if (success) successCount++;
+    }
+    
+    toast({ 
+      title: "Sucesso", 
+      description: `${successCount} produto(s) atualizado(s)!` 
+    });
+    setSelectedProducts(new Set());
+    setShowBulkEditModal(false);
+    setBulkEditType("");
+    setBulkEditCategory("");
+    fetchProductsData();
   }
 
   function toggleProductSelection(id: string) {
@@ -1709,13 +1762,22 @@ export default function Admin() {
                 </div>
                 <div className="flex gap-2">
                   {selectedProducts.size > 0 && (
-                    <button
-                      onClick={handleBulkDeleteProducts}
-                      className="inline-flex items-center gap-2 rounded-lg bg-destructive px-4 py-2 text-sm font-medium text-destructive-foreground transition-colors hover:bg-destructive/80"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                      Excluir ({selectedProducts.size})
-                    </button>
+                    <>
+                      <button
+                        onClick={() => setShowBulkEditModal(true)}
+                        className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/80"
+                      >
+                        <Pencil className="h-4 w-4" />
+                        Editar ({selectedProducts.size})
+                      </button>
+                      <button
+                        onClick={handleBulkDeleteProducts}
+                        className="inline-flex items-center gap-2 rounded-lg bg-destructive px-4 py-2 text-sm font-medium text-destructive-foreground transition-colors hover:bg-destructive/80"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        Excluir ({selectedProducts.size})
+                      </button>
+                    </>
                   )}
                   <button
                     onClick={downloadProductExcelTemplate}
@@ -3629,6 +3691,86 @@ export default function Admin() {
                 <button
                   onClick={() => setShowEditHardwareCategoryModal(false)}
                   className="flex-1 rounded-lg border border-border py-2 font-semibold text-foreground"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Edit Products Modal */}
+      {showBulkEditModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
+          <div className="w-full max-w-lg rounded-2xl border border-border bg-card p-6 shadow-card">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-bold text-foreground">Editar {selectedProducts.size} Produto(s)</h3>
+              <button
+                onClick={() => {
+                  setShowBulkEditModal(false);
+                  setBulkEditType("");
+                  setBulkEditCategory("");
+                }}
+                className="text-muted-foreground hover:text-foreground"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            
+            <div className="space-y-6">
+              {/* Bulk Type Selection */}
+              <div>
+                <label className="block text-sm font-medium mb-2 text-foreground">
+                  Alterar Tipo de Produto
+                </label>
+                <select
+                  value={bulkEditType}
+                  onChange={(e) => setBulkEditType(e.target.value as ProductCategory | "")}
+                  className="w-full rounded-lg border border-border bg-background px-4 py-3 text-foreground focus:border-primary focus:outline-none"
+                >
+                  <option value="">Manter tipo atual</option>
+                  {productTypes.map((type) => (
+                    <option key={type.key} value={type.key}>{type.label}</option>
+                  ))}
+                </select>
+              </div>
+              
+              {/* Bulk Category Selection */}
+              <div>
+                <label className="block text-sm font-medium mb-2 text-foreground">
+                  Adicionar à Categoria
+                </label>
+                <select
+                  value={bulkEditCategory}
+                  onChange={(e) => setBulkEditCategory(e.target.value)}
+                  className="w-full rounded-lg border border-border bg-background px-4 py-3 text-foreground focus:border-primary focus:outline-none"
+                >
+                  <option value="">Não adicionar categoria</option>
+                  {productTypes.map((type) => (
+                    <option key={type.key} value={type.key}>{type.label}</option>
+                  ))}
+                </select>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  A categoria será adicionada às categorias existentes dos produtos
+                </p>
+              </div>
+              
+              <div className="flex gap-4 pt-4">
+                <button
+                  onClick={handleBulkEditProducts}
+                  className="flex-1 inline-flex items-center justify-center gap-2 rounded-lg bg-primary py-3 font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+                >
+                  <Save className="h-5 w-5" />
+                  Aplicar Alterações
+                </button>
+                <button
+                  onClick={() => {
+                    setShowBulkEditModal(false);
+                    setBulkEditType("");
+                    setBulkEditCategory("");
+                  }}
+                  className="flex-1 rounded-lg border border-border py-3 font-semibold text-foreground transition-colors hover:bg-secondary"
                 >
                   Cancelar
                 </button>
