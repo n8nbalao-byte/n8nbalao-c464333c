@@ -5,17 +5,18 @@ import { Footer } from "@/components/Footer";
 import { Sidebar } from "@/components/Sidebar";
 import { api, type Product, type HardwareItem, type MediaItem, type ProductComponents, type CompanyData, type ProductCategory, type HardwareCategory, getCustomCategories, addCustomCategory, removeCustomCategory } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Pencil, Trash2, Save, X, Upload, Play, Image, Cpu, CircuitBoard, MemoryStick, HardDrive, Monitor, Zap, Box, Package, Download, Droplets, Building2, Laptop, Bot, Code, Wrench, Key, Tv, Armchair, Tag, LucideIcon, Search, Sparkles } from "lucide-react";
+import { Plus, Pencil, Trash2, Save, X, Upload, Play, Image, Cpu, CircuitBoard, MemoryStick, HardDrive, Monitor, Zap, Box, Package, Download, Droplets, Building2, Laptop, Bot, Code, Wrench, Key, Tv, Armchair, Tag, LucideIcon, Search, Sparkles, LayoutDashboard } from "lucide-react";
 import * as XLSX from "xlsx";
 import { availableIcons, getIconFromKey } from "@/lib/icons";
 import { HardwareCard } from "@/components/HardwareCard";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
+import { AdminDashboard } from "@/components/AdminDashboard";
 
 // Simple auth - for demo purposes only
 const ADMIN_USER = "n8nbalao";
 const ADMIN_PASS = "Balao2025";
 
-type AdminTab = 'products' | 'hardware' | 'company';
+type AdminTab = 'dashboard' | 'products' | 'hardware' | 'company';
 
 interface ExtraProduct {
   id: string;
@@ -155,7 +156,7 @@ export default function Admin() {
   const navigate = useNavigate();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loginData, setLoginData] = useState({ user: "", pass: "" });
-  const [activeTab, setActiveTab] = useState<AdminTab>('products');
+  const [activeTab, setActiveTab] = useState<AdminTab>('dashboard');
   
   // Products state
   const [products, setProducts] = useState<Product[]>([]);
@@ -1463,6 +1464,17 @@ export default function Admin() {
           {/* Main Tabs */}
           <div className="mb-4 flex flex-wrap gap-2">
             <button
+              onClick={() => setActiveTab('dashboard')}
+              className={`inline-flex items-center gap-2 rounded-lg px-6 py-3 font-medium transition-colors ${
+                activeTab === 'dashboard'
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-secondary text-foreground hover:bg-secondary/80"
+              }`}
+            >
+              <LayoutDashboard className="h-5 w-5" />
+              Dashboard
+            </button>
+            <button
               onClick={() => setActiveTab('products')}
               className={`inline-flex items-center gap-2 rounded-lg px-6 py-3 font-medium transition-colors ${
                 activeTab === 'products'
@@ -1528,6 +1540,11 @@ export default function Admin() {
                 );
               })}
             </div>
+          )}
+
+          {/* Dashboard Tab */}
+          {activeTab === 'dashboard' && (
+            <AdminDashboard />
           )}
 
           {/* Products Tab */}
