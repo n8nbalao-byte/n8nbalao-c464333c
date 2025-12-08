@@ -674,12 +674,10 @@ export default function MonteVoceMesmo() {
           {/* Hero Section */}
           <div className="text-center mb-8">
             <div className="flex justify-center mb-4">
-              <div className="p-4 rounded-full bg-primary text-white">
-                <Wrench className="h-12 w-12" />
-              </div>
+              <img src={balaoLogo} alt="Balão da Informática" className="h-20" />
             </div>
-            <h1 className="text-4xl font-bold text-gray-800 mb-2">MONTE SEU PC</h1>
-            <p className="text-gray-600">Escolha cada componente e monte o computador perfeito para você!</p>
+            <h1 className="text-4xl font-bold text-white mb-2">MONTE SEU PC</h1>
+            <p className="text-white">Escolha cada componente e monte o computador perfeito para você!</p>
           </div>
 
           {/* Component List */}
