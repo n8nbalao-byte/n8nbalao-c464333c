@@ -8,7 +8,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 import { api, Customer } from '@/lib/api';
 
-const API_BASE = 'https://www.n8nbalao.com.br/api';
+const API_BASE = 'https://www.n8nbalao.com/api';
 
 const EmailMarketing = () => {
   const navigate = useNavigate();
