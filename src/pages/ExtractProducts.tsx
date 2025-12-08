@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Upload, Loader2, Check, Trash2, Package, Percent, Tag, Link as LinkIcon, Globe, FileSpreadsheet, Sparkles, Store, Wrench, ShoppingBag } from "lucide-react";
+import { ArrowLeft, Upload, Loader2, Check, Trash2, Package, Percent, Tag, Link as LinkIcon, Globe, FileSpreadsheet, Sparkles, Store, Wrench, ShoppingBag, Layers } from "lucide-react";
 import { Link } from "react-router-dom";
 import { api, getCustomCategories, addCustomCategory, getHardwareCategories, addHardwareCategory, CustomCategory, HardwareCategoryDef } from "@/lib/api";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -1385,27 +1385,84 @@ const ExtractProducts = () => {
         {parsedProducts.length > 0 && (
           <Card className="border-2 bg-white" style={{ borderColor: '#E5E7EB' }}>
             <CardHeader>
-              <CardTitle className="text-lg flex items-center justify-between" style={{ color: '#DC2626' }}>
-                <span>Produtos ({parsedProducts.length})</span>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => toggleAll(true)}
-                    className="border-2"
-                    style={{ borderColor: '#DC2626', color: '#DC2626' }}
-                  >
-                    Selecionar Todos
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => toggleAll(false)}
-                    className="border-2"
-                    style={{ borderColor: '#E5E7EB' }}
-                  >
-                    Desmarcar Todos
-                  </Button>
+              <CardTitle className="text-lg" style={{ color: '#DC2626' }}>
+                <div className="flex flex-col gap-3">
+                  <div className="flex items-center justify-between">
+                    <span>Produtos ({parsedProducts.length})</span>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => toggleAll(true)}
+                        className="border-2"
+                        style={{ borderColor: '#DC2626', color: '#DC2626' }}
+                      >
+                        Selecionar Todos
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => toggleAll(false)}
+                        className="border-2"
+                        style={{ borderColor: '#E5E7EB' }}
+                      >
+                        Desmarcar Todos
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  {/* Bulk Actions */}
+                  {selectedCount > 0 && (
+                    <div className="flex items-center gap-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                      <Layers className="h-4 w-4 text-blue-600" />
+                      <span className="text-sm text-blue-700 font-medium">Ações em massa ({selectedCount} selecionados):</span>
+                      <div className="flex items-center gap-2 ml-2">
+                        <span className="text-xs text-gray-600">Converter para Hardware:</span>
+                        {hardwareCategories.map(cat => (
+                          <Button
+                            key={cat}
+                            variant="outline"
+                            size="sm"
+                            className="h-7 text-xs border-blue-300 text-blue-700 hover:bg-blue-100"
+                            onClick={() => {
+                              setParsedProducts(prev => prev.map(p => 
+                                p.selected 
+                                  ? { ...p, isHardware: true, hardwareSubcategory: cat, detectedCategory: cat }
+                                  : p
+                              ));
+                              toast({
+                                title: "Produtos convertidos",
+                                description: `${selectedCount} itens convertidos para Hardware → ${formatCategoryLabel(cat)}`
+                              });
+                            }}
+                          >
+                            {formatCategoryLabel(cat)}
+                          </Button>
+                        ))}
+                      </div>
+                      <div className="ml-4 border-l border-blue-300 pl-4">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-7 text-xs border-green-300 text-green-700 hover:bg-green-100"
+                          onClick={() => {
+                            setParsedProducts(prev => prev.map(p => 
+                              p.selected 
+                                ? { ...p, isHardware: false, hardwareSubcategory: undefined }
+                                : p
+                            ));
+                            toast({
+                              title: "Produtos convertidos",
+                              description: `${selectedCount} itens convertidos para Produto comum`
+                            });
+                          }}
+                        >
+                          <ShoppingBag className="h-3 w-3 mr-1" />
+                          Produto
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </CardTitle>
             </CardHeader>
