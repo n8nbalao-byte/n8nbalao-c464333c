@@ -6,23 +6,9 @@ import { ProductCard } from "@/components/ProductCard";
 import { HardwareCard } from "@/components/HardwareCard";
 import { api, type Product, type HardwareItem, getCustomCategories } from "@/lib/api";
 import { getIconFromKey } from "@/lib/icons";
-import { Search, ArrowUpDown, Monitor, Package, Laptop, Bot, Wrench, Code, Key, Tv, Armchair, Cpu, ChevronLeft } from "lucide-react";
+import { Search, ArrowUpDown, Package, Cpu, ChevronLeft } from "lucide-react";
 
-type ProductType = 'all' | 'pc' | 'kit' | 'notebook' | 'automacao' | 'software' | 'acessorio' | 'licenca' | 'monitor' | 'cadeira_gamer' | 'hardware' | string;
-
-const baseProductTypes: { key: ProductType; label: string; icon: React.ElementType }[] = [
-  { key: 'all', label: 'Todos', icon: Package },
-  { key: 'pc', label: 'PCs', icon: Monitor },
-  { key: 'kit', label: 'Kits', icon: Package },
-  { key: 'notebook', label: 'Notebooks', icon: Laptop },
-  { key: 'hardware', label: 'Hardware', icon: Cpu },
-  { key: 'automacao', label: 'Automações', icon: Bot },
-  { key: 'software', label: 'Softwares', icon: Code },
-  { key: 'acessorio', label: 'Acessórios', icon: Wrench },
-  { key: 'licenca', label: 'Licenças', icon: Key },
-  { key: 'monitor', label: 'Monitores', icon: Tv },
-  { key: 'cadeira_gamer', label: 'Cadeiras Gamer', icon: Armchair },
-];
+type ProductType = 'all' | 'hardware' | string;
 
 const hardwareCategories = [
   { key: 'processor', label: 'Processadores', icon: Cpu },
@@ -43,7 +29,7 @@ export default function Loja() {
   const [selectedType, setSelectedType] = useState<ProductType>("all");
   const [selectedHardwareCategory, setSelectedHardwareCategory] = useState<string | null>(null);
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
-  const [productTypes, setProductTypes] = useState(baseProductTypes);
+  const [productTypes, setProductTypes] = useState<{ key: ProductType; label: string; icon: React.ElementType }[]>([]);
 
   useEffect(() => {
     async function fetchData() {
@@ -55,28 +41,23 @@ export default function Loja() {
       setProducts(productsData);
       setHardware(hardwareData);
       
-      // Build complete category list from custom categories AND product data
-      const baseKeys = baseProductTypes.map(c => c.key);
-      const customKeys = customCategories.map(c => c.key);
-      
       // Categories to exclude from display
       const excludedCategories = ['games', 'console', 'controle', 'controles'];
       
-      // Extract unique categories from products (excluding unwanted ones)
-      const productCategoryKeys = productsData
-        .map(p => p.categories?.[0] || p.productType || '')
-        .filter(cat => cat && !baseKeys.includes(cat) && !customKeys.includes(cat) && !excludedCategories.includes(cat.toLowerCase()));
+      // Build category list from database only (no fixed categories)
+      const dbCategories = customCategories
+        .filter(c => !excludedCategories.includes(c.key.toLowerCase()))
+        .map(c => ({ 
+          key: c.key, 
+          label: c.label, 
+          icon: getIconFromKey(c.icon) 
+        }));
       
-      const uniqueProductCats = [...new Set(productCategoryKeys)].map(key => ({
-        key,
-        label: key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, ' '),
-        icon: getIconFromKey('tag')
-      }));
-      
+      // Always include "Todos" and "Hardware" as special system categories
       setProductTypes([
-        ...baseProductTypes,
-        ...customCategories.map(c => ({ key: c.key, label: c.label, icon: getIconFromKey(c.icon) })),
-        ...uniqueProductCats
+        { key: 'all', label: 'Todos', icon: Package },
+        { key: 'hardware', label: 'Hardware', icon: Cpu },
+        ...dbCategories
       ]);
       
       setLoading(false);
