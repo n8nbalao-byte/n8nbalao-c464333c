@@ -1607,44 +1607,55 @@ export default function Admin() {
           </div>
 
           {/* Categories display with edit on click */}
-          {customCategoriesList.length > 0 && (
-            <div className="mb-6 flex flex-wrap gap-2">
-              <span className="text-sm text-muted-foreground self-center mr-2">Categorias:</span>
-              {customCategoriesList.map((cat) => {
-                const Icon = getIconFromKey(cat.icon || 'tag');
-                return (
-                  <button
-                    key={cat.key}
-                    onClick={() => {
-                      setEditingCategory(cat);
-                      setEditCategoryLabel(cat.label);
-                      setEditCategoryIcon(cat.icon || 'tag');
-                      setShowEditCategoryModal(true);
+          <div className="mb-6 flex flex-wrap gap-2">
+            <span className="text-sm text-muted-foreground self-center mr-2">Categorias:</span>
+            {customCategoriesList.map((cat) => {
+              const Icon = getIconFromKey(cat.icon || 'tag');
+              return (
+                <button
+                  key={cat.key}
+                  onClick={() => {
+                    setEditingCategory(cat);
+                    setEditCategoryLabel(cat.label);
+                    setEditCategoryIcon(cat.icon || 'tag');
+                    setShowEditCategoryModal(true);
+                  }}
+                  className="inline-flex items-center gap-2 rounded-lg px-4 py-2 font-medium transition-colors bg-secondary text-secondary-foreground hover:bg-primary/20 group relative text-sm cursor-pointer"
+                  title="Clique para editar"
+                >
+                  <Icon className="h-4 w-4" />
+                  {cat.label}
+                  <span
+                    onClick={async (e) => {
+                      e.stopPropagation();
+                      if (confirm(`Excluir a categoria "${cat.label}"?`)) {
+                        await removeCustomCategory(cat.key);
+                        const updatedCategories = await getCustomCategories();
+                        setCustomCategoriesList(updatedCategories);
+                        toast({ title: "Categoria removida" });
+                      }
                     }}
-                    className="inline-flex items-center gap-2 rounded-lg px-4 py-2 font-medium transition-colors bg-secondary text-secondary-foreground hover:bg-primary/20 group relative text-sm cursor-pointer"
-                    title="Clique para editar"
+                    className="h-4 w-4 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive/80 cursor-pointer ml-1"
                   >
-                    <Icon className="h-4 w-4" />
-                    {cat.label}
-                    <span
-                      onClick={async (e) => {
-                        e.stopPropagation();
-                        if (confirm(`Excluir a categoria "${cat.label}"?`)) {
-                          await removeCustomCategory(cat.key);
-                          const updatedCategories = await getCustomCategories();
-                          setCustomCategoriesList(updatedCategories);
-                          toast({ title: "Categoria removida" });
-                        }
-                      }}
-                      className="h-4 w-4 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive/80 cursor-pointer ml-1"
-                    >
-                      <X className="h-3 w-3" />
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          )}
+                    <X className="h-3 w-3" />
+                  </span>
+                </button>
+              );
+            })}
+            {/* Add Category Button */}
+            <button
+              onClick={() => {
+                setNewCategoryKey("");
+                setNewCategoryLabel("");
+                setNewCategoryIcon("tag");
+                setShowNewCategoryModal(true);
+              }}
+              className="inline-flex items-center gap-2 rounded-lg px-4 py-2 font-medium transition-colors bg-primary text-primary-foreground hover:bg-primary/90 text-sm"
+            >
+              <Plus className="h-4 w-4" />
+              Adicionar Categoria
+            </button>
+          </div>
 
           {/* Edit Category Modal */}
           {showEditCategoryModal && editingCategory && (
@@ -1733,6 +1744,103 @@ export default function Admin() {
                       className="flex-1 rounded-lg bg-primary px-4 py-2 text-primary-foreground hover:bg-primary/80"
                     >
                       Salvar
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* New Category Modal */}
+          {showNewCategoryModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+              <div className="w-full max-w-md rounded-xl bg-card p-6 shadow-xl border border-border">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold">Nova Categoria</h3>
+                  <button
+                    onClick={() => setShowNewCategoryModal(false)}
+                    className="text-muted-foreground hover:text-foreground"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
+                
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Chave (identificador único)</label>
+                    <input
+                      type="text"
+                      value={newCategoryKey}
+                      onChange={(e) => setNewCategoryKey(e.target.value.toLowerCase().replace(/\s+/g, '_'))}
+                      placeholder="ex: eletronicos"
+                      className="w-full rounded-lg border border-border bg-background px-4 py-2 text-foreground focus:border-primary focus:outline-none"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Nome da Categoria</label>
+                    <input
+                      type="text"
+                      value={newCategoryLabel}
+                      onChange={(e) => setNewCategoryLabel(e.target.value)}
+                      placeholder="ex: Eletrônicos"
+                      className="w-full rounded-lg border border-border bg-background px-4 py-2 text-foreground focus:border-primary focus:outline-none"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Ícone</label>
+                    <div className="grid grid-cols-8 gap-2 max-h-40 overflow-y-auto p-2 border border-border rounded-lg">
+                      {availableIcons.slice(0, 80).map((iconItem) => {
+                        const IconComponent = iconItem.icon;
+                        return (
+                          <button
+                            key={iconItem.key}
+                            type="button"
+                            onClick={() => setNewCategoryIcon(iconItem.key)}
+                            className={`p-2 rounded-lg transition-colors ${
+                              newCategoryIcon === iconItem.key
+                                ? 'bg-primary text-primary-foreground'
+                                : 'bg-secondary hover:bg-secondary/80'
+                            }`}
+                            title={iconItem.key}
+                          >
+                            <IconComponent className="h-4 w-4" />
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  
+                  <div className="flex gap-2 pt-4">
+                    <button
+                      onClick={() => setShowNewCategoryModal(false)}
+                      className="flex-1 rounded-lg border border-border px-4 py-2 text-foreground hover:bg-secondary"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      onClick={async () => {
+                        if (!newCategoryKey.trim() || !newCategoryLabel.trim()) {
+                          toast({ title: "Erro", description: "Preencha todos os campos", variant: "destructive" });
+                          return;
+                        }
+                        const success = await addCustomCategory(newCategoryKey.trim(), newCategoryLabel.trim(), newCategoryIcon);
+                        if (success) {
+                          const updatedCategories = await getCustomCategories();
+                          setCustomCategoriesList(updatedCategories);
+                          toast({ title: "Categoria adicionada" });
+                          setShowNewCategoryModal(false);
+                          setNewCategoryKey("");
+                          setNewCategoryLabel("");
+                          setNewCategoryIcon("tag");
+                        } else {
+                          toast({ title: "Erro", description: "Falha ao adicionar categoria", variant: "destructive" });
+                        }
+                      }}
+                      className="flex-1 rounded-lg bg-primary px-4 py-2 text-primary-foreground hover:bg-primary/80"
+                    >
+                      Adicionar
                     </button>
                   </div>
                 </div>
