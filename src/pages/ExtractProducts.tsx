@@ -123,6 +123,14 @@ const ExtractProducts = () => {
   const [storeText, setStoreText] = useState('');
   const [isGeneratingDescriptions, setIsGeneratingDescriptions] = useState(false);
   const [descriptionProgress, setDescriptionProgress] = useState({ current: 0, total: 0 });
+  const [lastGenerationUsage, setLastGenerationUsage] = useState<{
+    model: string;
+    inputTokens: number;
+    outputTokens: number;
+    totalTokens: number;
+    costUSD: number;
+    costBRL: number;
+  } | null>(null);
 
   useEffect(() => {
     loadCategories();
@@ -668,6 +676,7 @@ const ExtractProducts = () => {
 
     setIsGeneratingDescriptions(true);
     setDescriptionProgress({ current: 0, total: toProcess.length });
+    setLastGenerationUsage(null); // Reset usage before new generation
 
     try {
       // Process in batches of 5 to avoid timeout
@@ -698,6 +707,18 @@ const ExtractProducts = () => {
         
         if (data.success && data.results) {
           allResults.push(...data.results);
+        }
+        
+        // Accumulate usage data from last batch
+        if (data.usage) {
+          setLastGenerationUsage(prev => ({
+            model: data.usage.model,
+            inputTokens: (prev?.inputTokens || 0) + data.usage.inputTokens,
+            outputTokens: (prev?.outputTokens || 0) + data.usage.outputTokens,
+            totalTokens: (prev?.totalTokens || 0) + data.usage.totalTokens,
+            costUSD: (prev?.costUSD || 0) + data.usage.costUSD,
+            costBRL: (prev?.costBRL || 0) + data.usage.costBRL,
+          }));
         }
 
         processedCount += batch.length;
@@ -1180,6 +1201,36 @@ const ExtractProducts = () => {
                 <p className="text-xs text-gray-500">
                   A IA criará descrições simples e completas baseadas no nome de cada produto selecionado.
                 </p>
+                
+                {/* Token Usage Display */}
+                {lastGenerationUsage && (
+                  <div className="mt-3 p-3 rounded-lg border" style={{ backgroundColor: '#F0FDF4', borderColor: '#BBF7D0' }}>
+                    <div className="flex items-center justify-between flex-wrap gap-3">
+                      <div className="flex items-center gap-4 text-sm">
+                        <span className="font-medium text-gray-700">
+                          📊 Última geração:
+                        </span>
+                        <span className="text-gray-600">
+                          Modelo: <strong>{lastGenerationUsage.model}</strong>
+                        </span>
+                        <span className="text-gray-600">
+                          Tokens: <strong>{lastGenerationUsage.totalTokens.toLocaleString()}</strong>
+                          <span className="text-xs ml-1 text-gray-400">
+                            (in: {lastGenerationUsage.inputTokens.toLocaleString()} / out: {lastGenerationUsage.outputTokens.toLocaleString()})
+                          </span>
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="text-sm px-2 py-1 rounded-full font-semibold" style={{ backgroundColor: '#DCFCE7', color: '#166534' }}>
+                          💰 R$ {lastGenerationUsage.costBRL.toFixed(4)}
+                        </span>
+                        <span className="text-xs text-gray-400">
+                          (${lastGenerationUsage.costUSD.toFixed(6)} USD)
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>

@@ -264,6 +264,20 @@ export default function Admin() {
   const [showApiKey, setShowApiKey] = useState(false);
   const [savingSettings, setSavingSettings] = useState(false);
   const [loadingSettings, setLoadingSettings] = useState(false);
+  
+  // AI Models settings
+  const [lorenzoName, setLorenzoName] = useState("Lorenzo");
+  const [lorenzoModel, setLorenzoModel] = useState("gpt-4o-mini");
+  const [bulkGenModel, setBulkGenModel] = useState("gpt-4o-mini");
+  const [singleGenModel, setSingleGenModel] = useState("gpt-4o-mini");
+  
+  // Available OpenAI models
+  const availableModels = [
+    { value: 'gpt-4o-mini', label: 'GPT-4o Mini (Rápido e barato)', inputCost: 0.15, outputCost: 0.60 },
+    { value: 'gpt-4o', label: 'GPT-4o (Mais inteligente)', inputCost: 2.50, outputCost: 10.00 },
+    { value: 'gpt-4-turbo', label: 'GPT-4 Turbo', inputCost: 10.00, outputCost: 30.00 },
+    { value: 'gpt-3.5-turbo', label: 'GPT-3.5 Turbo (Mais barato)', inputCost: 0.50, outputCost: 1.50 },
+  ];
 
   // Admin login function - uses same credentials as customer auth
   async function handleLogin(e: React.FormEvent) {
@@ -581,10 +595,16 @@ export default function Admin() {
   async function fetchSettings() {
     setLoadingSettings(true);
     try {
-      const response = await fetch('https://www.n8nbalao.com/api/settings.php?key=openai_api_key');
+      const response = await fetch('https://www.n8nbalao.com/api/settings.php');
       const data = await response.json();
-      if (data && data.setting_value) {
-        setOpenaiApiKey(data.setting_value);
+      if (data.success && Array.isArray(data.data)) {
+        data.data.forEach((setting: { key: string; value: string }) => {
+          if (setting.key === 'openai_api_key') setOpenaiApiKey(setting.value || '');
+          if (setting.key === 'lorenzo_name') setLorenzoName(setting.value || 'Lorenzo');
+          if (setting.key === 'lorenzo_model') setLorenzoModel(setting.value || 'gpt-4o-mini');
+          if (setting.key === 'bulk_gen_model') setBulkGenModel(setting.value || 'gpt-4o-mini');
+          if (setting.key === 'single_gen_model') setSingleGenModel(setting.value || 'gpt-4o-mini');
+        });
       }
     } catch (error) {
       console.error('Error fetching settings:', error);
@@ -595,17 +615,23 @@ export default function Admin() {
   async function saveSettings() {
     setSavingSettings(true);
     try {
-      const response = await fetch('https://www.n8nbalao.com/api/settings.php', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ key: 'openai_api_key', value: openaiApiKey })
-      });
-      const data = await response.json();
-      if (data.success) {
-        toast({ title: "Sucesso", description: "Configurações salvas!" });
-      } else {
-        throw new Error('Failed to save');
+      const settings = [
+        { key: 'openai_api_key', value: openaiApiKey },
+        { key: 'lorenzo_name', value: lorenzoName },
+        { key: 'lorenzo_model', value: lorenzoModel },
+        { key: 'bulk_gen_model', value: bulkGenModel },
+        { key: 'single_gen_model', value: singleGenModel },
+      ];
+      
+      for (const setting of settings) {
+        await fetch('https://www.n8nbalao.com/api/settings.php', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(setting)
+        });
       }
+      
+      toast({ title: "Sucesso", description: "Configurações salvas!" });
     } catch (error) {
       console.error('Error saving settings:', error);
       toast({ title: "Erro", description: "Falha ao salvar configurações", variant: "destructive" });
@@ -2784,6 +2810,110 @@ export default function Admin() {
                     </div>
                   </div>
 
+                  {/* AI Models Configuration */}
+                  <div className="rounded-lg border p-6" style={{ borderColor: '#E5E7EB', backgroundColor: '#F9FAFB' }}>
+                    <div className="flex items-start gap-4">
+                      <div className="h-12 w-12 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#7C3AED' }}>
+                        <Sparkles className="h-6 w-6 text-white" />
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="text-lg font-semibold" style={{ color: '#111827' }}>Configurações de IA</h3>
+                        <p className="text-sm mt-1" style={{ color: '#6B7280' }}>
+                          Configure os modelos e nomes dos assistentes de IA.
+                        </p>
+                        
+                        <div className="mt-4 grid md:grid-cols-2 gap-4">
+                          {/* Lorenzo Name */}
+                          <div>
+                            <label className="block text-sm font-medium mb-2" style={{ color: '#374151' }}>
+                              Nome do Assistente (Chat)
+                            </label>
+                            <input
+                              type="text"
+                              value={lorenzoName}
+                              onChange={(e) => setLorenzoName(e.target.value)}
+                              className="w-full rounded-lg border-2 px-4 py-2 focus:outline-none"
+                              style={{ borderColor: '#E5E7EB', color: '#111827' }}
+                              placeholder="Lorenzo"
+                            />
+                          </div>
+                          
+                          {/* Lorenzo Model */}
+                          <div>
+                            <label className="block text-sm font-medium mb-2" style={{ color: '#374151' }}>
+                              Modelo do Chat ({lorenzoName})
+                            </label>
+                            <select
+                              value={lorenzoModel}
+                              onChange={(e) => setLorenzoModel(e.target.value)}
+                              className="w-full rounded-lg border-2 px-4 py-2 focus:outline-none"
+                              style={{ borderColor: '#E5E7EB', color: '#111827', backgroundColor: 'white' }}
+                            >
+                              {availableModels.map(m => (
+                                <option key={m.value} value={m.value}>{m.label}</option>
+                              ))}
+                            </select>
+                          </div>
+                          
+                          {/* Bulk Generator Model */}
+                          <div>
+                            <label className="block text-sm font-medium mb-2" style={{ color: '#374151' }}>
+                              Modelo - Gerador em Massa
+                            </label>
+                            <select
+                              value={bulkGenModel}
+                              onChange={(e) => setBulkGenModel(e.target.value)}
+                              className="w-full rounded-lg border-2 px-4 py-2 focus:outline-none"
+                              style={{ borderColor: '#E5E7EB', color: '#111827', backgroundColor: 'white' }}
+                            >
+                              {availableModels.map(m => (
+                                <option key={m.value} value={m.value}>{m.label}</option>
+                              ))}
+                            </select>
+                            <p className="text-xs mt-1" style={{ color: '#6B7280' }}>
+                              Usado na extração de produtos
+                            </p>
+                          </div>
+                          
+                          {/* Single Generator Model */}
+                          <div>
+                            <label className="block text-sm font-medium mb-2" style={{ color: '#374151' }}>
+                              Modelo - Gerador Individual
+                            </label>
+                            <select
+                              value={singleGenModel}
+                              onChange={(e) => setSingleGenModel(e.target.value)}
+                              className="w-full rounded-lg border-2 px-4 py-2 focus:outline-none"
+                              style={{ borderColor: '#E5E7EB', color: '#111827', backgroundColor: 'white' }}
+                            >
+                              {availableModels.map(m => (
+                                <option key={m.value} value={m.value}>{m.label}</option>
+                              ))}
+                            </select>
+                            <p className="text-xs mt-1" style={{ color: '#6B7280' }}>
+                              Usado no cadastro de produtos
+                            </p>
+                          </div>
+                        </div>
+                        
+                        {/* Cost info */}
+                        <div className="mt-4 p-3 rounded-lg" style={{ backgroundColor: '#FEF3C7' }}>
+                          <p className="text-xs font-medium" style={{ color: '#92400E' }}>
+                            💰 Custo aproximado por 1M tokens:
+                          </p>
+                          <div className="mt-2 grid grid-cols-2 gap-2 text-xs" style={{ color: '#78350F' }}>
+                            {availableModels.map(m => (
+                              <div key={m.value} className="flex justify-between">
+                                <span>{m.value}:</span>
+                                <span>In: ${m.inputCost} / Out: ${m.outputCost}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
                   {/* Lorenzo Chat Status */}
                   <div className="rounded-lg border p-6" style={{ borderColor: '#E5E7EB', backgroundColor: openaiApiKey ? '#D1FAE5' : '#FEF3C7' }}>
                     <div className="flex items-center gap-4">
@@ -2795,11 +2925,11 @@ export default function Admin() {
                       </div>
                       <div>
                         <h3 className="text-lg font-semibold" style={{ color: '#111827' }}>
-                          Assistente Lorenzo
+                          Assistente {lorenzoName}
                         </h3>
                         <p className="text-sm" style={{ color: openaiApiKey ? '#059669' : '#D97706' }}>
                           {openaiApiKey 
-                            ? '✅ Configurado e funcionando' 
+                            ? `✅ Configurado com ${lorenzoModel}` 
                             : '⚠️ Configure a chave OpenAI para ativar'}
                         </p>
                       </div>
