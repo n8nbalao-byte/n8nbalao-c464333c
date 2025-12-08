@@ -225,10 +225,54 @@ const ExtractProducts = () => {
       const categoryExists = existingCategories.some(c => c.key === category);
       
       if (!categoryExists) {
+        // Map category to appropriate icon
+        const categoryIconMap: Record<string, string> = {
+          software: 'Monitor',
+          notebook: 'Laptop',
+          laptop: 'Laptop',
+          computador: 'Monitor',
+          pc: 'Monitor',
+          acessorio: 'Headphones',
+          acessorios: 'Headphones',
+          periferico: 'Mouse',
+          perifericos: 'Mouse',
+          teclado: 'Keyboard',
+          mouse: 'Mouse',
+          monitor: 'MonitorSmartphone',
+          fone: 'Headphones',
+          headset: 'Headphones',
+          cadeira: 'Armchair',
+          mesa: 'LayoutGrid',
+          impressora: 'Printer',
+          camera: 'Camera',
+          armazenamento: 'HardDrive',
+          storage: 'HardDrive',
+          memoria: 'MemoryStick',
+          processador: 'Cpu',
+          placa: 'CircuitBoard',
+          gabinete: 'Box',
+          fonte: 'Zap',
+          cooler: 'Fan',
+          rede: 'Wifi',
+          cabo: 'Cable',
+          licenca: 'Key',
+          automacao: 'Bot',
+          games: 'Gamepad2',
+          jogo: 'Gamepad2',
+          celular: 'Smartphone',
+          tablet: 'Tablet',
+          tv: 'Tv',
+          audio: 'Speaker',
+          caixa_som: 'Speaker',
+        };
+        
+        const categoryLower = category.toLowerCase();
+        const icon = categoryIconMap[categoryLower] || 'Box';
+        
         // Create the category automatically
         const categoryLabel = category.charAt(0).toUpperCase() + category.slice(1).replace(/_/g, ' ');
-        await addCustomCategory(category, categoryLabel, 'Box');
-        console.log(`Categoria "${categoryLabel}" criada automaticamente`);
+        await addCustomCategory(category, categoryLabel, icon);
+        console.log(`Categoria "${categoryLabel}" criada automaticamente com ícone "${icon}"`);
       }
       
       await api.createProduct({
