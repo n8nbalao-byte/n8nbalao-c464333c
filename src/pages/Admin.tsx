@@ -214,6 +214,9 @@ export default function Admin() {
   const [hardwareSearchTerm, setHardwareSearchTerm] = useState("");
   const [hardwareCategoriesList, setHardwareCategoriesList] = useState<HardwareCategoryDef[]>([]);
   const [activeHardwareFilter, setActiveHardwareFilter] = useState<Record<string, string>>({});
+  const [selectedHardware, setSelectedHardware] = useState<Set<string>>(new Set());
+  const [hardwareSortColumn, setHardwareSortColumn] = useState<'name' | 'brand' | 'price'>('name');
+  const [hardwareSortDirection, setHardwareSortDirection] = useState<'asc' | 'desc'>('asc');
   
   // Hardware category management modal state
   const [showNewHardwareCategoryModal, setShowNewHardwareCategoryModal] = useState(false);
@@ -1097,6 +1100,46 @@ export default function Admin() {
       } else {
         toast({ title: "Erro", description: "Falha ao excluir hardware", variant: "destructive" });
       }
+    }
+  }
+
+  // Hardware bulk selection functions
+  function toggleHardwareSelection(id: string) {
+    setSelectedHardware(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(id)) {
+        newSet.delete(id);
+      } else {
+        newSet.add(id);
+      }
+      return newSet;
+    });
+  }
+
+  function toggleAllHardware() {
+    if (selectedHardware.size === hardwareList.length) {
+      setSelectedHardware(new Set());
+    } else {
+      setSelectedHardware(new Set(hardwareList.map(h => h.id)));
+    }
+  }
+
+  async function handleBulkDeleteHardware() {
+    if (!confirm(`Tem certeza que deseja excluir ${selectedHardware.size} item(ns)?`)) return;
+    
+    let successCount = 0;
+    for (const id of selectedHardware) {
+      const success = await api.deleteHardware(id);
+      if (success) successCount++;
+    }
+    
+    if (successCount > 0) {
+      toast({ 
+        title: "Sucesso", 
+        description: `${successCount} item(ns) excluído(s)!` 
+      });
+      setSelectedHardware(new Set());
+      fetchHardwareData();
     }
   }
 
@@ -2780,6 +2823,15 @@ export default function Admin() {
                   />
                 </div>
                 <div className="flex gap-2">
+                  {selectedHardware.size > 0 && (
+                    <button
+                      onClick={handleBulkDeleteHardware}
+                      className="inline-flex items-center gap-2 rounded-lg bg-destructive px-4 py-2 text-sm font-medium text-destructive-foreground transition-colors hover:bg-destructive/80"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      Excluir ({selectedHardware.size})
+                    </button>
+                  )}
                   <button
                     onClick={downloadExcelTemplate}
                     className="inline-flex items-center gap-2 rounded-lg bg-secondary px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-secondary/80"
@@ -2807,10 +2859,54 @@ export default function Admin() {
                   <table className="w-full">
                     <thead className="border-b border-border bg-secondary">
                       <tr>
-                        <th className="px-6 py-4 text-left text-sm font-semibold text-foreground">Imagem</th>
-                        <th className="px-6 py-4 text-left text-sm font-semibold text-foreground">Nome</th>
-                        <th className="px-6 py-4 text-left text-sm font-semibold text-foreground">Marca/Modelo</th>
-                        <th className="px-6 py-4 text-left text-sm font-semibold text-foreground">Preço</th>
+                        <th className="px-4 py-4 text-left">
+                          <input
+                            type="checkbox"
+                            checked={hardwareList.length > 0 && selectedHardware.size === hardwareList.length}
+                            onChange={toggleAllHardware}
+                            className="h-4 w-4 rounded border-border text-primary focus:ring-primary"
+                          />
+                        </th>
+                        <th className="px-4 py-4 text-left text-sm font-semibold text-foreground">Imagem</th>
+                        <th 
+                          className="px-6 py-4 text-left text-sm font-semibold text-foreground cursor-pointer hover:text-primary transition-colors"
+                          onClick={() => {
+                            if (hardwareSortColumn === 'name') {
+                              setHardwareSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+                            } else {
+                              setHardwareSortColumn('name');
+                              setHardwareSortDirection('asc');
+                            }
+                          }}
+                        >
+                          Nome {hardwareSortColumn === 'name' && (hardwareSortDirection === 'asc' ? '↑' : '↓')}
+                        </th>
+                        <th 
+                          className="px-6 py-4 text-left text-sm font-semibold text-foreground cursor-pointer hover:text-primary transition-colors"
+                          onClick={() => {
+                            if (hardwareSortColumn === 'brand') {
+                              setHardwareSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+                            } else {
+                              setHardwareSortColumn('brand');
+                              setHardwareSortDirection('asc');
+                            }
+                          }}
+                        >
+                          Marca/Modelo {hardwareSortColumn === 'brand' && (hardwareSortDirection === 'asc' ? '↑' : '↓')}
+                        </th>
+                        <th 
+                          className="px-6 py-4 text-left text-sm font-semibold text-foreground cursor-pointer hover:text-primary transition-colors"
+                          onClick={() => {
+                            if (hardwareSortColumn === 'price') {
+                              setHardwareSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+                            } else {
+                              setHardwareSortColumn('price');
+                              setHardwareSortDirection('asc');
+                            }
+                          }}
+                        >
+                          Preço {hardwareSortColumn === 'price' && (hardwareSortDirection === 'asc' ? '↑' : '↓')}
+                        </th>
                         <th className="px-6 py-4 text-right text-sm font-semibold text-foreground">Ações</th>
                       </tr>
                     </thead>
@@ -2845,9 +2941,29 @@ export default function Admin() {
                           }
                           return true;
                         })
+                        .sort((a, b) => {
+                          const direction = hardwareSortDirection === 'asc' ? 1 : -1;
+                          if (hardwareSortColumn === 'name') {
+                            return a.name.localeCompare(b.name) * direction;
+                          } else if (hardwareSortColumn === 'brand') {
+                            const brandA = `${a.brand} ${a.model}`;
+                            const brandB = `${b.brand} ${b.model}`;
+                            return brandA.localeCompare(brandB) * direction;
+                          } else {
+                            return ((a.price || 0) - (b.price || 0)) * direction;
+                          }
+                        })
                         .map((item) => (
-                        <tr key={item.id} className="hover:bg-secondary/50">
-                          <td className="px-6 py-4">
+                        <tr key={item.id} className={`hover:bg-secondary/50 ${selectedHardware.has(item.id) ? 'bg-primary/10' : ''}`}>
+                          <td className="px-4 py-4">
+                            <input
+                              type="checkbox"
+                              checked={selectedHardware.has(item.id)}
+                              onChange={() => toggleHardwareSelection(item.id)}
+                              className="h-4 w-4 rounded border-border text-primary focus:ring-primary"
+                            />
+                          </td>
+                          <td className="px-4 py-4">
                             <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-lg bg-secondary">
                               {item.image ? (
                                 <img src={item.image} alt={item.name} className="h-full w-full object-cover" />
@@ -2856,12 +2972,12 @@ export default function Admin() {
                               )}
                             </div>
                           </td>
-                          <td className="px-6 py-4 font-medium text-foreground">{item.name}</td>
-                          <td className="px-6 py-4 text-muted-foreground">
+                          <td className="px-4 py-4 font-medium text-foreground">{item.name}</td>
+                          <td className="px-4 py-4 text-muted-foreground">
                             {item.brand} {item.model}
                           </td>
-                          <td className="px-6 py-4 font-semibold text-primary">{formatPrice(item.price)}</td>
-                          <td className="px-6 py-4">
+                          <td className="px-4 py-4 font-semibold text-primary">{formatPrice(item.price)}</td>
+                          <td className="px-4 py-4">
                             <div className="flex justify-end gap-2">
                               <button
                                 onClick={() => openHardwareEditor(item)}
@@ -2881,7 +2997,7 @@ export default function Admin() {
                       ))}
                       {hardwareList.length === 0 && (
                         <tr>
-                          <td colSpan={5} className="px-6 py-12 text-center text-muted-foreground">
+                          <td colSpan={6} className="px-6 py-12 text-center text-muted-foreground">
                             Nenhum item cadastrado nesta categoria.
                           </td>
                         </tr>
