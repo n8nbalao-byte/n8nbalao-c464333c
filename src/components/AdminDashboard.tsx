@@ -18,6 +18,7 @@ import {
   ChevronUp,
   Search,
   Filter,
+  KeyRound,
 } from "lucide-react";
 
 interface DashboardStats {
@@ -159,6 +160,42 @@ export function AdminDashboard() {
       fetchData();
     } else {
       toast({ title: "Erro", description: "Falha ao excluir cliente", variant: "destructive" });
+    }
+  }
+
+  async function handleResetPassword(customerId: string, customerName: string) {
+    const newPassword = prompt(`Digite a nova senha para ${customerName}:`);
+    if (!newPassword || newPassword.length < 6) {
+      if (newPassword !== null) {
+        toast({ title: "Erro", description: "A senha deve ter pelo menos 6 caracteres", variant: "destructive" });
+      }
+      return;
+    }
+
+    try {
+      const response = await fetch("https://www.n8nbalao.com/api/auth.php", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "reset-password",
+          customerId,
+          newPassword,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        toast({ title: "Sucesso", description: `Senha de ${customerName} foi resetada` });
+      } else {
+        throw new Error(result.error || "Erro ao resetar senha");
+      }
+    } catch (error) {
+      toast({ 
+        title: "Erro", 
+        description: error instanceof Error ? error.message : "Falha ao resetar senha", 
+        variant: "destructive" 
+      });
     }
   }
 
@@ -489,12 +526,22 @@ export function AdminDashboard() {
                       {formatDate(customer.createdAt)}
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <button
-                        onClick={() => handleDeleteCustomer(customer.id)}
-                        className="rounded-lg p-2 text-destructive hover:bg-destructive/10"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
+                      <div className="flex items-center justify-end gap-1">
+                        <button
+                          onClick={() => handleResetPassword(customer.id, customer.name)}
+                          className="rounded-lg p-2 text-yellow-500 hover:bg-yellow-500/10"
+                          title="Resetar Senha"
+                        >
+                          <KeyRound className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteCustomer(customer.id)}
+                          className="rounded-lg p-2 text-destructive hover:bg-destructive/10"
+                          title="Excluir Cliente"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}

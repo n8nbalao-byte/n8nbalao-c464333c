@@ -200,9 +200,30 @@ switch ($action) {
         echo json_encode($orders);
         break;
 
+    case 'reset-password':
+        // Admin reset password for customer
+        if (!isset($data['customerId']) || !isset($data['newPassword'])) {
+            http_response_code(400);
+            echo json_encode(['error' => 'Customer ID e nova senha são obrigatórios']);
+            exit();
+        }
+        
+        $hashedPassword = password_hash($data['newPassword'], PASSWORD_DEFAULT);
+        
+        $stmt = $pdo->prepare("UPDATE customers SET password = ? WHERE id = ?");
+        $stmt->execute([$hashedPassword, $data['customerId']]);
+        
+        if ($stmt->rowCount() > 0) {
+            echo json_encode(['success' => true, 'message' => 'Senha resetada com sucesso']);
+        } else {
+            http_response_code(404);
+            echo json_encode(['error' => 'Cliente não encontrado']);
+        }
+        break;
+
     default:
         http_response_code(400);
-        echo json_encode(['error' => 'Ação não especificada. Use: register, login, update-profile, get-orders']);
+        echo json_encode(['error' => 'Ação não especificada. Use: register, login, update-profile, get-orders, reset-password']);
         break;
 }
 ?>
