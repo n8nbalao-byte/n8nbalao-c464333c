@@ -5,18 +5,20 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Upload, Loader2, Check, Trash2, Package, Percent, Tag
-} from "lucide-react";
+import { ArrowLeft, Upload, Loader2, Check, Trash2, Package, Percent, Tag, Link as LinkIcon, Globe } from "lucide-react";
 import { Link } from "react-router-dom";
 import { api, getCustomCategories, CustomCategory } from "@/lib/api";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { RedWhiteHeader } from "@/components/RedWhiteHeader";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface ParsedProduct {
   id: string;
   imageUrl: string;
   title: string;
+  description?: string;
   costPrice: number;
   selected: boolean;
 }
@@ -33,6 +35,10 @@ const ExtractProducts = () => {
   const [categories, setCategories] = useState<CustomCategory[]>([]);
   const [isImporting, setIsImporting] = useState(false);
   const [importProgress, setImportProgress] = useState({ current: 0, total: 0 });
+  
+  // URL extraction states
+  const [extractUrl, setExtractUrl] = useState('');
+  const [isExtracting, setIsExtracting] = useState(false);
 
   useEffect(() => {
     loadCategories();
@@ -44,6 +50,81 @@ const ExtractProducts = () => {
     if (cats.length > 0 && !productType) {
       setProductType(cats[0].key);
       setCategory(cats[0].key);
+    }
+  };
+
+  // Extract product from URL
+  const extractFromUrl = async () => {
+    if (!extractUrl.trim()) {
+      toast({
+        title: "URL necessária",
+        description: "Digite a URL do produto para extrair.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsExtracting(true);
+    
+    try {
+      const apiKey = localStorage.getItem('openai_api_key');
+      if (!apiKey) {
+        toast({
+          title: "Chave OpenAI necessária",
+          description: "Configure sua chave da OpenAI nas configurações.",
+          variant: "destructive"
+        });
+        setIsExtracting(false);
+        return;
+      }
+
+      const response = await fetch('https://www.n8nbalao.com/api/extract.php', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          apiKey,
+          url: extractUrl.trim()
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Falha na extração');
+      }
+
+      const data = await response.json();
+      
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      // Add extracted product to list
+      const product: ParsedProduct = {
+        id: crypto.randomUUID(),
+        imageUrl: data.images?.[0] || '',
+        title: data.title || 'Produto sem nome',
+        description: data.description || '',
+        costPrice: parseFloat(data.price) || 0,
+        selected: true
+      };
+
+      setParsedProducts(prev => [...prev, product]);
+      setExtractUrl('');
+      
+      toast({
+        title: "Produto extraído!",
+        description: `${product.title} foi adicionado à lista.`
+      });
+    } catch (error) {
+      console.error('Extraction error:', error);
+      toast({
+        title: "Erro na extração",
+        description: error instanceof Error ? error.message : "Não foi possível extrair o produto. Tente usar o modo manual.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsExtracting(false);
     }
   };
 
@@ -62,9 +143,8 @@ const ExtractProducts = () => {
 
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i].trim();
-      if (!line || line.startsWith('imageCard')) continue; // Skip header
+      if (!line || line.startsWith('imageCard')) continue;
 
-      // Split by tab
       const parts = line.split('\t');
       if (parts.length < 3) continue;
 
@@ -72,14 +152,13 @@ const ExtractProducts = () => {
       const title = parts[1]?.trim() || '';
       const priceText = parts[2]?.trim() || '';
 
-      // Parse price: "R$ 1.000,00" -> 1000.00
       const priceMatch = priceText.match(/R\$\s*([\d.,]+)/);
       let costPrice = 0;
       if (priceMatch) {
         costPrice = parseFloat(
           priceMatch[1]
-            .replace(/\./g, '') // Remove thousand separators
-            .replace(',', '.') // Convert decimal separator
+            .replace(/\./g, '')
+            .replace(',', '.')
         );
       }
 
@@ -103,10 +182,11 @@ const ExtractProducts = () => {
       return;
     }
 
-    setParsedProducts(products);
+    setParsedProducts(prev => [...prev, ...products]);
+    setRawData('');
     toast({
       title: "Produtos carregados",
-      description: `${products.length} produtos encontrados.`
+      description: `${products.length} produtos adicionados.`
     });
   };
 
@@ -175,7 +255,7 @@ const ExtractProducts = () => {
         await api.createProduct({
           title: product.title,
           subtitle: '',
-          description: '',
+          description: product.description || '',
           productType: productType as any,
           categories: [category],
           media,
@@ -193,8 +273,6 @@ const ExtractProducts = () => {
     }
 
     setIsImporting(false);
-    
-    // Remove imported products from list
     setParsedProducts(prev => prev.filter(p => !p.selected));
 
     toast({
@@ -207,52 +285,109 @@ const ExtractProducts = () => {
   const totalSale = parsedProducts.filter(p => p.selected).reduce((sum, p) => sum + calculateFinalPrice(p.costPrice), 0);
 
   return (
-    <div className="min-h-screen bg-background p-6">
-      <div className="max-w-6xl mx-auto space-y-6">
+    <div className="min-h-screen" style={{ backgroundColor: '#FEF2F2' }}>
+      <RedWhiteHeader hideCart />
+      
+      <div className="container py-8 space-y-6">
         {/* Header */}
         <div className="flex items-center gap-4">
           <Link to="/admin">
-            <Button variant="outline" size="icon">
+            <Button variant="outline" size="icon" className="border-2" style={{ borderColor: '#DC2626', color: '#DC2626' }}>
               <ArrowLeft className="h-4 w-4" />
             </Button>
           </Link>
           <div>
-            <h1 className="text-2xl font-bold">Importar Produtos em Massa</h1>
-            <p className="text-muted-foreground">Cole os dados do scraper para importar múltiplos produtos</p>
+            <h1 className="text-2xl font-bold" style={{ color: '#DC2626' }}>Importar Produtos em Massa</h1>
+            <p className="text-gray-600">Extraia produtos de URLs ou cole dados manualmente</p>
           </div>
         </div>
 
-        {/* Data Input */}
-        <Card>
+        {/* Data Input Tabs */}
+        <Card className="border-2 bg-white" style={{ borderColor: '#E5E7EB' }}>
           <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
+            <CardTitle className="text-lg flex items-center gap-2" style={{ color: '#DC2626' }}>
               <Upload className="h-5 w-5" />
-              Dados do Scraper
+              Adicionar Produtos
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <Textarea
-              value={rawData}
-              onChange={(e) => setRawData(e.target.value)}
-              placeholder="Cole aqui os dados do scraper (formato tab-separated)"
-              className="min-h-[200px] font-mono text-xs"
-            />
-            <Button onClick={parseScraperData} className="w-full">
-              <Package className="h-4 w-4 mr-2" />
-              Carregar Produtos
-            </Button>
+          <CardContent>
+            <Tabs defaultValue="url" className="w-full">
+              <TabsList className="grid w-full grid-cols-2 mb-4">
+                <TabsTrigger value="url" className="flex items-center gap-2">
+                  <Globe className="h-4 w-4" />
+                  Extrair por URL
+                </TabsTrigger>
+                <TabsTrigger value="manual" className="flex items-center gap-2">
+                  <Package className="h-4 w-4" />
+                  Dados Manuais
+                </TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="url" className="space-y-4">
+                <div className="flex gap-2">
+                  <Input
+                    type="url"
+                    value={extractUrl}
+                    onChange={(e) => setExtractUrl(e.target.value)}
+                    placeholder="Cole a URL do produto (ex: https://www.kabum.com.br/produto/...)"
+                    className="flex-1 border-2"
+                    style={{ borderColor: '#E5E7EB' }}
+                  />
+                  <Button 
+                    onClick={extractFromUrl}
+                    disabled={isExtracting}
+                    style={{ backgroundColor: '#DC2626' }}
+                    className="text-white hover:opacity-90"
+                  >
+                    {isExtracting ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Extraindo...
+                      </>
+                    ) : (
+                      <>
+                        <LinkIcon className="h-4 w-4 mr-2" />
+                        Extrair
+                      </>
+                    )}
+                  </Button>
+                </div>
+                <p className="text-sm text-gray-500">
+                  Cole a URL de um produto de lojas como Kabum, Pichau, Mercado Livre, etc.
+                  O sistema extrairá automaticamente: foto, nome, descrição e preço à vista.
+                </p>
+              </TabsContent>
+              
+              <TabsContent value="manual" className="space-y-4">
+                <Textarea
+                  value={rawData}
+                  onChange={(e) => setRawData(e.target.value)}
+                  placeholder="Cole aqui os dados do scraper (formato tab-separated: imagem, nome, preço)"
+                  className="min-h-[200px] font-mono text-xs border-2"
+                  style={{ borderColor: '#E5E7EB' }}
+                />
+                <Button 
+                  onClick={parseScraperData} 
+                  className="w-full text-white hover:opacity-90"
+                  style={{ backgroundColor: '#DC2626' }}
+                >
+                  <Package className="h-4 w-4 mr-2" />
+                  Carregar Produtos
+                </Button>
+              </TabsContent>
+            </Tabs>
           </CardContent>
         </Card>
 
         {/* Configuration */}
         {parsedProducts.length > 0 && (
-          <Card>
+          <Card className="border-2 bg-white" style={{ borderColor: '#E5E7EB' }}>
             <CardHeader>
-              <CardTitle className="text-lg">Configuração da Importação</CardTitle>
+              <CardTitle className="text-lg" style={{ color: '#DC2626' }}>Configuração da Importação</CardTitle>
             </CardHeader>
             <CardContent className="grid md:grid-cols-4 gap-4">
               <div className="space-y-2">
-                <Label className="flex items-center gap-2">
+                <Label className="flex items-center gap-2 text-gray-700">
                   <Percent className="h-4 w-4" />
                   Taxa (%)
                 </Label>
@@ -263,12 +398,14 @@ const ExtractProducts = () => {
                   placeholder="0"
                   min="0"
                   max="100"
+                  className="border-2"
+                  style={{ borderColor: '#E5E7EB' }}
                 />
-                <p className="text-xs text-muted-foreground">Aplicada sobre o custo</p>
+                <p className="text-xs text-gray-500">Aplicada sobre o custo</p>
               </div>
 
               <div className="space-y-2">
-                <Label className="flex items-center gap-2">
+                <Label className="flex items-center gap-2 text-gray-700">
                   <Percent className="h-4 w-4" />
                   Margem de Lucro (%)
                 </Label>
@@ -279,16 +416,18 @@ const ExtractProducts = () => {
                   placeholder="30"
                   min="0"
                   max="500"
+                  className="border-2"
+                  style={{ borderColor: '#E5E7EB' }}
                 />
               </div>
 
               <div className="space-y-2">
-                <Label className="flex items-center gap-2">
+                <Label className="flex items-center gap-2 text-gray-700">
                   <Tag className="h-4 w-4" />
                   Tipo do Produto
                 </Label>
                 <Select value={productType} onValueChange={setProductType}>
-                  <SelectTrigger>
+                  <SelectTrigger className="border-2" style={{ borderColor: '#E5E7EB' }}>
                     <SelectValue placeholder="Selecione o tipo" />
                   </SelectTrigger>
                   <SelectContent>
@@ -302,12 +441,12 @@ const ExtractProducts = () => {
               </div>
 
               <div className="space-y-2">
-                <Label className="flex items-center gap-2">
+                <Label className="flex items-center gap-2 text-gray-700">
                   <Package className="h-4 w-4" />
                   Categoria
                 </Label>
                 <Select value={category} onValueChange={setCategory}>
-                  <SelectTrigger>
+                  <SelectTrigger className="border-2" style={{ borderColor: '#E5E7EB' }}>
                     <SelectValue placeholder="Selecione a categoria" />
                   </SelectTrigger>
                   <SelectContent>
@@ -325,15 +464,17 @@ const ExtractProducts = () => {
 
         {/* Products List */}
         {parsedProducts.length > 0 && (
-          <Card>
+          <Card className="border-2 bg-white" style={{ borderColor: '#E5E7EB' }}>
             <CardHeader>
-              <CardTitle className="text-lg flex items-center justify-between">
+              <CardTitle className="text-lg flex items-center justify-between" style={{ color: '#DC2626' }}>
                 <span>Produtos ({parsedProducts.length})</span>
                 <div className="flex items-center gap-2">
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => toggleAll(true)}
+                    className="border-2"
+                    style={{ borderColor: '#DC2626', color: '#DC2626' }}
                   >
                     Selecionar Todos
                   </Button>
@@ -341,6 +482,8 @@ const ExtractProducts = () => {
                     variant="outline"
                     size="sm"
                     onClick={() => toggleAll(false)}
+                    className="border-2"
+                    style={{ borderColor: '#E5E7EB' }}
                   >
                     Desmarcar Todos
                   </Button>
@@ -348,10 +491,10 @@ const ExtractProducts = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="rounded-md border overflow-hidden">
+              <div className="rounded-md border-2 overflow-hidden" style={{ borderColor: '#E5E7EB' }}>
                 <Table>
                   <TableHeader>
-                    <TableRow>
+                    <TableRow className="bg-gray-50">
                       <TableHead className="w-12">
                         <Checkbox
                           checked={selectedCount === parsedProducts.length}
@@ -380,31 +523,31 @@ const ExtractProducts = () => {
                             <img
                               src={product.imageUrl}
                               alt=""
-                              className="w-12 h-12 object-contain rounded bg-muted"
+                              className="w-12 h-12 object-contain rounded bg-gray-100"
                             />
                           ) : (
-                            <div className="w-12 h-12 bg-muted rounded flex items-center justify-center">
-                              <Package className="h-4 w-4 text-muted-foreground" />
+                            <div className="w-12 h-12 bg-gray-100 rounded flex items-center justify-center">
+                              <Package className="h-4 w-4 text-gray-400" />
                             </div>
                           )}
                         </TableCell>
-                        <TableCell className="max-w-xs truncate" title={product.title}>
+                        <TableCell className="max-w-xs truncate text-gray-800" title={product.title}>
                           {product.title}
                         </TableCell>
-                        <TableCell className="text-right text-muted-foreground">
+                        <TableCell className="text-right text-gray-500">
                           R$ {product.costPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                         </TableCell>
                         <TableCell className="text-right text-orange-500">
                           R$ {calculateAdjustedCost(product.costPrice).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                         </TableCell>
-                        <TableCell className="text-right font-medium text-primary">
+                        <TableCell className="text-right font-medium" style={{ color: '#DC2626' }}>
                           R$ {calculateFinalPrice(product.costPrice).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                         </TableCell>
                         <TableCell>
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-8 w-8 text-destructive hover:text-destructive"
+                            className="h-8 w-8 text-red-500 hover:text-red-700"
                             onClick={() => removeProduct(product.id)}
                           >
                             <Trash2 className="h-4 w-4" />
@@ -417,26 +560,26 @@ const ExtractProducts = () => {
               </div>
 
               {/* Summary */}
-              <div className="mt-4 p-4 bg-muted/50 rounded-lg flex flex-wrap gap-6 justify-between items-center">
+              <div className="mt-4 p-4 bg-gray-50 rounded-lg flex flex-wrap gap-6 justify-between items-center">
                 <div className="space-y-1">
-                  <p className="text-sm text-muted-foreground">Selecionados</p>
-                  <p className="text-xl font-bold">{selectedCount} produtos</p>
+                  <p className="text-sm text-gray-500">Selecionados</p>
+                  <p className="text-xl font-bold text-gray-800">{selectedCount} produtos</p>
                 </div>
                 <div className="space-y-1">
-                  <p className="text-sm text-muted-foreground">Total Custo</p>
-                  <p className="text-xl font-bold">
+                  <p className="text-sm text-gray-500">Total Custo</p>
+                  <p className="text-xl font-bold text-gray-800">
                     R$ {totalCost.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                   </p>
                 </div>
                 <div className="space-y-1">
-                  <p className="text-sm text-muted-foreground">Total Venda (+{margin}%)</p>
-                  <p className="text-xl font-bold text-primary">
+                  <p className="text-sm text-gray-500">Total Venda (+{margin}%)</p>
+                  <p className="text-xl font-bold" style={{ color: '#DC2626' }}>
                     R$ {totalSale.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                   </p>
                 </div>
                 <div className="space-y-1">
-                  <p className="text-sm text-muted-foreground">Lucro Estimado</p>
-                  <p className="text-xl font-bold text-green-500">
+                  <p className="text-sm text-gray-500">Lucro Estimado</p>
+                  <p className="text-xl font-bold text-green-600">
                     R$ {(totalSale - totalCost).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                   </p>
                 </div>
@@ -446,7 +589,8 @@ const ExtractProducts = () => {
               <Button
                 onClick={importProducts}
                 disabled={isImporting || selectedCount === 0 || !productType || !category}
-                className="w-full mt-4"
+                className="w-full mt-4 text-white hover:opacity-90"
+                style={{ backgroundColor: '#DC2626' }}
                 size="lg"
               >
                 {isImporting ? (
