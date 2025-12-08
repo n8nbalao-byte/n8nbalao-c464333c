@@ -33,49 +33,71 @@ if (empty($url) && empty($manualHtml)) {
 function fetchPageHtml(string $url): array {
     $ch = curl_init();
     
+    // Headers mais robustos para simular navegador real
+    $userAgents = [
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:121.0) Gecko/20100101 Firefox/121.0'
+    ];
+    
+    $userAgent = $userAgents[array_rand($userAgents)];
+    
     curl_setopt_array($ch, [
         CURLOPT_URL => $url,
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_FOLLOWLOCATION => true,
-        CURLOPT_MAXREDIRS => 5,
-        CURLOPT_TIMEOUT => 30,
-        CURLOPT_CONNECTTIMEOUT => 10,
+        CURLOPT_MAXREDIRS => 10,
+        CURLOPT_TIMEOUT => 45,
+        CURLOPT_CONNECTTIMEOUT => 20,
         CURLOPT_SSL_VERIFYPEER => false,
+        CURLOPT_SSL_VERIFYHOST => false,
+        CURLOPT_ENCODING => 'gzip, deflate, br',
+        CURLOPT_USERAGENT => $userAgent,
         CURLOPT_HTTPHEADER => [
-            'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+            'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
             'Accept-Language: pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7',
-            'Accept-Encoding: gzip, deflate',
-            'Connection: keep-alive',
+            'Accept-Encoding: gzip, deflate, br',
+            'Cache-Control: no-cache',
+            'Pragma: no-cache',
+            'Sec-Ch-Ua: "Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
+            'Sec-Ch-Ua-Mobile: ?0',
+            'Sec-Ch-Ua-Platform: "Windows"',
+            'Sec-Fetch-Dest: document',
+            'Sec-Fetch-Mode: navigate',
+            'Sec-Fetch-Site: none',
+            'Sec-Fetch-User: ?1',
             'Upgrade-Insecure-Requests: 1',
-            'Cache-Control: max-age=0'
+            'Connection: keep-alive',
+            'DNT: 1'
         ],
-        CURLOPT_ENCODING => 'gzip, deflate'
+        CURLOPT_COOKIEJAR => '/tmp/extract_cookies_' . md5($url) . '.txt',
+        CURLOPT_COOKIEFILE => '/tmp/extract_cookies_' . md5($url) . '.txt'
     ]);
     
     $html = curl_exec($ch);
     $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     $error = curl_error($ch);
+    $errno = curl_errno($ch);
     curl_close($ch);
     
-    if ($error) {
-        return ['success' => false, 'error' => "Connection error: $error"];
+    if ($errno) {
+        return ['success' => false, 'error' => "Erro de conexão (código $errno): $error. Use a opção 'Colar HTML'."];
     }
     
-    if ($httpCode === 403) {
-        return ['success' => false, 'error' => 'Access blocked (403). Use "Colar HTML" method.'];
+    if ($httpCode === 403 || $httpCode === 401) {
+        return ['success' => false, 'error' => "Acesso bloqueado ($httpCode). Use a opção 'Colar HTML' manualmente."];
     }
     
-    if ($httpCode === 503) {
-        return ['success' => false, 'error' => 'Anti-bot protection (503). Use "Colar HTML" method.'];
+    if ($httpCode === 503 || $httpCode === 429) {
+        return ['success' => false, 'error' => "Proteção anti-bot ativa ($httpCode). Use a opção 'Colar HTML' manualmente."];
     }
     
-    if ($httpCode !== 200) {
-        return ['success' => false, 'error' => "HTTP error: $httpCode"];
+    if ($httpCode >= 400) {
+        return ['success' => false, 'error' => "Erro HTTP $httpCode. Use a opção 'Colar HTML' manualmente."];
     }
     
-    if (empty($html) || strlen($html) < 1000) {
-        return ['success' => false, 'error' => 'Empty or incomplete response. Use "Colar HTML" method.'];
+    if (empty($html) || strlen($html) < 500) {
+        return ['success' => false, 'error' => "Resposta vazia ou incompleta. Use a opção 'Colar HTML' manualmente."];
     }
     
     return ['success' => true, 'html' => $html];
