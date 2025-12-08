@@ -902,34 +902,86 @@ const ExtractProducts = () => {
       }
     }
 
-    // Import hardware items
-    for (let i = 0; i < hardwareItems.length; i++) {
-      const item = hardwareItems[i];
-      setImportProgress({ current: i + 1, total: toImport.length });
-
+    // Import hardware items with AI compatibility detection
+    if (hardwareItems.length > 0) {
+      // First, get AI-detected compatibility for all hardware items
+      let compatibilityMap: Record<number, any> = {};
+      
       try {
-        const finalPrice = calculateFinalPrice(item.costPrice);
-        
-        // Extract brand and model from title
-        const titleParts = item.title.split(' ');
-        const brand = titleParts[0] || 'Genérico';
-        const model = titleParts.slice(1).join(' ') || item.title;
-
-        await api.createHardware({
-          name: item.title,
-          brand,
-          model,
-          price: Math.round(finalPrice * 100) / 100,
-          image: item.imageUrl || '',
-          specs: {},
-          category: item.detectedCategory as any
+        const compatResponse = await fetch('https://www.n8nbalao.com/api/generate-hardware-compat.php', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            items: hardwareItems.map((item, idx) => ({
+              title: item.title,
+              category: item.detectedCategory
+            }))
+          })
         });
-
-        hardwareCount++;
-        successCount++;
+        
+        const compatData = await compatResponse.json();
+        
+        if (compatData.success && Array.isArray(compatData.compatibility)) {
+          compatData.compatibility.forEach((compat: any, idx: number) => {
+            if (compat && typeof compat === 'object') {
+              compatibilityMap[compat.index ?? idx] = compat;
+            }
+          });
+          
+          // Show usage info
+          if (compatData.usage) {
+            toast({
+              title: "Compatibilidade detectada por IA",
+              description: `Tokens: ${compatData.usage.totalTokens} | Custo: R$ ${compatData.usage.costBRL.toFixed(4)}`
+            });
+          }
+        }
       } catch (error) {
-        console.error('Error importing hardware:', error);
-        errorCount++;
+        console.error('Error getting AI compatibility:', error);
+        toast({
+          title: "Aviso",
+          description: "Não foi possível detectar compatibilidade via IA. Importando sem dados de compatibilidade.",
+          variant: "destructive"
+        });
+      }
+      
+      // Now import each hardware item with compatibility data
+      for (let i = 0; i < hardwareItems.length; i++) {
+        const item = hardwareItems[i];
+        setImportProgress({ current: i + 1, total: toImport.length });
+
+        try {
+          const finalPrice = calculateFinalPrice(item.costPrice);
+          
+          // Extract brand and model from title
+          const titleParts = item.title.split(' ');
+          const brand = titleParts[0] || 'Genérico';
+          const model = titleParts.slice(1).join(' ') || item.title;
+          
+          // Get AI-detected compatibility
+          const compat = compatibilityMap[i] || {};
+
+          await api.createHardware({
+            name: item.title,
+            brand,
+            model,
+            price: Math.round(finalPrice * 100) / 100,
+            image: item.imageUrl || '',
+            specs: {},
+            category: item.detectedCategory as any,
+            // Compatibility fields from AI
+            socket: compat.socket || undefined,
+            memoryType: compat.memoryType || undefined,
+            formFactor: compat.formFactor || undefined,
+            tdp: compat.tdp ? Number(compat.tdp) : undefined
+          });
+
+          hardwareCount++;
+          successCount++;
+        } catch (error) {
+          console.error('Error importing hardware:', error);
+          errorCount++;
+        }
       }
     }
 
