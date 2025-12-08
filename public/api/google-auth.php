@@ -12,8 +12,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 // ============================================
 // CONFIGURAÇÃO - PREENCHA COM SUAS CREDENCIAIS
 // ============================================
-$clientId = 'SEU_CLIENT_ID_AQUI.apps.googleusercontent.com';
-$clientSecret = 'SEU_CLIENT_SECRET_AQUI';
+$clientId = '502896071844-skg6o3tai5vffjf60bu22si0uovc4or0.apps.googleusercontent.com';
+$clientSecret = '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';
 $redirectUri = 'https://www.n8nbalao.com/api/google-auth.php';
 
 // Database connection
