@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import type { Product } from "@/lib/api";
 import { Download, ShoppingCart } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
+import { useViewMode } from "@/contexts/ViewModeContext";
 import { Button } from "@/components/ui/button";
 
 interface ProductCardProps {
@@ -10,6 +11,7 @@ interface ProductCardProps {
 
 export function ProductCard({ product }: ProductCardProps) {
   const { addToCart } = useCart();
+  const { viewMode } = useViewMode();
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat("pt-BR", {
@@ -26,12 +28,110 @@ export function ProductCard({ product }: ProductCardProps) {
     addToCart(product);
   };
 
+  // List view layout
+  if (viewMode === 'list') {
+    return (
+      <Link
+        to={`/produto/${product.id}`}
+        className="group flex gap-4 overflow-hidden rounded-xl border border-gray-200 bg-white p-4 transition-all duration-300 hover:border-red-300 hover:shadow-lg"
+      >
+        <div className="relative h-24 w-24 flex-shrink-0 overflow-hidden rounded-lg bg-gray-100">
+          <img
+            src={product.media?.[0]?.url || "/placeholder.svg"}
+            alt={product.title}
+            className="h-full w-full object-cover"
+            onError={(e) => {
+              (e.target as HTMLImageElement).src = "/placeholder.svg";
+            }}
+          />
+        </div>
+        <div className="flex flex-1 flex-col justify-between min-w-0">
+          <div>
+            <h3 className="font-semibold text-gray-800 line-clamp-1 group-hover:text-red-600 transition-colors">
+              {product.title}
+            </h3>
+            {product.subtitle && (
+              <p className="text-sm text-gray-500 line-clamp-1">{product.subtitle}</p>
+            )}
+          </div>
+          <div className="flex items-center justify-between gap-2">
+            {isAutomacao ? (
+              <span className="inline-flex items-center gap-2 font-bold" style={{ color: '#DC2626' }}>
+                <Download className="h-4 w-4" />
+                Download Grátis
+              </span>
+            ) : (
+              <>
+                <span className="text-lg font-bold" style={{ color: '#DC2626' }}>
+                  {formatPrice(product.totalPrice)}
+                </span>
+                <Button
+                  size="sm"
+                  className="text-white"
+                  style={{ backgroundColor: '#DC2626' }}
+                  onClick={handleAddToCart}
+                >
+                  <ShoppingCart className="h-4 w-4 mr-1" />
+                  Adicionar
+                </Button>
+              </>
+            )}
+          </div>
+        </div>
+      </Link>
+    );
+  }
+
+  // Compact view layout
+  if (viewMode === 'compact') {
+    return (
+      <Link
+        to={`/produto/${product.id}`}
+        className="group relative flex flex-col overflow-hidden rounded-lg border border-gray-200 bg-white transition-all duration-300 hover:border-red-300 hover:shadow-md"
+      >
+        <div className="relative aspect-square overflow-hidden bg-gray-100">
+          <img
+            src={product.media?.[0]?.url || "/placeholder.svg"}
+            alt={product.title}
+            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+            onError={(e) => {
+              (e.target as HTMLImageElement).src = "/placeholder.svg";
+            }}
+          />
+        </div>
+        <div className="p-2">
+          <h3 className="text-sm font-medium text-gray-800 line-clamp-2 group-hover:text-red-600 transition-colors">
+            {product.title}
+          </h3>
+          <div className="mt-1 flex items-center justify-between">
+            {isAutomacao ? (
+              <span className="text-xs font-bold" style={{ color: '#DC2626' }}>Grátis</span>
+            ) : (
+              <span className="text-sm font-bold" style={{ color: '#DC2626' }}>
+                {formatPrice(product.totalPrice)}
+              </span>
+            )}
+            {!isAutomacao && (
+              <button
+                className="rounded p-1 text-white"
+                style={{ backgroundColor: '#DC2626' }}
+                onClick={handleAddToCart}
+              >
+                <ShoppingCart className="h-3 w-3" />
+              </button>
+            )}
+          </div>
+        </div>
+      </Link>
+    );
+  }
+
+  // Standard view layout (default)
   return (
     <Link
       to={`/produto/${product.id}`}
       className="group relative flex flex-col overflow-hidden rounded-xl border border-gray-200 bg-white transition-all duration-300 hover:border-red-300 hover:shadow-lg"
     >
-      {/* Image */}
       <div className="relative aspect-square overflow-hidden bg-gray-100">
         <img
           src={product.media?.[0]?.url || "/placeholder.svg"}
@@ -47,8 +147,6 @@ export function ProductCard({ product }: ProductCardProps) {
           </span>
         )}
       </div>
-
-      {/* Content */}
       <div className="flex flex-1 flex-col p-4">
         <h3 className="text-lg font-semibold text-gray-800 line-clamp-2 group-hover:text-red-600 transition-colors">
           {product.title}
@@ -58,7 +156,6 @@ export function ProductCard({ product }: ProductCardProps) {
             {product.subtitle}
           </p>
         )}
-
         <div className="mt-auto pt-4 flex items-center justify-between gap-2">
           {isAutomacao ? (
             <span className="inline-flex items-center gap-2 text-lg font-bold" style={{ color: '#DC2626' }}>
