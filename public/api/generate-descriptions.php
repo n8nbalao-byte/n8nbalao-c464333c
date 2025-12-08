@@ -19,26 +19,55 @@ try {
     $pdo = new PDO("mysql:host=$host;dbname=$dbname;charset=utf8mb4", $username, $password);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 } catch (PDOException $e) {
-    echo json_encode(['success' => false, 'error' => 'Database connection failed']);
+    http_response_code(500);
+    echo json_encode(['success' => false, 'error' => 'Database connection failed: ' . $e->getMessage()]);
     exit;
 }
 
-// Get OpenAI API key from settings
-$stmt = $pdo->prepare("SELECT value FROM settings WHERE `key` = 'openai_api_key'");
-$stmt->execute();
-$row = $stmt->fetch(PDO::FETCH_ASSOC);
-$openaiApiKey = $row ? $row['value'] : null;
+// Create settings table if not exists
+try {
+    $pdo->exec("CREATE TABLE IF NOT EXISTS settings (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        `key` VARCHAR(100) UNIQUE NOT NULL,
+        `value` TEXT,
+        createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    )");
+} catch (PDOException $e) {
+    // Table might already exist, continue
+}
 
-if (!$openaiApiKey) {
-    echo json_encode(['success' => false, 'error' => 'OpenAI API key not configured. Go to Admin > Settings to add it.']);
+// Get OpenAI API key from settings
+$openaiApiKey = null;
+try {
+    $stmt = $pdo->prepare("SELECT `value` FROM settings WHERE `key` = 'openai_api_key'");
+    $stmt->execute();
+    $row = $stmt->fetch(PDO::FETCH_ASSOC);
+    $openaiApiKey = $row ? trim($row['value']) : null;
+} catch (PDOException $e) {
+    http_response_code(500);
+    echo json_encode(['success' => false, 'error' => 'Failed to read settings: ' . $e->getMessage()]);
+    exit;
+}
+
+if (!$openaiApiKey || $openaiApiKey === '') {
+    http_response_code(400);
+    echo json_encode(['success' => false, 'error' => 'Chave OpenAI não configurada. Vá em Admin > Configurações e adicione sua chave API.']);
     exit;
 }
 
 // Get model from settings
-$stmt = $pdo->prepare("SELECT value FROM settings WHERE `key` = 'bulk_gen_model'");
-$stmt->execute();
-$row = $stmt->fetch(PDO::FETCH_ASSOC);
-$model = $row && $row['value'] ? $row['value'] : 'gpt-4o-mini';
+$model = 'gpt-4o-mini';
+try {
+    $stmt = $pdo->prepare("SELECT `value` FROM settings WHERE `key` = 'bulk_gen_model'");
+    $stmt->execute();
+    $row = $stmt->fetch(PDO::FETCH_ASSOC);
+    if ($row && $row['value']) {
+        $model = $row['value'];
+    }
+} catch (PDOException $e) {
+    // Use default model
+}
 
 // Model costs per 1M tokens (USD)
 $modelCosts = [
@@ -53,7 +82,8 @@ $products = $input['products'] ?? [];
 $storeText = $input['storeText'] ?? '';
 
 if (empty($products)) {
-    echo json_encode(['success' => false, 'error' => 'No products provided']);
+    http_response_code(400);
+    echo json_encode(['success' => false, 'error' => 'Nenhum produto fornecido']);
     exit;
 }
 
@@ -115,15 +145,29 @@ Responda EXATAMENTE neste formato JSON (sem markdown, sem código):
 
     $response = curl_exec($ch);
     $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $curlError = curl_error($ch);
     curl_close($ch);
 
-    if ($httpCode !== 200) {
-        error_log("OpenAI API error: " . $response);
+    if ($curlError) {
+        error_log("cURL error: " . $curlError);
         $results[] = [
             'id' => $product['id'] ?? '',
             'simpleDescription' => '',
             'fullDescription' => '',
-            'error' => 'API error'
+            'error' => 'Connection error'
+        ];
+        continue;
+    }
+
+    if ($httpCode !== 200) {
+        error_log("OpenAI API error ($httpCode): " . $response);
+        $errorData = json_decode($response, true);
+        $errorMsg = $errorData['error']['message'] ?? 'API error';
+        $results[] = [
+            'id' => $product['id'] ?? '',
+            'simpleDescription' => '',
+            'fullDescription' => '',
+            'error' => $errorMsg
         ];
         continue;
     }
@@ -167,7 +211,7 @@ $outputCostUSD = ($totalOutputTokens / 1000000) * $costs['output'];
 $totalCostUSD = $inputCostUSD + $outputCostUSD;
 
 // Convert to BRL (approximate rate)
-$usdToBrl = 5.0; // You can update this rate
+$usdToBrl = 5.0;
 $totalCostBRL = $totalCostUSD * $usdToBrl;
 
 echo json_encode([
