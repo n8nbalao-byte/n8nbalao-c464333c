@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Link as LinkIcon, FileText, Loader2, Check, Plus, Save, Eye, EyeOff } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { api, getCustomCategories, addCustomCategory } from "@/lib/api";
+import { getIconForCategoryName } from "@/lib/icons";
 
 interface ExtractedProduct {
   title: string;
@@ -131,16 +132,25 @@ const ExtractProducts = () => {
     try {
       // Check if category exists, create if not
       const customCategories = await getCustomCategories();
-      const allCategories = [...customCategories];
       const categoryKey = extractedProduct.category?.toLowerCase().replace(/\s+/g, '_') || 'outros';
       
-      const categoryExists = allCategories.some(
-        cat => cat.key.toLowerCase() === categoryKey || cat.label.toLowerCase() === extractedProduct.category?.toLowerCase()
+      // Check for existing category (match by key or label, case insensitive)
+      const existingCategory = customCategories.find(
+        cat => cat.key.toLowerCase() === categoryKey || 
+               cat.label.toLowerCase() === extractedProduct.category?.toLowerCase()
       );
 
-      if (!categoryExists && extractedProduct.category) {
+      let finalCategoryKey = categoryKey;
+      
+      if (existingCategory) {
+        // Use existing category key
+        finalCategoryKey = existingCategory.key;
+      } else if (extractedProduct.category) {
+        // Create new category with smart icon
         const categoryLabel = extractedProduct.category.charAt(0).toUpperCase() + extractedProduct.category.slice(1);
-        await addCustomCategory(categoryKey, categoryLabel, 'Package');
+        const smartIcon = getIconForCategoryName(extractedProduct.category);
+        await addCustomCategory(categoryKey, categoryLabel, smartIcon);
+        finalCategoryKey = categoryKey;
       }
 
       // Prepare media from images
@@ -161,8 +171,8 @@ const ExtractProducts = () => {
         title: extractedProduct.title || 'Produto Importado',
         subtitle: extractedProduct.brand ? `${extractedProduct.brand} ${extractedProduct.model || ''}`.trim() : '',
         description: extractedProduct.description || '',
-        productType: categoryKey as any,
-        categories: [categoryKey],
+        productType: finalCategoryKey as any,
+        categories: [finalCategoryKey],
         media,
         specs,
         totalPrice: extractedProduct.price || 0,
