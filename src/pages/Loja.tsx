@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { ProductCard } from "@/components/ProductCard";
 import { HardwareCard } from "@/components/HardwareCard";
 import { api, type Product, type HardwareItem, getCustomCategories, getHardwareCategories, type HardwareCategoryDef } from "@/lib/api";
@@ -22,11 +22,12 @@ const defaultHardwareCategories: HardwareCategoryDef[] = [
 ];
 
 export default function Loja() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [products, setProducts] = useState<Product[]>([]);
   const [hardware, setHardware] = useState<HardwareItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
-  const [selectedType, setSelectedType] = useState<ProductType>("all");
+  const [search, setSearch] = useState(searchParams.get('search') || "");
+  const [selectedType, setSelectedType] = useState<ProductType>(searchParams.get('category') || "all");
   const [selectedHardwareCategory, setSelectedHardwareCategory] = useState<string | null>(null);
   const [selectedFilters, setSelectedFilters] = useState<Record<string, string>>({});
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
@@ -151,12 +152,26 @@ export default function Loja() {
       setSelectedHardwareCategory(null);
       setSelectedFilters({});
     }
+    // Update URL
+    if (type === 'all') {
+      setSearchParams({});
+    } else {
+      setSearchParams({ category: type });
+    }
   };
 
   const handleHardwareCategorySelect = (category: string) => {
     setSelectedHardwareCategory(category);
     setSelectedFilters({});
   };
+
+  // Sync URL params with state
+  useEffect(() => {
+    const categoryParam = searchParams.get('category');
+    if (categoryParam && categoryParam !== selectedType) {
+      setSelectedType(categoryParam);
+    }
+  }, [searchParams]);
 
   const isHardwareMode = selectedType === 'hardware';
 
@@ -215,41 +230,6 @@ export default function Loja() {
             </button>
           </div>
         </div>
-
-        {/* Navigation */}
-        <nav className="bg-gray-100 border-t border-gray-200">
-          <div className="container">
-            <div className="flex items-center gap-1 overflow-x-auto py-2 scrollbar-hide">
-              <Link to="/" className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:bg-white rounded-lg transition-colors whitespace-nowrap font-medium" style={{ ['--hover-color' as any]: '#DC2626' }}>
-                Início
-              </Link>
-              <Link to="/loja" className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:bg-white rounded-lg transition-colors whitespace-nowrap font-medium" style={{ color: '#DC2626' }}>
-                <Menu className="h-4 w-4" />
-                Loja
-              </Link>
-              <Link to="/monte-voce-mesmo" className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:bg-white rounded-lg transition-colors whitespace-nowrap font-medium">
-                <Cpu className="h-4 w-4" />
-                Monte seu PC
-              </Link>
-              <Link to="/automacao" className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:bg-white rounded-lg transition-colors whitespace-nowrap font-medium">
-                <Bot className="h-4 w-4" />
-                Automação
-              </Link>
-              <Link to="/loja?category=notebook" className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:bg-white rounded-lg transition-colors whitespace-nowrap font-medium">
-                <Laptop className="h-4 w-4" />
-                Notebooks
-              </Link>
-              <Link to="/loja?category=hardware" className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:bg-white rounded-lg transition-colors whitespace-nowrap font-medium">
-                <HardDrive className="h-4 w-4" />
-                Hardware
-              </Link>
-              <Link to="/loja?category=monitor" className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:bg-white rounded-lg transition-colors whitespace-nowrap font-medium">
-                <Monitor className="h-4 w-4" />
-                Monitores
-              </Link>
-            </div>
-          </div>
-        </nav>
       </header>
 
       <main className="py-12 bg-gray-50">
