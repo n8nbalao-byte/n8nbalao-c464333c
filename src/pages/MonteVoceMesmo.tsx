@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { RedWhiteHeader } from "@/components/RedWhiteHeader";
 import { RedWhiteFooter } from "@/components/RedWhiteFooter";
+import { CategoryNavbar } from "@/components/CategoryNavbar";
 import { api, type Product, type HardwareItem, type CompanyData, type HardwareCategory, getCustomCategories } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { useCart } from "@/contexts/CartContext";
@@ -661,11 +662,12 @@ export default function MonteVoceMesmo() {
   return (
     <div className="min-h-screen flex flex-col bg-gray-100">
       {/* Header */}
-      <header className="bg-white py-4 shadow-md">
-        <div className="container flex items-center justify-between">
+      <header className="bg-white shadow-md">
+        <div className="container py-4 flex items-center justify-between">
           <Link to="/"><img src={balaoLogo} alt="Balão da Informática" className="h-12" /></Link>
           <Link to="/loja" className="text-primary hover:underline font-medium">Ver Loja</Link>
         </div>
+        <CategoryNavbar showMonteSeuPC={false} />
       </header>
       
       <main className="flex-1 container py-8">

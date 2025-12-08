@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { ProductCard } from "@/components/ProductCard";
 import { HardwareCard } from "@/components/HardwareCard";
+import { CategoryNavbar } from "@/components/CategoryNavbar";
 import { api, type Product, type HardwareItem, getCustomCategories, getHardwareCategories, type HardwareCategoryDef } from "@/lib/api";
 import { getIconFromKey } from "@/lib/icons";
 import { Search, ArrowUpDown, Package, Cpu, ChevronLeft, ShoppingCart, Menu, HardDrive, Monitor, Laptop, Bot } from "lucide-react";
@@ -232,29 +233,11 @@ export default function Loja() {
         </div>
 
         {/* Category Navigation Bar */}
-        <nav className="bg-gray-100 border-t border-gray-200">
-          <div className="container">
-            <div className="flex items-center gap-1 overflow-x-auto py-2 scrollbar-hide">
-              {productTypes.map((type) => {
-                const Icon = type.icon;
-                const isActive = selectedType === type.key;
-                return (
-                  <button
-                    key={type.key}
-                    onClick={() => handleTypeSelect(type.key)}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors whitespace-nowrap font-medium ${
-                      isActive ? 'bg-white' : 'text-gray-700 hover:bg-white'
-                    }`}
-                    style={isActive ? { color: '#DC2626' } : {}}
-                  >
-                    <Icon className="h-4 w-4" />
-                    {type.label}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        </nav>
+        <CategoryNavbar 
+          onCategorySelect={handleTypeSelect}
+          selectedCategory={selectedType}
+          showMonteSeuPC={true}
+        />
       </header>
 
       <main className="py-12 bg-gray-50">

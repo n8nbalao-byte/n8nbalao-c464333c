@@ -6,6 +6,7 @@ import { ShoppingCart, ChevronRight, Cpu, HardDrive, Monitor, Package, Laptop, B
 import { useCart } from "@/contexts/CartContext";
 import { Button } from "@/components/ui/button";
 import { HomeCarousel } from "@/components/HomeCarousel";
+import { CategoryNavbar } from "@/components/CategoryNavbar";
 import balaoLogo from "@/assets/balao-logo.png";
 
 const baseCategoryConfig = [
@@ -153,32 +154,10 @@ export default function Home() {
               <span className="hidden md:inline font-medium">Monte seu PC</span>
             </Link>
           </div>
-
-          {/* Category Cards - Dynamic Grid */}
-          <div className="flex flex-wrap justify-center gap-2 mt-4">
-            <Link 
-              to="/monte-voce-mesmo" 
-              className="group bg-gray-50 rounded-lg px-3 py-2 hover:bg-primary/10 transition-all border border-gray-200 flex items-center gap-2"
-            >
-              <Cpu className="h-4 w-4 text-primary" />
-              <span className="font-semibold text-primary text-xs whitespace-nowrap">MONTE SEU PC</span>
-            </Link>
-            
-            {categoryConfig.map((cat) => {
-              const Icon = cat.icon;
-              return (
-                <Link 
-                  key={cat.key}
-                  to={`/loja?category=${cat.key}`} 
-                  className="group bg-gray-50 rounded-lg px-3 py-2 hover:bg-primary/10 transition-all border border-gray-200 flex items-center gap-2"
-                >
-                  <Icon className="h-4 w-4 text-primary" />
-                  <span className="font-semibold text-primary text-xs whitespace-nowrap">{cat.label.toUpperCase()}</span>
-                </Link>
-              );
-            })}
-          </div>
         </div>
+        
+        {/* Category Navbar */}
+        <CategoryNavbar showMonteSeuPC={false} />
       </header>
 
       {/* Hero Banner Carousel */}
