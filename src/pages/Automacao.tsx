@@ -57,11 +57,15 @@ export default function Automacao() {
     fetchData();
   }, []);
 
-  // Group products by category
-  const getProductsByCategory = (category: string) => {
-    return products
-      .filter(p => p.productType === category || p.categories?.includes(category))
-      .slice(0, 4);
+  // Only get n8n/automacao products
+  const getN8nProducts = () => {
+    return products.filter(p => {
+      const pType = (p.productType || '').toLowerCase();
+      const hasCategory = p.categories?.some(c => 
+        c.toLowerCase() === 'n8n' || c.toLowerCase() === 'automacao'
+      );
+      return pType === 'n8n' || pType === 'automacao' || hasCategory;
+    }).slice(0, 8);
   };
 
   return (
@@ -241,7 +245,7 @@ export default function Automacao() {
         </div>
       </section>
 
-      {/* Products/Pricing Section - Show all categories */}
+      {/* Products/Pricing Section - Only n8n/automacao products */}
       <section id="pricing" className="py-20">
         <div className="container">
           <div className="text-center mb-12">
@@ -249,7 +253,7 @@ export default function Automacao() {
               Nossos Produtos
             </h2>
             <p className="mt-4 text-muted-foreground">
-              Encontre o produto ideal para suas necessidades
+              Soluções de automação para seu negócio
             </p>
           </div>
 
@@ -260,45 +264,18 @@ export default function Automacao() {
               ))}
             </div>
           ) : (
-            <div className="space-y-16">
-              {categoryConfig.map((category) => {
-                const categoryProducts = getProductsByCategory(category.key);
-                if (categoryProducts.length === 0) return null;
-                
-                const Icon = category.icon;
-                
-                return (
-                  <div key={category.key}>
-                    <div className="flex items-center gap-3 mb-6">
-                      <Icon className="h-6 w-6 text-primary" />
-                      <h3 className="text-2xl font-bold text-foreground">{category.label}</h3>
-                    </div>
-                    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-                      {categoryProducts.map((product) => (
-                        <ProductCard key={product.id} product={product} />
-                      ))}
-                    </div>
-                  </div>
-                );
-              })}
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+              {getN8nProducts().map((product) => (
+                <ProductCard key={product.id} product={product} />
+              ))}
               
-              {products.length === 0 && (
-                <div className="text-center py-12 text-muted-foreground">
-                  Nenhum produto disponível no momento.
+              {getN8nProducts().length === 0 && (
+                <div className="col-span-full text-center py-12 text-muted-foreground">
+                  Nenhum produto de automação disponível no momento.
                 </div>
               )}
             </div>
           )}
-
-          <div className="mt-12 text-center">
-            <Link
-              to="/loja"
-              className="inline-flex items-center gap-2 text-primary hover:underline font-medium"
-            >
-              Ver todos os produtos
-              <span>→</span>
-            </Link>
-          </div>
         </div>
       </section>
 

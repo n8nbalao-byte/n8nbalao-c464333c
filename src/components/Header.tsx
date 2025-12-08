@@ -8,9 +8,9 @@ import { useState, useEffect } from "react";
 
 const navLinks = [
   { href: "/", label: "Início", scrollTo: null },
-  { href: "/#pricing", label: "Preços", scrollTo: "pricing" },
-  { href: "/#benefits", label: "Benefícios", scrollTo: "benefits" },
-  { href: "/#testimonials", label: "Depoimentos", scrollTo: "testimonials" },
+  { href: "/automacao#pricing", label: "Preços", scrollTo: "pricing", targetPath: "/automacao" },
+  { href: "/automacao#benefits", label: "Benefícios", scrollTo: "benefits", targetPath: "/automacao" },
+  { href: "/automacao#testimonials", label: "Depoimentos", scrollTo: "testimonials", targetPath: "/automacao" },
   { href: "/loja", label: "Loja", scrollTo: null },
   { href: "/monte-voce-mesmo", label: "Monte Você Mesmo", scrollTo: null },
 ];
@@ -29,10 +29,11 @@ export function Header() {
   const handleNavClick = (e: React.MouseEvent, link: typeof navLinks[0]) => {
     if (link.scrollTo) {
       e.preventDefault();
+      const targetPath = (link as any).targetPath || "/";
       
-      // If not on home page, navigate first then scroll
-      if (location.pathname !== "/") {
-        navigate("/");
+      // If not on target page, navigate first then scroll
+      if (location.pathname !== targetPath) {
+        navigate(targetPath);
         setTimeout(() => {
           const element = document.getElementById(link.scrollTo!);
           element?.scrollIntoView({ behavior: "smooth" });
