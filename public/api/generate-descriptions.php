@@ -211,8 +211,42 @@ $outputCostUSD = ($totalOutputTokens / 1000000) * $costs['output'];
 $totalCostUSD = $inputCostUSD + $outputCostUSD;
 
 // Convert to BRL (approximate rate)
-$usdToBrl = 5.0;
+$usdToBrl = 5.5;
 $totalCostBRL = $totalCostUSD * $usdToBrl;
+
+// Log AI usage to database
+try {
+    // Create ai_usage table if not exists
+    $pdo->exec("CREATE TABLE IF NOT EXISTS ai_usage (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        operation_type VARCHAR(50) NOT NULL,
+        model VARCHAR(50) NOT NULL,
+        input_tokens INT DEFAULT 0,
+        output_tokens INT DEFAULT 0,
+        total_tokens INT DEFAULT 0,
+        cost_usd DECIMAL(10, 6) DEFAULT 0,
+        cost_brl DECIMAL(10, 4) DEFAULT 0,
+        items_processed INT DEFAULT 1,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )");
+    
+    $stmt = $pdo->prepare("INSERT INTO ai_usage 
+        (operation_type, model, input_tokens, output_tokens, total_tokens, cost_usd, cost_brl, items_processed)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+    $stmt->execute([
+        'bulk_description',
+        $model,
+        $totalInputTokens,
+        $totalOutputTokens,
+        $totalInputTokens + $totalOutputTokens,
+        round($totalCostUSD, 6),
+        round($totalCostBRL, 4),
+        count($products)
+    ]);
+} catch (PDOException $e) {
+    // Log error but don't fail the request
+    error_log("Failed to log AI usage: " . $e->getMessage());
+}
 
 echo json_encode([
     'success' => true,
