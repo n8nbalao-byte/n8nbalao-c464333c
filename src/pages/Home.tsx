@@ -6,7 +6,7 @@ import { ShoppingCart, ChevronRight, Cpu, HardDrive, Monitor, Package, Laptop, B
 import { useCart } from "@/contexts/CartContext";
 import { Button } from "@/components/ui/button";
 import { HomeCarousel } from "@/components/HomeCarousel";
-import { CategoryNavbar } from "@/components/CategoryNavbar";
+import { CategorySidebar } from "@/components/CategorySidebar";
 import balaoLogo from "@/assets/balao-logo.png";
 
 const baseCategoryConfig = [
@@ -155,134 +155,139 @@ export default function Home() {
             </Link>
           </div>
         </div>
-        
-        {/* Category Navbar */}
-        <CategoryNavbar showMonteSeuPC={false} />
       </header>
 
-      {/* Hero Banner Carousel */}
-      <section className="relative">
-        <HomeCarousel
-          carouselKey="home_hero_banner"
-          fallbackImage="https://img.terabyteshop.com.br/banner/3732.jpg"
-          alt="Banner Principal"
-          className="w-full aspect-[3/1] md:aspect-[4/1] object-cover"
-        />
-      </section>
+      <div className="flex">
+        {/* Left Sidebar */}
+        <CategorySidebar />
 
-      {/* Promo Banners */}
-      <section className="py-6">
-        <div className="container">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Main Content */}
+        <div className="flex-1">
+          {/* Hero Banner Carousel */}
+          <section className="relative">
             <HomeCarousel
-              carouselKey="home_promo_left"
-              fallbackImage="https://img.terabyteshop.com.br/banner/2390.jpg"
-              alt="Promoção"
-              className="w-full aspect-[2/1] rounded-xl object-cover"
+              carouselKey="home_hero_banner"
+              fallbackImage="https://img.terabyteshop.com.br/banner/3732.jpg"
+              alt="Banner Principal"
+              className="w-full aspect-[3/1] md:aspect-[4/1] object-cover"
             />
-            <HomeCarousel
-              carouselKey="home_promo_right"
-              fallbackImage="https://img.terabyteshop.com.br/banner/3773.jpg"
-              alt="Promoção"
-              className="w-full aspect-[2/1] rounded-xl object-cover"
-            />
-          </div>
-        </div>
-      </section>
+          </section>
 
-      {/* Featured Products by Category */}
-      {loading ? (
-        <section className="py-8">
-          <div className="container">
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-              {[1, 2, 3, 4, 5, 6].map((i) => (
-                <div key={i} className="h-64 animate-pulse rounded-xl bg-gray-200" />
-              ))}
+          {/* Promo Banners */}
+          <section className="py-6">
+            <div className="container">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <HomeCarousel
+                  carouselKey="home_promo_left"
+                  fallbackImage="https://img.terabyteshop.com.br/banner/2390.jpg"
+                  alt="Promoção"
+                  className="w-full aspect-[2/1] rounded-xl object-cover"
+                />
+                <HomeCarousel
+                  carouselKey="home_promo_right"
+                  fallbackImage="https://img.terabyteshop.com.br/banner/3773.jpg"
+                  alt="Promoção"
+                  className="w-full aspect-[2/1] rounded-xl object-cover"
+                />
+              </div>
             </div>
-          </div>
-        </section>
-      ) : (
-        <>
-          {categoryConfig.map((category) => {
-            const categoryProducts = getProductsByCategory(category.key);
-            if (categoryProducts.length === 0) return null;
-            
-            const Icon = category.icon;
-            
-            return (
-              <section key={category.key} className="py-8 border-t border-gray-100">
-                <div className="container">
-                  <div className="flex items-center justify-between mb-6">
-                    <div className="flex items-center gap-3">
-                      <Icon className="h-6 w-6 text-primary" />
-                      <h2 className="text-xl md:text-2xl font-bold text-gray-800">{category.label}</h2>
-                    </div>
-                    <Link to={`/loja?category=${category.key}`} className="flex items-center gap-1 text-primary hover:underline font-medium text-sm">
-                      Ver mais
-                      <ChevronRight className="h-4 w-4" />
-                    </Link>
-                  </div>
-                  
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-                    {categoryProducts.map((product) => (
-                      <Link
-                        key={product.id}
-                        to={`/produto/${product.id}`}
-                        className="group bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-lg transition-all overflow-hidden"
-                      >
-                        <div className="aspect-square bg-gray-50 p-4">
-                          {product.media && product.media.length > 0 ? (
-                            <img
-                              src={product.media[0].type === 'video' && product.media[0].url.includes('youtube')
-                                ? `https://img.youtube.com/vi/${product.media[0].url.split('v=')[1]?.split('&')[0] || product.media[0].url.split('/').pop()}/0.jpg`
-                                : product.media[0].url}
-                              alt={product.title}
-                              className="w-full h-full object-contain group-hover:scale-105 transition-transform"
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center text-gray-300">
-                              <Package className="h-12 w-12" />
-                            </div>
-                          )}
-                        </div>
-                        <div className="p-3">
-                          <h3 className="text-sm font-medium text-gray-800 line-clamp-2 min-h-[40px]">
-                            {product.title}
-                          </h3>
-                          <div className="mt-2">
-                            <span className="text-lg font-bold text-primary">
-                              R$ {(product.totalPrice || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                            </span>
-                          </div>
-                        </div>
-                      </Link>
-                    ))}
-                  </div>
-                </div>
-              </section>
-            );
-          })}
-        </>
-      )}
+          </section>
 
-      {/* CTA Banner */}
-      <section className="py-12 bg-primary">
-        <div className="container text-center">
-          <h2 className="text-2xl md:text-3xl font-bold text-white mb-4">
-            Monte o PC dos seus sonhos!
-          </h2>
-          <p className="text-white/80 mb-6 max-w-2xl mx-auto">
-            Escolha cada componente e tenha o PC perfeito para suas necessidades
-          </p>
-          <Link
-            to="/monte-voce-mesmo"
-            className="inline-flex items-center gap-2 bg-white text-primary px-8 py-3 rounded-lg font-bold hover:bg-gray-100 transition-colors"
-          >
-            <Cpu className="h-5 w-5" />
-            Monte Agora
-          </Link>
+          {/* Featured Products by Category */}
+          {loading ? (
+            <section className="py-8">
+              <div className="container">
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                  {[1, 2, 3, 4, 5, 6].map((i) => (
+                    <div key={i} className="h-64 animate-pulse rounded-xl bg-gray-200" />
+                  ))}
+                </div>
+              </div>
+            </section>
+          ) : (
+            <>
+              {categoryConfig.map((category) => {
+                const categoryProducts = getProductsByCategory(category.key);
+                if (categoryProducts.length === 0) return null;
+                
+                const Icon = category.icon;
+                
+                return (
+                  <section key={category.key} className="py-8 border-t border-gray-100">
+                    <div className="container">
+                      <div className="flex items-center justify-between mb-6">
+                        <div className="flex items-center gap-3">
+                          <Icon className="h-6 w-6 text-primary" />
+                          <h2 className="text-xl md:text-2xl font-bold text-gray-800">{category.label}</h2>
+                        </div>
+                        <Link to={`/loja?category=${category.key}`} className="flex items-center gap-1 text-primary hover:underline font-medium text-sm">
+                          Ver mais
+                          <ChevronRight className="h-4 w-4" />
+                        </Link>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                        {categoryProducts.map((product) => (
+                          <Link
+                            key={product.id}
+                            to={`/produto/${product.id}`}
+                            className="group bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-lg transition-all overflow-hidden"
+                          >
+                            <div className="aspect-square bg-gray-50 p-4">
+                              {product.media && product.media.length > 0 ? (
+                                <img
+                                  src={product.media[0].type === 'video' && product.media[0].url.includes('youtube')
+                                    ? `https://img.youtube.com/vi/${product.media[0].url.split('v=')[1]?.split('&')[0] || product.media[0].url.split('/').pop()}/0.jpg`
+                                    : product.media[0].url}
+                                  alt={product.title}
+                                  className="w-full h-full object-contain group-hover:scale-105 transition-transform"
+                                />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center text-gray-300">
+                                  <Package className="h-12 w-12" />
+                                </div>
+                              )}
+                            </div>
+                            <div className="p-3">
+                              <h3 className="text-sm font-medium text-gray-800 line-clamp-2 min-h-[40px]">
+                                {product.title}
+                              </h3>
+                              <div className="mt-2">
+                                <span className="text-lg font-bold text-primary">
+                                  R$ {(product.totalPrice || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                </span>
+                              </div>
+                            </div>
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
+                  </section>
+                );
+              })}
+            </>
+          )}
+
+          {/* CTA Banner */}
+          <section className="py-12 bg-primary">
+            <div className="container text-center">
+              <h2 className="text-2xl md:text-3xl font-bold text-white mb-4">
+                Monte o PC dos seus sonhos!
+              </h2>
+              <p className="text-white/80 mb-6 max-w-2xl mx-auto">
+                Escolha cada componente e tenha o PC perfeito para suas necessidades
+              </p>
+              <Link
+                to="/monte-voce-mesmo"
+                className="inline-flex items-center gap-2 bg-white text-primary px-8 py-3 rounded-lg font-bold hover:bg-gray-100 transition-colors"
+              >
+                <Cpu className="h-5 w-5" />
+                Monte Agora
+              </Link>
+            </div>
+          </section>
         </div>
-      </section>
+      </div>
 
       {/* Footer */}
       <footer className="bg-gray-900 text-white py-12">
