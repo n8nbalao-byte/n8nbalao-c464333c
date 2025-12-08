@@ -1,66 +1,104 @@
 import { useEffect, useState } from "react";
-import { ChevronLeft, ChevronRight, Quote } from "lucide-react";
+import { ChevronLeft, ChevronRight, Quote, Star } from "lucide-react";
 
 const testimonials = [
   {
-    name: "Carlos Mendes",
-    role: "CEO da TechVentures",
-    text: "Desde que implementamos o WhatsAppBot IA, nossas vendas cresceram 40%. O bot responde instantaneamente e os clientes adoram a experiência. É como se tivéssemos contratado 10 atendentes.",
-    avatar: "CM"
+    name: "Monique S.",
+    role: "Cliente Google",
+    text: "O Balão da Informática oferece um atendimento ágil e eficiente, com profissionais comprometidos e solícitos. A funcionária Bárbara se destaca pela simpatia, rapidez e atenção aos detalhes, tornando a experiência de compra agradável e confiável.",
+    avatar: "MS",
+    rating: 5
   },
   {
-    name: "Ana Paula Silva",
-    role: "Gerente de Marketing",
-    text: "Os clientes ficam impressionados quando descobrem que estavam falando com um bot. A capacidade de reconhecer áudios e responder com voz natural é incrível!",
-    avatar: "AS"
+    name: "Dione Durazzo",
+    role: "Cliente Google",
+    text: "Atendimento simplesmente impecável na loja do Balão da Informática Campinas - Castelo. Equipe preparada, atenciosa e muito educada, com explicações claras!",
+    avatar: "DD",
+    rating: 5
   },
   {
-    name: "Roberto Almeida",
-    role: "Proprietário da Almeida Imóveis",
-    text: "Nosso tempo de resposta diminuiu de horas para segundos. O bot consegue qualificar leads e agendar visitas automaticamente, o que aumentou nossa produtividade em mais de 200%.",
-    avatar: "RA"
+    name: "Maria Santos",
+    role: "Cliente Google",
+    text: "Excelente atendimento, problema resolvido com qualidade pela atendente Julia. Não cobraram nada!! Nota 10",
+    avatar: "MS",
+    rating: 5
   },
   {
-    name: "Juliana Costa",
-    role: "Diretora de Operações",
-    text: "A implementação foi surpreendentemente rápida e o suporte técnico é excelente. O bot aprendeu rapidamente sobre nossos serviços e agora responde perguntas complexas com precisão.",
-    avatar: "JC"
+    name: "Ze Francisco",
+    role: "Cliente Google",
+    text: "Loja bacana, bem completa, me ajudou a imprimir um documento, pessoal muito solicito, me tirou dúvidas sobre PC games. Vou comprar de presente pros netos.",
+    avatar: "ZF",
+    rating: 5
   },
   {
-    name: "Marcelo Santos",
-    role: "Gerente de E-commerce",
-    text: "O reconhecimento de comprovantes Pix revolucionou nosso processo de vendas. Agora confirmamos pagamentos automaticamente e liberamos os produtos sem intervenção humana.",
-    avatar: "MS"
+    name: "Julia Santos",
+    role: "Cliente Google",
+    text: "Amei a Nova Loja da Informática Castelo! Espetacular! Gente, que experiência fantástica tive no Balão da Informática Castelo!",
+    avatar: "JS",
+    rating: 5
   },
   {
-    name: "Fernanda Lima",
-    role: "Proprietária de Clínica Estética",
-    text: "Os clientes podem marcar, remarcar e cancelar consultas sem precisar falar com um atendente. Economizamos tempo e recursos significativamente.",
-    avatar: "FL"
+    name: "Marcia Regina",
+    role: "Cliente Google",
+    text: "Simplesmente incrível! Acionei o Balão da Informática pelo WhatsApp às 6:30 da manhã para comprar um carregador, e para minha surpresa, às 7:00 da manhã, ele já estava entregue na rodoviária! Nunca vi uma loja com tamanha agilidade!",
+    avatar: "MR",
+    rating: 5
   },
   {
-    name: "Ricardo Oliveira",
-    role: "Dono de Restaurante",
-    text: "O bot gerencia todos os nossos pedidos de delivery. Os clientes fazem pedidos pelo WhatsApp e recebem confirmação automática. Reduziu erros e aumentou a velocidade do atendimento.",
-    avatar: "RO"
+    name: "Maria Cristina",
+    role: "Cliente Google",
+    text: "Quero registrar meu agradecimento à loja Balão da Informática. Fui muito bem atendida pelas atendentes Bárbara e Júlia — extremamente atenciosas, educadas e prestativas! Ainda recebi um ótimo desconto na minha compra.",
+    avatar: "MC",
+    rating: 5
   },
   {
-    name: "Patrícia Souza",
-    role: "Corretora de Seguros",
-    text: "Meus clientes recebem cotações instantâneas pelo WhatsApp. O bot coleta todas as informações necessárias e eu só preciso finalizar a venda. Triplicou minha carteira de clientes!",
-    avatar: "PS"
+    name: "Jennifer Ávila",
+    role: "Cliente Google",
+    text: "Empresa com atendimento excelente, sempre prestativos. Já efetivei mais de 6 compras de algumas licenças. Todas funcionando perfeitamente, entrega rápida. Precisei de suporte uma vez e fui prontamente atendida. Recomendo!",
+    avatar: "JA",
+    rating: 5
   },
   {
-    name: "Eduardo Martins",
-    role: "Proprietário de Academia",
-    text: "Agendamento de aulas, consulta de horários, renovação de planos... tudo automatizado! Meus funcionários agora focam no atendimento presencial enquanto o bot cuida do digital.",
-    avatar: "EM"
+    name: "Matheus Barreto",
+    role: "Cliente Google",
+    text: "Fui atendido pelo Thiago Herrera e com certeza foi um dos melhores atendimentos que já tive pois fiz o pedido às 07:00 da manhã do sábado e em 15 minutos recebi o pedido na minha residência. Diferenciado demais!",
+    avatar: "MB",
+    rating: 5
   },
   {
-    name: "Camila Rodrigues",
-    role: "Loja de Roupas Online",
-    text: "O atendimento 24 horas fez toda diferença. Muitos clientes compram de madrugada e agora são atendidos imediatamente. As vendas noturnas aumentaram 150%!",
-    avatar: "CR"
+    name: "Leticia Lopes",
+    role: "Cliente Google",
+    text: "Excelente loja, atendimento da Júlia impecável no WhatsApp, muito rápida, muito atenciosa! O Balão da Informática tem ótimos preços, promoções, o valor da mão de obra mais que justo, variedade de produtos.",
+    avatar: "LL",
+    rating: 5
+  },
+  {
+    name: "Ronaldo Domingos",
+    role: "Cliente Google",
+    text: "Tive uma experiência muito positiva no Balão da Informática, onde o atendimento foi eficiente e atencioso. A funcionária Bárbara se mostrou extremamente gentil, prestativa e rápida, solucionando todas as demandas com profissionalismo.",
+    avatar: "RD",
+    rating: 5
+  },
+  {
+    name: "Eliana Andrade",
+    role: "Local Guide Google",
+    text: "Minha experiência com a empresa Balão da Informática foi surpreendente, a Barbara tem um atendimento cordial, pontual e é muito profissional. Estou gostando muito do espaço, tenho aprendido muito com elas sobre as novas tecnologias!",
+    avatar: "EA",
+    rating: 5
+  },
+  {
+    name: "Rafael Lopes",
+    role: "Cliente Google",
+    text: "A Bárbara foi incrível! Resolveu meu problema de impressão em menos de 10 minutos, com muita paciência, agilidade e atenção. Atendimento excelente — super recomendo! 👏",
+    avatar: "RL",
+    rating: 5
+  },
+  {
+    name: "Paulo Féboli",
+    role: "Cliente Google",
+    text: "Atendimento rápido e eficiente. Precisei de uma fonte do meu notebook. Me atenderam prontamente e entregaram no hotel que eu estava sem custo! Recomendo! 👏",
+    avatar: "PF",
+    rating: 5
   },
 ];
 
@@ -92,11 +130,20 @@ export function TestimonialsCarousel() {
     <section id="testimonials" className="py-20">
       <div className="container">
         <div className="text-center mb-12">
+          <div className="flex items-center justify-center gap-2 mb-4">
+            <div className="flex">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <Star key={star} className="h-6 w-6 fill-yellow-400 text-yellow-400" />
+              ))}
+            </div>
+            <span className="text-2xl font-bold text-foreground">4.8</span>
+            <span className="text-muted-foreground">• 713 avaliações no Google</span>
+          </div>
           <h2 className="text-3xl font-bold text-foreground lg:text-4xl">
             O que nossos clientes dizem
           </h2>
           <p className="mt-4 text-muted-foreground">
-            Mais de 350 empresas já automatizaram seu atendimento com resultados impressionantes
+            Avaliações reais de clientes verificados no Google
           </p>
         </div>
 
@@ -128,7 +175,14 @@ export function TestimonialsCarousel() {
                   className="w-full flex-shrink-0 px-4"
                 >
                   <div className="rounded-2xl border border-border/50 bg-card/50 backdrop-blur-sm p-8 lg:p-12">
-                    <Quote className="h-10 w-10 text-primary/30 mb-6" />
+                    <div className="flex items-center justify-between mb-6">
+                      <Quote className="h-10 w-10 text-primary/30" />
+                      <div className="flex">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <Star key={star} className="h-5 w-5 fill-yellow-400 text-yellow-400" />
+                        ))}
+                      </div>
+                    </div>
                     
                     <p className="text-lg lg:text-xl text-foreground leading-relaxed mb-8">
                       "{testimonial.text}"
