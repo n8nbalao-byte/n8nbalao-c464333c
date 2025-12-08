@@ -1,8 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Header } from "@/components/Header";
-import { Footer } from "@/components/Footer";
-import { Sidebar } from "@/components/Sidebar";
+import { RedWhiteHeader } from "@/components/RedWhiteHeader";
+import { RedWhiteFooter } from "@/components/RedWhiteFooter";
 import { api, type Product, type HardwareItem, type MediaItem, type ProductComponents, type CompanyData, type ProductCategory, type HardwareCategory, type HardwareCategoryDef, getCustomCategories, addCustomCategory, removeCustomCategory, updateCustomCategory, getHardwareCategories, addHardwareCategory, removeHardwareCategory, updateHardwareCategory } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Pencil, Trash2, Save, X, Upload, Play, Image, Cpu, CircuitBoard, MemoryStick, HardDrive, Monitor, Zap, Box, Package, Download, Droplets, Building2, Laptop, Bot, Code, Wrench, Key, Tv, Armchair, Tag, LucideIcon, Search, Sparkles, LayoutDashboard, Images } from "lucide-react";
@@ -1457,37 +1456,40 @@ export default function Admin() {
   // Login Screen
   if (!isAuthenticated) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background p-4">
-        <div className="w-full max-w-md rounded-2xl border border-border bg-card p-8 shadow-card">
+      <div className="flex min-h-screen items-center justify-center p-4" style={{ backgroundColor: '#FEF2F2' }}>
+        <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-xl border-2" style={{ borderColor: '#DC2626' }}>
           <div className="mb-8 text-center">
-            <h1 className="text-3xl font-bold text-foreground">Painel Admin</h1>
-            <p className="mt-2 text-muted-foreground">Acesso restrito</p>
+            <h1 className="text-3xl font-bold" style={{ color: '#DC2626' }}>Painel Admin</h1>
+            <p className="mt-2 text-gray-600">Acesso restrito</p>
           </div>
 
           <form onSubmit={handleLogin} className="space-y-6">
             <div>
-              <label className="mb-2 block text-sm font-medium text-foreground">Usuário</label>
+              <label className="mb-2 block text-sm font-medium text-gray-700">Usuário</label>
               <input
                 type="text"
                 value={loginData.user}
                 onChange={(e) => setLoginData(prev => ({ ...prev, user: e.target.value }))}
-                className="w-full rounded-lg border border-border bg-background px-4 py-3 text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                className="w-full rounded-lg border-2 bg-white px-4 py-3 text-gray-800 focus:outline-none focus:ring-2"
+                style={{ borderColor: '#E5E7EB', outlineColor: '#DC2626' }}
                 placeholder="Digite seu usuário"
               />
             </div>
             <div>
-              <label className="mb-2 block text-sm font-medium text-foreground">Senha</label>
+              <label className="mb-2 block text-sm font-medium text-gray-700">Senha</label>
               <input
                 type="password"
                 value={loginData.pass}
                 onChange={(e) => setLoginData(prev => ({ ...prev, pass: e.target.value }))}
-                className="w-full rounded-lg border border-border bg-background px-4 py-3 text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                className="w-full rounded-lg border-2 bg-white px-4 py-3 text-gray-800 focus:outline-none focus:ring-2"
+                style={{ borderColor: '#E5E7EB', outlineColor: '#DC2626' }}
                 placeholder="Digite sua senha"
               />
             </div>
             <button
               type="submit"
-              className="w-full rounded-lg bg-primary py-3 font-semibold text-primary-foreground shadow-glow transition-colors hover:bg-primary/90"
+              className="w-full rounded-lg py-3 font-semibold text-white transition-colors hover:opacity-90"
+              style={{ backgroundColor: '#DC2626' }}
             >
               Entrar
             </button>
@@ -1501,24 +1503,24 @@ export default function Admin() {
   const ActiveHardwareIcon = activeHwCat ? getIconFromKey(activeHwCat.icon) : Cpu;
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
-      <Sidebar />
-
+    <div className="min-h-screen" style={{ backgroundColor: '#FEF2F2' }}>
+      <RedWhiteHeader hideCart />
+      
       <main className="py-12">
         <div className="container">
           <div className="mb-8 flex items-center justify-between">
             <div>
-              <h1 className="text-4xl font-bold text-foreground">Painel de Controle</h1>
-              <p className="mt-2 text-muted-foreground">Gerencie produtos e componentes</p>
+              <h1 className="text-4xl font-bold" style={{ color: '#DC2626' }}>Painel de Controle</h1>
+              <p className="mt-2 text-gray-600">Gerencie produtos e componentes</p>
             </div>
             <div className="flex gap-4">
               <button
                 onClick={() => navigate('/extract-products')}
-                className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-purple-600 to-pink-600 px-6 py-3 font-semibold text-white shadow-lg transition-all hover:shadow-xl hover:scale-105"
+                className="inline-flex items-center gap-2 rounded-lg px-6 py-3 font-semibold text-white shadow-lg transition-all hover:opacity-90"
+                style={{ backgroundColor: '#DC2626' }}
               >
                 <Sparkles className="h-5 w-5" />
-                Extração IA
+                Importar em Massa
               </button>
               {activeTab === 'products' && (
                   <button
@@ -3888,7 +3890,7 @@ export default function Admin() {
         </div>
       )}
 
-      <Footer />
+      <RedWhiteFooter />
     </div>
   );
 }

@@ -83,7 +83,7 @@ export function HardwareCard({ hardware, selected, onSelect, showSelect = false,
 
       <div className="flex gap-4 p-4">
         {/* Image */}
-        <div className="flex h-20 w-20 flex-shrink-0 items-center justify-center overflow-hidden rounded-lg bg-secondary">
+        <div className="flex h-20 w-20 flex-shrink-0 items-center justify-center overflow-hidden rounded-lg bg-gray-100">
           {hardware.image ? (
             <img
               src={hardware.image}
@@ -94,26 +94,27 @@ export function HardwareCard({ hardware, selected, onSelect, showSelect = false,
               }}
             />
           ) : (
-            <Icon className="h-8 w-8 text-muted-foreground" />
+            <Icon className="h-8 w-8 text-gray-400" />
           )}
         </div>
 
         {/* Info */}
         <div className="flex-1 min-w-0">
           <div className="mb-1 flex items-center gap-2">
-            <Icon className="h-4 w-4 text-primary" />
-            <span className="text-xs text-muted-foreground">{categoryLabels[hardware.category]}</span>
+            <Icon className="h-4 w-4" style={{ color: '#DC2626' }} />
+            <span className="text-xs text-gray-500">{categoryLabels[hardware.category]}</span>
           </div>
-          <h3 className="truncate font-semibold text-foreground">{hardware.name}</h3>
-          <p className="text-sm text-muted-foreground">
+          <h3 className="truncate font-semibold text-gray-800">{hardware.name}</h3>
+          <p className="text-sm text-gray-500">
             {hardware.brand} {hardware.model}
           </p>
           <div className="mt-1 flex items-center justify-between">
-            <p className="font-bold text-primary">{formatPrice(hardware.price)}</p>
+            <p className="font-bold" style={{ color: '#DC2626' }}>{formatPrice(hardware.price)}</p>
             {showBuyButton && (
               <button
                 onClick={handleAddToCart}
-                className="rounded-lg bg-primary p-2 text-primary-foreground transition-colors hover:bg-primary/80"
+                className="rounded-lg p-2 text-white transition-colors hover:opacity-90"
+                style={{ backgroundColor: '#DC2626' }}
                 title="Adicionar ao carrinho"
               >
                 <ShoppingCart className="h-4 w-4" />
@@ -129,7 +130,8 @@ export function HardwareCard({ hardware, selected, onSelect, showSelect = false,
     return (
       <Link
         to={`/hardware/${hardware.id}`}
-        className={`group relative block overflow-hidden rounded-xl border transition-all border-border bg-card hover:border-primary/50 hover:shadow-card`}
+        className="group relative block overflow-hidden rounded-xl border-2 transition-all bg-white hover:shadow-lg"
+        style={{ borderColor: '#E5E7EB' }}
       >
         {cardContent}
       </Link>
@@ -138,11 +140,11 @@ export function HardwareCard({ hardware, selected, onSelect, showSelect = false,
 
   return (
     <div
-      className={`group relative overflow-hidden rounded-xl border transition-all ${
-        selected
-          ? "border-primary bg-primary/10 shadow-glow"
-          : "border-border bg-card hover:border-primary/50 hover:shadow-card"
-      } ${showSelect ? "cursor-pointer" : ""}`}
+      className={`group relative overflow-hidden rounded-xl border-2 transition-all bg-white ${showSelect ? "cursor-pointer" : ""}`}
+      style={{ 
+        borderColor: selected ? '#DC2626' : '#E5E7EB',
+        backgroundColor: selected ? '#FEF2F2' : 'white'
+      }}
       onClick={showSelect ? onSelect : undefined}
     >
       {cardContent}
