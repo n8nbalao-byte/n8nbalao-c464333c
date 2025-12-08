@@ -454,7 +454,8 @@ const ExtractProducts = () => {
     const neededCategories = new Set<string>();
     
     for (const product of toImport) {
-      const cat = product.detectedCategory || category || productType;
+      const fallbackCat = (category && category !== '_auto') ? category : ((productType && productType !== '_auto') ? productType : 'outro');
+      const cat = product.detectedCategory || fallbackCat;
       if (cat && !existingCategoryKeys.includes(cat)) {
         neededCategories.add(cat);
       }
@@ -481,14 +482,16 @@ const ExtractProducts = () => {
         const finalPrice = calculateFinalPrice(product.costPrice);
         const media = product.imageUrl ? [{ type: 'image' as const, url: product.imageUrl }] : [];
         
-        // Use detected category, fallback to selected category or productType
-        const productCategory = product.detectedCategory || category || productType;
+        // Use detected category, fallback to selected category, productType, or 'outro'
+        const fallbackCategory = (category && category !== '_auto') ? category : ((productType && productType !== '_auto') ? productType : 'outro');
+        const productCategory = product.detectedCategory || fallbackCategory;
+        const productTypeValue = product.detectedCategory || ((productType && productType !== '_auto') ? productType : fallbackCategory);
 
         await api.createProduct({
           title: product.title,
           subtitle: '',
           description: product.description || '',
-          productType: (product.detectedCategory || productType) as any,
+          productType: productTypeValue as any,
           categories: [productCategory],
           media,
           specs: {},
@@ -719,13 +722,16 @@ const ExtractProducts = () => {
               <div className="space-y-2">
                 <Label className="flex items-center gap-2 text-gray-700">
                   <Tag className="h-4 w-4" />
-                  Tipo do Produto
+                  Tipo Padrão (opcional)
                 </Label>
                 <Select value={productType} onValueChange={setProductType}>
                   <SelectTrigger className="border-2 bg-white text-gray-800" style={{ borderColor: '#E5E7EB' }}>
-                    <SelectValue placeholder="Selecione o tipo" />
+                    <SelectValue placeholder="Auto-detectado" />
                   </SelectTrigger>
                   <SelectContent className="bg-white">
+                    <SelectItem value="_auto" className="text-gray-500 italic">
+                      Auto-detectado
+                    </SelectItem>
                     {categories.map(cat => (
                       <SelectItem key={cat.key} value={cat.key} className="text-gray-800">
                         {cat.label}
@@ -733,18 +739,22 @@ const ExtractProducts = () => {
                     ))}
                   </SelectContent>
                 </Select>
+                <p className="text-xs text-gray-500">Usado quando não detectado</p>
               </div>
 
               <div className="space-y-2">
                 <Label className="flex items-center gap-2 text-gray-700">
                   <Package className="h-4 w-4" />
-                  Categoria
+                  Categoria Padrão (opcional)
                 </Label>
                 <Select value={category} onValueChange={setCategory}>
                   <SelectTrigger className="border-2 bg-white text-gray-800" style={{ borderColor: '#E5E7EB' }}>
-                    <SelectValue placeholder="Selecione a categoria" />
+                    <SelectValue placeholder="Auto-detectada" />
                   </SelectTrigger>
                   <SelectContent className="bg-white">
+                    <SelectItem value="_auto" className="text-gray-500 italic">
+                      Auto-detectada
+                    </SelectItem>
                     {categories.map(cat => (
                       <SelectItem key={cat.key} value={cat.key} className="text-gray-800">
                         {cat.label}
@@ -752,6 +762,7 @@ const ExtractProducts = () => {
                     ))}
                   </SelectContent>
                 </Select>
+                <p className="text-xs text-gray-500">Usado quando não detectada</p>
               </div>
             </CardContent>
           </Card>
