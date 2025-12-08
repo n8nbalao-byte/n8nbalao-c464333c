@@ -75,7 +75,7 @@ export default function Automacao() {
     <div className="min-h-screen relative dark" style={{ "--accent-automacao": accentColor } as React.CSSProperties}>
       <StarryBackground />
       <Header />
-      <Sidebar />
+      <Sidebar accentColor={accentColor} />
 
       {/* Hero Section */}
       <section className="relative overflow-hidden py-20 lg:py-32">
@@ -148,7 +148,7 @@ export default function Automacao() {
 
       {/* Benefits Carousel Section */}
       <section id="benefits">
-        <BenefitsCarousel />
+        <BenefitsCarousel accentColor={accentColor} />
       </section>
 
       {/* No-Code Section */}
@@ -216,10 +216,10 @@ export default function Automacao() {
       </section>
 
       {/* Integrations Carousel */}
-      <IntegrationsCarousel />
+      <IntegrationsCarousel accentColor={accentColor} />
 
       {/* Testimonials Carousel */}
-      <TestimonialsCarousel />
+      <TestimonialsCarousel accentColor={accentColor} />
 
       {/* Custom Plan CTA */}
       <section className="py-20">

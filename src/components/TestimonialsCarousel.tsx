@@ -102,7 +102,11 @@ const testimonials = [
   },
 ];
 
-export function TestimonialsCarousel() {
+interface TestimonialsCarouselProps {
+  accentColor?: string;
+}
+
+export function TestimonialsCarousel({ accentColor }: TestimonialsCarouselProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isAutoPlaying, setIsAutoPlaying] = useState(true);
 
@@ -126,6 +130,9 @@ export function TestimonialsCarousel() {
     setCurrentIndex((prev) => (prev + 1) % testimonials.length);
   };
 
+  const colorStyle = accentColor ? { color: accentColor } : {};
+  const bgStyle = accentColor ? { backgroundColor: accentColor } : {};
+
   return (
     <section id="testimonials" className="py-20">
       <div className="container">
@@ -136,13 +143,13 @@ export function TestimonialsCarousel() {
                 <Star key={star} className="h-6 w-6 fill-yellow-400 text-yellow-400" />
               ))}
             </div>
-            <span className="text-2xl font-bold text-foreground">4.8</span>
-            <span className="text-muted-foreground">• 713 avaliações no Google</span>
+            <span className="text-2xl font-bold text-white">4.8</span>
+            <span className="text-gray-400">• 713 avaliações no Google</span>
           </div>
-          <h2 className="text-3xl font-bold text-foreground lg:text-4xl">
+          <h2 className="text-3xl font-bold text-white lg:text-4xl">
             O que nossos clientes dizem
           </h2>
-          <p className="mt-4 text-muted-foreground">
+          <p className="mt-4 text-gray-400">
             Avaliações reais de clientes verificados no Google
           </p>
         </div>
@@ -151,14 +158,16 @@ export function TestimonialsCarousel() {
           {/* Navigation buttons */}
           <button
             onClick={goToPrevious}
-            className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 lg:-translate-x-12 z-10 p-2 rounded-full bg-primary/20 text-primary hover:bg-primary/30 transition-colors"
+            className={`absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 lg:-translate-x-12 z-10 p-2 rounded-full transition-colors ${!accentColor ? "bg-primary/20 text-primary hover:bg-primary/30" : ""}`}
+            style={accentColor ? { backgroundColor: `${accentColor}30`, color: accentColor } : {}}
           >
             <ChevronLeft className="h-6 w-6" />
           </button>
           
           <button
             onClick={goToNext}
-            className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 lg:translate-x-12 z-10 p-2 rounded-full bg-primary/20 text-primary hover:bg-primary/30 transition-colors"
+            className={`absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 lg:translate-x-12 z-10 p-2 rounded-full transition-colors ${!accentColor ? "bg-primary/20 text-primary hover:bg-primary/30" : ""}`}
+            style={accentColor ? { backgroundColor: `${accentColor}30`, color: accentColor } : {}}
           >
             <ChevronRight className="h-6 w-6" />
           </button>
@@ -174,9 +183,12 @@ export function TestimonialsCarousel() {
                   key={index}
                   className="w-full flex-shrink-0 px-4"
                 >
-                  <div className="rounded-2xl border border-border/50 bg-card/50 backdrop-blur-sm p-8 lg:p-12">
+                  <div 
+                    className="rounded-2xl border backdrop-blur-sm p-8 lg:p-12"
+                    style={accentColor ? { backgroundColor: "rgba(30, 30, 50, 0.5)", borderColor: "rgba(255,255,255,0.1)" } : {}}
+                  >
                     <div className="flex items-center justify-between mb-6">
-                      <Quote className="h-10 w-10 text-primary/30" />
+                      <Quote className={`h-10 w-10 ${!accentColor ? "text-primary/30" : ""}`} style={accentColor ? { color: `${accentColor}50` } : {}} />
                       <div className="flex">
                         {[1, 2, 3, 4, 5].map((star) => (
                           <Star key={star} className="h-5 w-5 fill-yellow-400 text-yellow-400" />
@@ -184,17 +196,20 @@ export function TestimonialsCarousel() {
                       </div>
                     </div>
                     
-                    <p className="text-lg lg:text-xl text-foreground leading-relaxed mb-8">
+                    <p className="text-lg lg:text-xl text-white leading-relaxed mb-8">
                       "{testimonial.text}"
                     </p>
                     
                     <div className="flex items-center gap-4">
-                      <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground font-bold text-lg">
+                      <div 
+                        className={`flex h-14 w-14 items-center justify-center rounded-full text-white font-bold text-lg ${!accentColor ? "bg-primary" : ""}`}
+                        style={bgStyle}
+                      >
                         {testimonial.avatar}
                       </div>
                       <div>
-                        <div className="font-semibold text-foreground">{testimonial.name}</div>
-                        <div className="text-sm text-muted-foreground">{testimonial.role}</div>
+                        <div className="font-semibold text-white">{testimonial.name}</div>
+                        <div className="text-sm text-gray-400">{testimonial.role}</div>
                       </div>
                     </div>
                   </div>
@@ -213,10 +228,14 @@ export function TestimonialsCarousel() {
                   setCurrentIndex(index);
                 }}
                 className={`h-2 rounded-full transition-all duration-300 ${
-                  index === currentIndex 
-                    ? 'w-8 bg-primary' 
-                    : 'w-2 bg-primary/30 hover:bg-primary/50'
+                  !accentColor 
+                    ? (index === currentIndex ? 'w-8 bg-primary' : 'w-2 bg-primary/30 hover:bg-primary/50')
+                    : ''
                 }`}
+                style={accentColor ? {
+                  width: index === currentIndex ? '2rem' : '0.5rem',
+                  backgroundColor: index === currentIndex ? accentColor : `${accentColor}50`
+                } : {}}
               />
             ))}
           </div>

@@ -21,7 +21,11 @@ const sidebarLinks = [
   { href: "https://wa.me/5519981470446", label: "Revenda", icon: "fa-handshake" },
 ];
 
-export function Sidebar() {
+interface SidebarProps {
+  accentColor?: string;
+}
+
+export function Sidebar({ accentColor }: SidebarProps) {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
@@ -30,9 +34,11 @@ export function Sidebar() {
       <button
         onClick={() => setIsOpen(true)}
         className={cn(
-          "fixed right-0 top-1/2 z-50 -translate-y-1/2 rounded-l-lg bg-primary p-3 text-primary-foreground shadow-glow transition-all duration-300 hover:bg-primary/90",
-          isOpen && "opacity-0 pointer-events-none"
+          "fixed right-0 top-1/2 z-50 -translate-y-1/2 rounded-l-lg p-3 text-white shadow-glow transition-all duration-300 hover:opacity-90",
+          isOpen && "opacity-0 pointer-events-none",
+          !accentColor && "bg-primary"
         )}
+        style={accentColor ? { backgroundColor: accentColor, boxShadow: `0 0 30px ${accentColor}40` } : {}}
       >
         <Settings className="h-6 w-6" />
       </button>
@@ -40,7 +46,7 @@ export function Sidebar() {
       {/* Overlay */}
       {isOpen && (
         <div
-          className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm"
+          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm"
           onClick={() => setIsOpen(false)}
         />
       )}
@@ -48,15 +54,16 @@ export function Sidebar() {
       {/* Sidebar */}
       <aside
         className={cn(
-          "fixed right-0 top-0 z-50 h-full w-80 border-l border-border bg-sidebar p-6 shadow-2xl transition-transform duration-300",
+          "fixed right-0 top-0 z-50 h-full w-80 border-l p-6 shadow-2xl transition-transform duration-300",
           isOpen ? "translate-x-0" : "translate-x-full"
         )}
+        style={accentColor ? { backgroundColor: "hsl(230, 25%, 10%)", borderColor: "rgba(255,255,255,0.1)" } : {}}
       >
-        <div className="flex items-center justify-between border-b border-primary pb-4">
-          <h3 className="text-lg font-semibold text-foreground">Acesso</h3>
+        <div className="flex items-center justify-between border-b pb-4" style={accentColor ? { borderColor: accentColor } : {}}>
+          <h3 className="text-lg font-semibold text-white">Acesso</h3>
           <button
             onClick={() => setIsOpen(false)}
-            className="text-muted-foreground transition-colors hover:text-foreground"
+            className="text-gray-400 transition-colors hover:text-white"
           >
             <X className="h-6 w-6" />
           </button>
@@ -69,9 +76,20 @@ export function Sidebar() {
               href={link.href}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-3 rounded-md bg-secondary px-4 py-3 text-sm font-medium text-foreground transition-colors hover:bg-primary hover:text-primary-foreground"
+              className="flex items-center gap-3 rounded-md px-4 py-3 text-sm font-medium text-white transition-colors"
+              style={accentColor ? { backgroundColor: "rgba(30, 30, 50, 0.8)" } : {}}
+              onMouseEnter={(e) => {
+                if (accentColor) {
+                  e.currentTarget.style.backgroundColor = accentColor;
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (accentColor) {
+                  e.currentTarget.style.backgroundColor = "rgba(30, 30, 50, 0.8)";
+                }
+              }}
             >
-              <i className={`fas ${link.icon} text-primary`} />
+              <i className={`fas ${link.icon}`} style={accentColor ? { color: accentColor } : {}}></i>
               {link.label}
             </a>
           ))}

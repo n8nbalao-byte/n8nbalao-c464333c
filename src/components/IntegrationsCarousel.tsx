@@ -20,19 +20,25 @@ const integrationsRow2 = [
   { name: "Notion", icon: "fab fa-notion", url: "https://www.notion.so" },
 ];
 
-export function IntegrationsCarousel() {
+interface IntegrationsCarouselProps {
+  accentColor?: string;
+}
+
+export function IntegrationsCarousel({ accentColor }: IntegrationsCarouselProps) {
   const handleCardClick = (url: string) => {
     window.open(url, "_blank", "noopener,noreferrer");
   };
 
+  const colorStyle = accentColor ? { color: accentColor } : {};
+
   return (
     <section className="py-16 overflow-hidden">
       <div className="container mb-8">
-        <h2 className="text-3xl font-bold text-foreground text-center lg:text-4xl">
+        <h2 className="text-3xl font-bold text-white text-center lg:text-4xl">
           Conecte com suas ferramentas favoritas e{" "}
-          <span className="text-primary">mais de 500 integrações</span>
+          <span style={colorStyle} className={!accentColor ? "text-primary" : ""}>mais de 500 integrações</span>
         </h2>
-        <p className="mt-4 text-muted-foreground text-center">
+        <p className="mt-4 text-gray-400 text-center">
           Integre o WhatsAppBot com as principais plataformas do mercado
         </p>
       </div>
@@ -44,10 +50,27 @@ export function IntegrationsCarousel() {
             <div
               key={`row1-${index}`}
               onClick={() => handleCardClick(item.url)}
-              className="flex-shrink-0 mx-3 px-6 py-4 rounded-xl bg-card/50 border border-border/50 backdrop-blur-sm flex items-center gap-3 min-w-[160px] cursor-pointer hover:bg-primary/10 hover:border-primary/50 transition-all hover:scale-105"
+              className="flex-shrink-0 mx-3 px-6 py-4 rounded-xl backdrop-blur-sm flex items-center gap-3 min-w-[160px] cursor-pointer transition-all hover:scale-105"
+              style={accentColor ? { 
+                backgroundColor: "rgba(30, 30, 50, 0.5)", 
+                borderColor: "rgba(255,255,255,0.1)",
+                border: "1px solid rgba(255,255,255,0.1)"
+              } : {}}
+              onMouseEnter={(e) => {
+                if (accentColor) {
+                  e.currentTarget.style.backgroundColor = `${accentColor}15`;
+                  e.currentTarget.style.borderColor = `${accentColor}50`;
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (accentColor) {
+                  e.currentTarget.style.backgroundColor = "rgba(30, 30, 50, 0.5)";
+                  e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)";
+                }
+              }}
             >
-              <i className={`${item.icon} text-2xl text-primary`}></i>
-              <span className="text-sm font-medium text-foreground">{item.name}</span>
+              <i className={`${item.icon} text-2xl ${!accentColor ? "text-primary" : ""}`} style={colorStyle}></i>
+              <span className="text-sm font-medium text-white">{item.name}</span>
             </div>
           ))}
         </div>
@@ -58,10 +81,27 @@ export function IntegrationsCarousel() {
             <div
               key={`row2-${index}`}
               onClick={() => handleCardClick(item.url)}
-              className="flex-shrink-0 mx-3 px-6 py-4 rounded-xl bg-card/50 border border-border/50 backdrop-blur-sm flex items-center gap-3 min-w-[160px] cursor-pointer hover:bg-primary/10 hover:border-primary/50 transition-all hover:scale-105"
+              className="flex-shrink-0 mx-3 px-6 py-4 rounded-xl backdrop-blur-sm flex items-center gap-3 min-w-[160px] cursor-pointer transition-all hover:scale-105"
+              style={accentColor ? { 
+                backgroundColor: "rgba(30, 30, 50, 0.5)", 
+                borderColor: "rgba(255,255,255,0.1)",
+                border: "1px solid rgba(255,255,255,0.1)"
+              } : {}}
+              onMouseEnter={(e) => {
+                if (accentColor) {
+                  e.currentTarget.style.backgroundColor = `${accentColor}15`;
+                  e.currentTarget.style.borderColor = `${accentColor}50`;
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (accentColor) {
+                  e.currentTarget.style.backgroundColor = "rgba(30, 30, 50, 0.5)";
+                  e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)";
+                }
+              }}
             >
-              <i className={`${item.icon} text-2xl text-primary`}></i>
-              <span className="text-sm font-medium text-foreground">{item.name}</span>
+              <i className={`${item.icon} text-2xl ${!accentColor ? "text-primary" : ""}`} style={colorStyle}></i>
+              <span className="text-sm font-medium text-white">{item.name}</span>
             </div>
           ))}
         </div>

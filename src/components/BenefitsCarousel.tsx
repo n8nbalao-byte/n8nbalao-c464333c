@@ -51,21 +51,29 @@ const benefits = [
   },
 ];
 
-export function BenefitsCarousel() {
+interface BenefitsCarouselProps {
+  accentColor?: string;
+}
+
+export function BenefitsCarousel({ accentColor }: BenefitsCarouselProps) {
   const [flippedCards, setFlippedCards] = useState<Record<number, boolean>>({});
 
   const toggleCard = (index: number) => {
     setFlippedCards(prev => ({ ...prev, [index]: !prev[index] }));
   };
 
+  const colorStyle = accentColor ? { color: accentColor } : {};
+  const bgStyle = accentColor ? { backgroundColor: `${accentColor}20` } : {};
+  const borderStyle = accentColor ? { borderColor: `${accentColor}50` } : {};
+
   return (
-    <section id="benefits" className="py-20 bg-card/30">
+    <section id="benefits" className="py-20" style={accentColor ? { backgroundColor: "rgba(30, 30, 50, 0.3)" } : {}}>
       <div className="container">
         <div className="text-center mb-12">
-          <h2 className="text-3xl font-bold text-foreground lg:text-4xl">
-            Por que escolher o <span className="text-primary">WhatsAppBot IA</span>
+          <h2 className="text-3xl font-bold text-white lg:text-4xl">
+            Por que escolher o <span style={colorStyle} className={!accentColor ? "text-primary" : ""}>WhatsAppBot IA</span>
           </h2>
-          <p className="mt-4 text-muted-foreground max-w-2xl mx-auto">
+          <p className="mt-4 text-gray-400 max-w-2xl mx-auto">
             Nossa solução oferece recursos exclusivos que transformam seu atendimento e aumentam suas conversões.
           </p>
         </div>
@@ -83,19 +91,28 @@ export function BenefitsCarousel() {
                 }`}
               >
                 {/* Front */}
-                <div className="flip-card-front absolute w-full h-full backface-hidden rounded-xl border border-border/50 bg-background/80 backdrop-blur-sm p-6 flex flex-col items-center justify-center text-center">
-                  <div className="mb-4 w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center">
-                    <i className={`${benefit.icon} text-2xl text-primary`}></i>
+                <div 
+                  className="flip-card-front absolute w-full h-full backface-hidden rounded-xl border backdrop-blur-sm p-6 flex flex-col items-center justify-center text-center"
+                  style={accentColor ? { backgroundColor: "rgba(30, 30, 50, 0.8)", borderColor: "rgba(255,255,255,0.1)" } : {}}
+                >
+                  <div 
+                    className={`mb-4 w-16 h-16 rounded-full flex items-center justify-center ${!accentColor ? "bg-primary/20" : ""}`}
+                    style={bgStyle}
+                  >
+                    <i className={`${benefit.icon} text-2xl ${!accentColor ? "text-primary" : ""}`} style={colorStyle}></i>
                   </div>
-                  <h3 className="text-lg font-bold text-foreground mb-3">{benefit.title}</h3>
-                  <p className="text-sm text-muted-foreground">{benefit.front}</p>
-                  <div className="mt-4 text-xs text-primary/60">Clique para ver mais</div>
+                  <h3 className="text-lg font-bold text-white mb-3">{benefit.title}</h3>
+                  <p className="text-sm text-gray-400">{benefit.front}</p>
+                  <div className={`mt-4 text-xs ${!accentColor ? "text-primary/60" : ""}`} style={accentColor ? { color: `${accentColor}99` } : {}}>Clique para ver mais</div>
                 </div>
 
                 {/* Back */}
-                <div className="flip-card-back absolute w-full h-full backface-hidden rounded-xl border border-primary/50 bg-primary/10 backdrop-blur-sm p-6 flex flex-col items-center justify-center text-center rotate-y-180">
-                  <h3 className="text-lg font-bold text-primary mb-4">{benefit.title}</h3>
-                  <p className="text-sm text-foreground leading-relaxed">{benefit.back}</p>
+                <div 
+                  className="flip-card-back absolute w-full h-full backface-hidden rounded-xl border backdrop-blur-sm p-6 flex flex-col items-center justify-center text-center rotate-y-180"
+                  style={accentColor ? { backgroundColor: `${accentColor}15`, borderColor: `${accentColor}50` } : {}}
+                >
+                  <h3 className={`text-lg font-bold mb-4 ${!accentColor ? "text-primary" : ""}`} style={colorStyle}>{benefit.title}</h3>
+                  <p className="text-sm text-gray-300 leading-relaxed">{benefit.back}</p>
                 </div>
               </div>
             </div>
@@ -104,21 +121,33 @@ export function BenefitsCarousel() {
 
         {/* Stats */}
         <div className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
-          <div className="p-6 rounded-xl bg-background/50 backdrop-blur-sm border border-border/50">
-            <div className="text-4xl font-bold text-primary">+150%</div>
-            <div className="text-sm text-muted-foreground mt-2">Aumento em conversões</div>
+          <div 
+            className="p-6 rounded-xl backdrop-blur-sm border"
+            style={accentColor ? { backgroundColor: "rgba(30, 30, 50, 0.5)", borderColor: "rgba(255,255,255,0.1)" } : {}}
+          >
+            <div className={`text-4xl font-bold ${!accentColor ? "text-primary" : ""}`} style={colorStyle}>+150%</div>
+            <div className="text-sm text-gray-400 mt-2">Aumento em conversões</div>
           </div>
-          <div className="p-6 rounded-xl bg-background/50 backdrop-blur-sm border border-border/50">
-            <div className="text-4xl font-bold text-primary">-50%</div>
-            <div className="text-sm text-muted-foreground mt-2">Redução em custos</div>
+          <div 
+            className="p-6 rounded-xl backdrop-blur-sm border"
+            style={accentColor ? { backgroundColor: "rgba(30, 30, 50, 0.5)", borderColor: "rgba(255,255,255,0.1)" } : {}}
+          >
+            <div className={`text-4xl font-bold ${!accentColor ? "text-primary" : ""}`} style={colorStyle}>-50%</div>
+            <div className="text-sm text-gray-400 mt-2">Redução em custos</div>
           </div>
-          <div className="p-6 rounded-xl bg-background/50 backdrop-blur-sm border border-border/50">
-            <div className="text-4xl font-bold text-primary">+98%</div>
-            <div className="text-sm text-muted-foreground mt-2">Taxa de satisfação</div>
+          <div 
+            className="p-6 rounded-xl backdrop-blur-sm border"
+            style={accentColor ? { backgroundColor: "rgba(30, 30, 50, 0.5)", borderColor: "rgba(255,255,255,0.1)" } : {}}
+          >
+            <div className={`text-4xl font-bold ${!accentColor ? "text-primary" : ""}`} style={colorStyle}>+98%</div>
+            <div className="text-sm text-gray-400 mt-2">Taxa de satisfação</div>
           </div>
-          <div className="p-6 rounded-xl bg-background/50 backdrop-blur-sm border border-border/50">
-            <div className="text-4xl font-bold text-primary">24/7</div>
-            <div className="text-sm text-muted-foreground mt-2">Sempre online</div>
+          <div 
+            className="p-6 rounded-xl backdrop-blur-sm border"
+            style={accentColor ? { backgroundColor: "rgba(30, 30, 50, 0.5)", borderColor: "rgba(255,255,255,0.1)" } : {}}
+          >
+            <div className={`text-4xl font-bold ${!accentColor ? "text-primary" : ""}`} style={colorStyle}>24/7</div>
+            <div className="text-sm text-gray-400 mt-2">Sempre online</div>
           </div>
         </div>
       </div>
