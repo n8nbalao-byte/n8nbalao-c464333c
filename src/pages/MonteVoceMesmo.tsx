@@ -673,8 +673,8 @@ export default function MonteVoceMesmo() {
             <div className="flex justify-center mb-4">
               <img src={balaoLogo} alt="Balão da Informática" className="h-20" />
             </div>
-            <h1 className="text-4xl font-bold text-primary mb-2">MONTE SEU PC</h1>
-            <p className="text-primary">Escolha cada componente e monte o computador perfeito para você!</p>
+            <h1 className="text-4xl font-bold mb-2" style={{ color: '#E31C23' }}>MONTE SEU PC</h1>
+            <p style={{ color: '#E31C23' }}>Escolha cada componente e monte o computador perfeito para você!</p>
           </div>
 
           {/* Component List */}
