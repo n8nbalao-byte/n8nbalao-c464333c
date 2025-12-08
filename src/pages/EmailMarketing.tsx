@@ -254,6 +254,8 @@ const EmailMarketing = () => {
       const data = await api.getCustomers();
       const customersWithEmail = data.filter((c: Customer) => c.email && c.email.includes('@'));
       setCustomers(customersWithEmail);
+      // Automatically select all customers for email marketing
+      setSelectedEmails(customersWithEmail.map((c: Customer) => c.email));
     } catch (error) {
       console.error('Error fetching customers:', error);
       toast.error('Erro ao carregar clientes');
@@ -671,10 +673,25 @@ const EmailMarketing = () => {
           <div className="bg-card rounded-lg border border-border p-6">
             <h2 className="text-lg font-semibold mb-4">Pré-visualização</h2>
             
+            {/* Preview customer selector */}
+            {selectedEmails.length > 0 && (
+              <div className="mb-4">
+                <label className="text-xs text-muted-foreground">Visualizando como:</label>
+                <p className="text-sm font-medium">
+                  {customers.find(c => c.email === selectedEmails[0])?.name || 'Cliente'}
+                </p>
+              </div>
+            )}
+            
             {htmlContent ? (
               <div 
                 className="bg-white rounded-lg overflow-hidden max-h-[600px] overflow-y-auto border"
-                dangerouslySetInnerHTML={{ __html: personalizeHtml(htmlContent, 'João Silva') }}
+                dangerouslySetInnerHTML={{ 
+                  __html: personalizeHtml(
+                    htmlContent, 
+                    customers.find(c => c.email === selectedEmails[0])?.name || 'Cliente'
+                  ) 
+                }}
               />
             ) : (
               <div className="flex items-center justify-center h-64 text-muted-foreground text-center">
