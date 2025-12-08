@@ -1,6 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { api, type Customer, type Order, type Product } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
+import { useOrderNotification } from "@/hooks/useOrderNotification";
 import {
   Users,
   ShoppingCart,
@@ -19,6 +20,9 @@ import {
   Search,
   Filter,
   KeyRound,
+  Bell,
+  BellOff,
+  Volume2,
 } from "lucide-react";
 
 interface DashboardStats {
@@ -54,6 +58,8 @@ const statusIcons: Record<Order["status"], React.ElementType> = {
   cancelled: XCircle,
 };
 
+const POLLING_INTERVAL = 30000; // 30 seconds
+
 export function AdminDashboard() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
@@ -73,10 +79,48 @@ export function AdminDashboard() {
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<Order["status"] | "all">("all");
+  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  
+  const pollingRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Use the order notification hook
+  const { playNotificationSound, requestNotificationPermission } = useOrderNotification(orders, notificationsEnabled);
 
+  // Request notification permission on mount
+  useEffect(() => {
+    requestNotificationPermission();
+  }, [requestNotificationPermission]);
+
+  // Initial fetch
   useEffect(() => {
     fetchData();
   }, []);
+
+  // Polling for new orders
+  useEffect(() => {
+    if (notificationsEnabled) {
+      pollingRef.current = setInterval(() => {
+        fetchOrdersOnly();
+      }, POLLING_INTERVAL);
+    }
+    
+    return () => {
+      if (pollingRef.current) {
+        clearInterval(pollingRef.current);
+      }
+    };
+  }, [notificationsEnabled]);
+
+  async function fetchOrdersOnly() {
+    try {
+      const ordersData = await api.getOrders();
+      if (Array.isArray(ordersData)) {
+        setOrders(ordersData);
+      }
+    } catch (e) {
+      console.log("Error polling orders:", e);
+    }
+  }
 
   async function fetchData() {
     setLoading(true);
@@ -318,37 +362,71 @@ export function AdminDashboard() {
       </div>
 
       {/* View Tabs */}
-      <div className="flex gap-2 border-b border-border pb-4">
-        <button
-          onClick={() => setActiveView("overview")}
-          className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
-            activeView === "overview"
-              ? "bg-primary text-primary-foreground"
-              : "text-muted-foreground hover:bg-secondary"
-          }`}
-        >
-          Visão Geral
-        </button>
-        <button
-          onClick={() => setActiveView("customers")}
-          className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
-            activeView === "customers"
-              ? "bg-primary text-primary-foreground"
-              : "text-muted-foreground hover:bg-secondary"
-          }`}
-        >
-          Clientes ({customers.length})
-        </button>
-        <button
-          onClick={() => setActiveView("orders")}
-          className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
-            activeView === "orders"
-              ? "bg-primary text-primary-foreground"
-              : "text-muted-foreground hover:bg-secondary"
-          }`}
-        >
-          Pedidos ({orders.length})
-        </button>
+      <div className="flex items-center justify-between border-b border-border pb-4">
+        <div className="flex gap-2">
+          <button
+            onClick={() => setActiveView("overview")}
+            className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+              activeView === "overview"
+                ? "bg-primary text-primary-foreground"
+                : "text-muted-foreground hover:bg-secondary"
+            }`}
+          >
+            Visão Geral
+          </button>
+          <button
+            onClick={() => setActiveView("customers")}
+            className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+              activeView === "customers"
+                ? "bg-primary text-primary-foreground"
+                : "text-muted-foreground hover:bg-secondary"
+            }`}
+          >
+            Clientes ({customers.length})
+          </button>
+          <button
+            onClick={() => setActiveView("orders")}
+            className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+              activeView === "orders"
+                ? "bg-primary text-primary-foreground"
+                : "text-muted-foreground hover:bg-secondary"
+            }`}
+          >
+            Pedidos ({orders.length})
+          </button>
+        </div>
+        
+        {/* Notification Toggle */}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => playNotificationSound()}
+            className="rounded-lg p-2 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
+            title="Testar som de notificação"
+          >
+            <Volume2 className="h-4 w-4" />
+          </button>
+          <button
+            onClick={() => setNotificationsEnabled(!notificationsEnabled)}
+            className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+              notificationsEnabled
+                ? "bg-green-500/20 text-green-400 border border-green-500/30"
+                : "bg-secondary text-muted-foreground"
+            }`}
+            title={notificationsEnabled ? "Notificações ativadas" : "Notificações desativadas"}
+          >
+            {notificationsEnabled ? (
+              <>
+                <Bell className="h-4 w-4" />
+                <span className="hidden sm:inline">Notificações</span>
+              </>
+            ) : (
+              <>
+                <BellOff className="h-4 w-4" />
+                <span className="hidden sm:inline">Desativado</span>
+              </>
+            )}
+          </button>
+        </div>
       </div>
 
       {/* Search and Filters */}
