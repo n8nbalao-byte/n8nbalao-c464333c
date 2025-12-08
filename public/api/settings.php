@@ -22,14 +22,37 @@ try {
     exit;
 }
 
-// Create settings table if not exists
-$pdo->exec("CREATE TABLE IF NOT EXISTS settings (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    `key` VARCHAR(100) UNIQUE NOT NULL,
-    `value` TEXT,
-    createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-)");
+// Check if settings table exists and has correct structure
+try {
+    $tableCheck = $pdo->query("SHOW TABLES LIKE 'settings'");
+    $tableExists = $tableCheck->rowCount() > 0;
+    
+    if ($tableExists) {
+        // Check if 'value' column exists
+        $columns = $pdo->query("SHOW COLUMNS FROM settings LIKE 'value'");
+        $hasValueColumn = $columns->rowCount() > 0;
+        
+        if (!$hasValueColumn) {
+            // Table exists but missing 'value' column - drop and recreate
+            $pdo->exec("DROP TABLE settings");
+            $tableExists = false;
+        }
+    }
+    
+    if (!$tableExists) {
+        // Create table with correct structure
+        $pdo->exec("CREATE TABLE settings (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            `key` VARCHAR(100) UNIQUE NOT NULL,
+            `value` TEXT,
+            createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        )");
+    }
+} catch (PDOException $e) {
+    echo json_encode(['success' => false, 'error' => 'Table setup error: ' . $e->getMessage()]);
+    exit;
+}
 
 $method = $_SERVER['REQUEST_METHOD'];
 
