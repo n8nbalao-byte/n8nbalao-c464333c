@@ -119,20 +119,18 @@ export default function Home() {
         />
       </section>
 
-      {/* Category Cards - Dynamic Single Row */}
-      <section className="py-6 bg-gray-50">
+      {/* Category Cards - Dynamic Grid */}
+      <section className="py-4 bg-gray-50">
         <div className="container">
-          <div className="flex items-center gap-3 overflow-x-auto pb-2 scrollbar-hide">
+          <div className="flex flex-wrap justify-center gap-2">
             <Link 
               to="/monte-voce-mesmo" 
-              className="shrink-0 group bg-white rounded-xl px-4 py-3 shadow-sm hover:shadow-md transition-all border border-gray-100 flex items-center gap-3"
+              className="group bg-white rounded-lg px-3 py-2 shadow-sm hover:shadow-md transition-all border border-gray-100 flex items-center gap-2"
             >
-              <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
-                <Cpu className="h-5 w-5 text-primary" />
+              <div className="w-8 h-8 bg-primary/10 rounded-md flex items-center justify-center">
+                <Cpu className="h-4 w-4 text-primary" />
               </div>
-              <div>
-                <h3 className="font-bold text-primary text-sm whitespace-nowrap">MONTE SEU PC</h3>
-              </div>
+              <span className="font-semibold text-primary text-xs whitespace-nowrap">MONTE SEU PC</span>
             </Link>
             
             {categoryConfig.map((cat) => {
@@ -141,14 +139,12 @@ export default function Home() {
                 <Link 
                   key={cat.key}
                   to={`/loja?category=${cat.key}`} 
-                  className="shrink-0 group bg-white rounded-xl px-4 py-3 shadow-sm hover:shadow-md transition-all border border-gray-100 flex items-center gap-3"
+                  className="group bg-white rounded-lg px-3 py-2 shadow-sm hover:shadow-md transition-all border border-gray-100 flex items-center gap-2"
                 >
-                  <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
-                    <Icon className="h-5 w-5 text-primary" />
+                  <div className="w-8 h-8 bg-primary/10 rounded-md flex items-center justify-center">
+                    <Icon className="h-4 w-4 text-primary" />
                   </div>
-                  <div>
-                    <h3 className="font-bold text-primary text-sm whitespace-nowrap">{cat.label.toUpperCase()}</h3>
-                  </div>
+                  <span className="font-semibold text-primary text-xs whitespace-nowrap">{cat.label.toUpperCase()}</span>
                 </Link>
               );
             })}
