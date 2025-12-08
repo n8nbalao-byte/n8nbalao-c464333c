@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Upload, Loader2, Check, Trash2, Package, Percent, Tag, Link as LinkIcon, Globe, FileSpreadsheet } from "lucide-react";
 import { Link } from "react-router-dom";
-import { api, getCustomCategories, addCustomCategory, CustomCategory } from "@/lib/api";
+import { api, getCustomCategories, addCustomCategory, getHardwareCategories, addHardwareCategory, CustomCategory, HardwareCategoryDef } from "@/lib/api";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -23,42 +23,70 @@ interface ParsedProduct {
   costPrice: number;
   selected: boolean;
   detectedCategory?: string;
+  isHardware?: boolean;
 }
+
+// Hardware categories that should be imported as hardware items
+const hardwareCategories = ['processador', 'placa_mae', 'memoria', 'armazenamento', 'gpu', 'fonte', 'cooler', 'gabinete'];
 
 // Category detection keywords mapping
 const categoryKeywords: Record<string, string[]> = {
   'notebook': ['notebook', 'laptop', 'macbook', 'chromebook', 'ultrabook'],
   'monitor': ['monitor', 'tela', 'display', 'led', 'lcd', 'ips', 'curvo'],
-  'pc': ['desktop', 'computador', 'gabinete', 'pc gamer', 'workstation'],
-  'processador': ['processador', 'cpu', 'intel', 'amd ryzen', 'core i'],
+  'pc': ['desktop', 'computador', 'pc gamer', 'workstation'],
+  'processador': ['processador', 'cpu', 'intel core', 'amd ryzen', 'core i3', 'core i5', 'core i7', 'core i9'],
   'placa_mae': ['placa mãe', 'placa-mãe', 'motherboard', 'mainboard'],
-  'memoria': ['memória ram', 'memoria ram', 'ddr4', 'ddr5', 'ram '],
-  'armazenamento': ['ssd', 'hd ', 'hdd', 'nvme', 'm.2', 'disco rígido'],
-  'gpu': ['placa de vídeo', 'placa de video', 'rtx', 'gtx', 'radeon', 'geforce'],
-  'fonte': ['fonte', 'psu', 'power supply'],
-  'cooler': ['cooler', 'water cooler', 'watercooler', 'ventilador', 'air cooler'],
-  'gabinete': ['gabinete', 'case', 'torre'],
+  'memoria': ['memória ram', 'memoria ram', 'ddr4', 'ddr5', 'ram 8gb', 'ram 16gb', 'ram 32gb'],
+  'armazenamento': ['ssd', 'hd ', 'hdd', 'nvme', 'm.2', 'disco rígido', 'kingston', 'wd blue', 'seagate'],
+  'gpu': ['placa de vídeo', 'placa de video', 'rtx', 'gtx', 'radeon', 'geforce', 'rx 5', 'rx 6', 'rx 7'],
+  'fonte': ['fonte', 'psu', 'power supply', '500w', '600w', '700w', '750w', '850w'],
+  'cooler': ['cooler', 'water cooler', 'watercooler', 'air cooler', 'refrigeração'],
+  'gabinete': ['gabinete', 'case gamer', 'torre', 'mid tower', 'full tower'],
   'teclado': ['teclado', 'keyboard', 'mecânico'],
   'mouse': ['mouse', 'rato'],
   'headset': ['headset', 'fone', 'headphone', 'auricular'],
-  'cadeira_gamer': ['cadeira', 'chair', 'gamer'],
+  'cadeira_gamer': ['cadeira', 'chair gamer'],
   'acessorio': ['cabo', 'adaptador', 'hub', 'mousepad', 'webcam', 'microfone'],
   'software': ['software', 'windows', 'office', 'licença', 'antivírus'],
 };
 
+// Icons for each category
+const categoryIcons: Record<string, string> = {
+  'notebook': 'Laptop',
+  'monitor': 'Monitor',
+  'pc': 'Monitor',
+  'processador': 'Cpu',
+  'placa_mae': 'CircuitBoard',
+  'memoria': 'MemoryStick',
+  'armazenamento': 'HardDrive',
+  'gpu': 'Tv',
+  'fonte': 'Zap',
+  'cooler': 'Fan',
+  'gabinete': 'Box',
+  'teclado': 'Keyboard',
+  'mouse': 'Mouse',
+  'headset': 'Headphones',
+  'cadeira_gamer': 'Armchair',
+  'acessorio': 'Cable',
+  'software': 'AppWindow',
+};
+
 // Detect category from product title
-const detectCategory = (title: string): string | undefined => {
+const detectCategory = (title: string): { category: string | undefined; isHardware: boolean } => {
   const lowerTitle = title.toLowerCase();
   
   for (const [category, keywords] of Object.entries(categoryKeywords)) {
     for (const keyword of keywords) {
       if (lowerTitle.includes(keyword.toLowerCase())) {
-        return category;
+        return { 
+          category, 
+          isHardware: hardwareCategories.includes(category) 
+        };
       }
     }
   }
   
-  return undefined;
+  return { category: undefined, isHardware: false };
 };
 
 const ExtractProducts = () => {
@@ -203,13 +231,15 @@ const ExtractProducts = () => {
         
         // Only add products with valid title
         if (title.length > 2) {
+          const detected = detectCategory(title);
           products.push({
             id: crypto.randomUUID(),
             imageUrl,
             title,
             costPrice,
             selected: true,
-            detectedCategory: detectCategory(title)
+            detectedCategory: detected.category,
+            isHardware: detected.isHardware
           });
         }
       }
@@ -281,6 +311,7 @@ const ExtractProducts = () => {
 
       const productData = data.product;
       const title = productData.title || 'Produto sem nome';
+      const detected = detectCategory(title);
       const product: ParsedProduct = {
         id: crypto.randomUUID(),
         imageUrl: productData.images?.[0] || '',
@@ -288,7 +319,8 @@ const ExtractProducts = () => {
         description: productData.description || '',
         costPrice: parseFloat(productData.price) || 0,
         selected: true,
-        detectedCategory: detectCategory(title)
+        detectedCategory: detected.category,
+        isHardware: detected.isHardware
       };
 
       setParsedProducts(prev => [...prev, product]);
@@ -345,13 +377,15 @@ const ExtractProducts = () => {
       }
 
       if (title && costPrice > 0) {
+        const detected = detectCategory(title);
         products.push({
           id: crypto.randomUUID(),
           imageUrl,
           title,
           costPrice,
           selected: true,
-          detectedCategory: detectCategory(title)
+          detectedCategory: detected.category,
+          isHardware: detected.isHardware
         });
       }
     }
@@ -400,28 +434,9 @@ const ExtractProducts = () => {
 
   const selectedCount = parsedProducts.filter(p => p.selected).length;
 
-  // Get icon for auto-created category
+  // Get icon for category - uses categoryIcons map
   const getCategoryIcon = (categoryKey: string): string => {
-    const iconMap: Record<string, string> = {
-      'notebook': 'Laptop',
-      'monitor': 'Monitor',
-      'pc': 'Monitor',
-      'processador': 'Cpu',
-      'placa_mae': 'CircuitBoard',
-      'memoria': 'MemoryStick',
-      'armazenamento': 'HardDrive',
-      'gpu': 'Tv',
-      'fonte': 'Zap',
-      'cooler': 'Fan',
-      'gabinete': 'Box',
-      'teclado': 'Keyboard',
-      'mouse': 'Mouse',
-      'headset': 'Headphones',
-      'cadeira_gamer': 'Armchair',
-      'acessorio': 'Cable',
-      'software': 'AppWindow',
-    };
-    return iconMap[categoryKey] || 'Package';
+    return categoryIcons[categoryKey] || 'Package';
   };
 
   // Format category label
@@ -448,20 +463,27 @@ const ExtractProducts = () => {
     let successCount = 0;
     let errorCount = 0;
     const createdCategories = new Set<string>();
+    const createdHardwareCategories = new Set<string>();
+    let hardwareCount = 0;
+    let productCount = 0;
 
-    // Pre-create any missing categories
+    // Separate hardware and products
+    const hardwareItems = toImport.filter(p => p.isHardware);
+    const productItems = toImport.filter(p => !p.isHardware);
+
+    // Pre-create any missing product categories
     const existingCategoryKeys = categories.map(c => c.key);
     const neededCategories = new Set<string>();
     
-    for (const product of toImport) {
+    for (const product of productItems) {
       const fallbackCat = (category && category !== '_auto') ? category : ((productType && productType !== '_auto') ? productType : 'outro');
       const cat = product.detectedCategory || fallbackCat;
-      if (cat && !existingCategoryKeys.includes(cat)) {
+      if (cat && !existingCategoryKeys.includes(cat) && !hardwareCategories.includes(cat)) {
         neededCategories.add(cat);
       }
     }
 
-    // Create missing categories
+    // Create missing product categories
     for (const catKey of neededCategories) {
       try {
         const label = formatCategoryLabel(catKey);
@@ -473,10 +495,64 @@ const ExtractProducts = () => {
       }
     }
 
-    // Import products
-    for (let i = 0; i < toImport.length; i++) {
-      const product = toImport[i];
+    // Pre-create any missing hardware categories
+    const existingHardwareCategories = await getHardwareCategories();
+    const existingHardwareCategoryKeys = existingHardwareCategories.map(c => c.key);
+    const neededHardwareCategories = new Set<string>();
+    
+    for (const hw of hardwareItems) {
+      if (hw.detectedCategory && !existingHardwareCategoryKeys.includes(hw.detectedCategory)) {
+        neededHardwareCategories.add(hw.detectedCategory);
+      }
+    }
+
+    // Create missing hardware categories
+    for (const catKey of neededHardwareCategories) {
+      try {
+        const label = formatCategoryLabel(catKey);
+        const icon = getCategoryIcon(catKey);
+        await addHardwareCategory({ key: catKey, label, icon });
+        createdHardwareCategories.add(catKey);
+      } catch (error) {
+        console.error('Error creating hardware category:', catKey, error);
+      }
+    }
+
+    // Import hardware items
+    for (let i = 0; i < hardwareItems.length; i++) {
+      const item = hardwareItems[i];
       setImportProgress({ current: i + 1, total: toImport.length });
+
+      try {
+        const finalPrice = calculateFinalPrice(item.costPrice);
+        
+        // Extract brand and model from title
+        const titleParts = item.title.split(' ');
+        const brand = titleParts[0] || 'Genérico';
+        const model = titleParts.slice(1).join(' ') || item.title;
+
+        await api.createHardware({
+          name: item.title,
+          brand,
+          model,
+          price: Math.round(finalPrice * 100) / 100,
+          image: item.imageUrl || '',
+          specs: {},
+          category: item.detectedCategory as any
+        });
+
+        hardwareCount++;
+        successCount++;
+      } catch (error) {
+        console.error('Error importing hardware:', error);
+        errorCount++;
+      }
+    }
+
+    // Import products
+    for (let i = 0; i < productItems.length; i++) {
+      const product = productItems[i];
+      setImportProgress({ current: hardwareItems.length + i + 1, total: toImport.length });
 
       try {
         const finalPrice = calculateFinalPrice(product.costPrice);
@@ -500,6 +576,7 @@ const ExtractProducts = () => {
           downloadUrl: ''
         });
 
+        productCount++;
         successCount++;
       } catch (error) {
         console.error('Error importing product:', error);
@@ -515,13 +592,18 @@ const ExtractProducts = () => {
       await loadCategories();
     }
 
-    const categoryMsg = createdCategories.size > 0 
-      ? `. ${createdCategories.size} categoria(s) criada(s) automaticamente` 
+    const parts: string[] = [];
+    if (hardwareCount > 0) parts.push(`${hardwareCount} hardware`);
+    if (productCount > 0) parts.push(`${productCount} produtos`);
+    if (errorCount > 0) parts.push(`${errorCount} erros`);
+    
+    const categoryMsg = (createdCategories.size + createdHardwareCategories.size) > 0 
+      ? `. ${createdCategories.size + createdHardwareCategories.size} categoria(s) criada(s)` 
       : '';
 
     toast({
       title: "Importação concluída",
-      description: `${successCount} produtos importados${errorCount > 0 ? `, ${errorCount} erros` : ''}${categoryMsg}.`
+      description: `${parts.join(', ')} importados${categoryMsg}.`
     });
   };
 
@@ -842,15 +924,26 @@ const ExtractProducts = () => {
                           {product.title}
                         </TableCell>
                         <TableCell>
-                          {product.detectedCategory ? (
-                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                              {formatCategoryLabel(product.detectedCategory)}
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-500">
-                              {category ? formatCategoryLabel(category) : 'Sem categoria'}
-                            </span>
-                          )}
+                          <div className="flex flex-col gap-1">
+                            {product.detectedCategory ? (
+                              <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                                product.isHardware 
+                                  ? 'bg-blue-100 text-blue-800' 
+                                  : 'bg-green-100 text-green-800'
+                              }`}>
+                                {formatCategoryLabel(product.detectedCategory)}
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-500">
+                                {category && category !== '_auto' ? formatCategoryLabel(category) : 'Outro'}
+                              </span>
+                            )}
+                            {product.isHardware && (
+                              <span className="text-xs text-blue-600 font-medium">
+                                → Hardware
+                              </span>
+                            )}
+                          </div>
                         </TableCell>
                         <TableCell className="text-right text-gray-500">
                           R$ {product.costPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
