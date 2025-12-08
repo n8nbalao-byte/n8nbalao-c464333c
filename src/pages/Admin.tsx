@@ -328,16 +328,20 @@ export default function Admin() {
     }
   }
 
-  // Google login
+  // Google login - uses same endpoint as customer login
   async function handleGoogleLogin() {
-    // Load Google API
-    const clientId = 'YOUR_GOOGLE_CLIENT_ID'; // User needs to configure this
-    
-    toast({
-      title: "Google Login",
-      description: "Para usar login com Google, configure o Client ID nas configurações.",
-      variant: "destructive"
-    });
+    try {
+      const response = await fetch('https://www.n8nbalao.com/api/google-auth.php?action=get_auth_url&type=admin');
+      const data = await response.json();
+      
+      if (data.authUrl) {
+        window.location.href = data.authUrl;
+      } else {
+        toast({ title: "Erro", description: "Falha ao conectar com Google", variant: "destructive" });
+      }
+    } catch (error) {
+      toast({ title: "Erro", description: "Falha na conexão", variant: "destructive" });
+    }
   }
 
   function handleLogout() {
@@ -451,9 +455,63 @@ export default function Admin() {
     loadCategories();
   }, []);
 
+  // Check for saved session or Google auth callback
   useEffect(() => {
     const saved = sessionStorage.getItem("admin_auth");
-    if (saved === "true") {
+    const savedData = sessionStorage.getItem("admin_data");
+    
+    // Handle Google auth callback
+    const urlParams = new URLSearchParams(window.location.search);
+    const googleAuth = urlParams.get('google_auth');
+    const authData = urlParams.get('data');
+    const authError = urlParams.get('error');
+    
+    if (authError) {
+      if (authError === 'not_admin') {
+        const email = urlParams.get('email');
+        toast({ 
+          title: "Acesso negado", 
+          description: `${email || 'Este email'} não está cadastrado como administrador.`, 
+          variant: "destructive" 
+        });
+      } else if (authError === 'account_disabled') {
+        toast({ title: "Conta desativada", description: "Sua conta de administrador foi desativada.", variant: "destructive" });
+      } else {
+        toast({ title: "Erro", description: `Falha no login: ${authError}`, variant: "destructive" });
+      }
+      // Clean URL
+      window.history.replaceState({}, '', '/admin');
+    } else if (googleAuth === 'success' && authData) {
+      try {
+        const adminData = JSON.parse(atob(decodeURIComponent(authData)));
+        const adminUser: AdminUser = {
+          id: adminData.id,
+          name: adminData.name,
+          email: adminData.email,
+          role: adminData.role || 'admin',
+          avatar: adminData.avatar,
+          active: true,
+          createdAt: new Date().toISOString()
+        };
+        setCurrentAdmin(adminUser);
+        setIsAuthenticated(true);
+        sessionStorage.setItem("admin_auth", "true");
+        sessionStorage.setItem("admin_data", JSON.stringify(adminUser));
+        toast({ title: "Bem-vindo!", description: `Olá, ${adminData.name}` });
+        // Clean URL
+        window.history.replaceState({}, '', '/admin');
+      } catch (e) {
+        console.error('Error parsing admin data:', e);
+      }
+    } else if (saved === "true" && savedData) {
+      try {
+        const adminData = JSON.parse(savedData);
+        setCurrentAdmin(adminData);
+        setIsAuthenticated(true);
+      } catch (e) {
+        setIsAuthenticated(true);
+      }
+    } else if (saved === "true") {
       setIsAuthenticated(true);
     }
   }, []);
