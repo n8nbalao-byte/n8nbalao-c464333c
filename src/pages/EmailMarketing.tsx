@@ -59,7 +59,7 @@ const createEmailTemplates = (logoBase64: string) => [
         <p style="margin: 0; color: #991b1b; font-weight: bold; font-size: 24px;">Até 40% OFF</p>
         <p style="margin: 5px 0 0 0; color: #7f1d1d;">Em produtos selecionados!</p>
       </div>
-      <a href="https://www.n8nbalao.com/loja" style="display: inline-block; background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%); color: white; padding: 16px 40px; text-decoration: none; border-radius: 50px; font-weight: bold; font-size: 16px; box-shadow: 0 4px 15px rgba(220, 38, 38, 0.4);">VER OFERTAS</a>
+      <a href="https://www.n8nbalao.com" style="display: inline-block; background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%); color: white; padding: 16px 40px; text-decoration: none; border-radius: 50px; font-weight: bold; font-size: 16px; box-shadow: 0 4px 15px rgba(220, 38, 38, 0.4);">VER OFERTAS</a>
     </div>
     <div style="text-align: center; padding: 20px; color: #9ca3af; font-size: 12px;">
       <p>Balão da Informática - Seu parceiro em tecnologia</p>
@@ -92,7 +92,7 @@ const createEmailTemplates = (logoBase64: string) => [
         <h1 style="color: #111827; text-align: center; margin: 0 0 20px 0; font-size: 28px;">Olá, {{primeiro_nome}}!</h1>
         <p style="color: #6b7280; text-align: center; font-size: 16px; line-height: 1.6;">Confira as últimas novidades em hardware, periféricos e acessórios que acabaram de chegar em nossa loja.</p>
         <div style="text-align: center; margin-top: 30px;">
-          <a href="https://www.n8nbalao.com/loja" style="display: inline-block; background: #dc2626; color: white; padding: 14px 35px; text-decoration: none; border-radius: 8px; font-weight: bold;">Conferir Novidades</a>
+          <a href="https://www.n8nbalao.com" style="display: inline-block; background: #dc2626; color: white; padding: 14px 35px; text-decoration: none; border-radius: 8px; font-weight: bold;">Conferir Novidades</a>
         </div>
       </div>
     </div>
@@ -171,7 +171,7 @@ const createEmailTemplates = (logoBase64: string) => [
         </div>
         
         <div style="text-align: center; margin-top: 30px;">
-          <a href="https://www.n8nbalao.com/loja" style="display: inline-block; background: #dc2626; color: white; padding: 14px 35px; text-decoration: none; border-radius: 8px; font-weight: bold;">Ver Todas as Ofertas</a>
+          <a href="https://www.n8nbalao.com" style="display: inline-block; background: #dc2626; color: white; padding: 14px 35px; text-decoration: none; border-radius: 8px; font-weight: bold;">Ver Todas as Ofertas</a>
         </div>
       </div>
       <div style="padding: 20px; border-top: 1px solid #374151; text-align: center;">
@@ -211,7 +211,7 @@ const createEmailTemplates = (logoBase64: string) => [
         </div>
         
         <div style="margin-top: 30px;">
-          <a href="https://www.n8nbalao.com/monte-voce-mesmo" style="display: inline-block; background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%); color: white; padding: 18px 50px; text-decoration: none; border-radius: 50px; font-weight: bold; font-size: 18px; box-shadow: 0 10px 30px rgba(220, 38, 38, 0.4);">MONTAR MEU PC</a>
+          <a href="https://www.n8nbalao.com" style="display: inline-block; background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%); color: white; padding: 18px 50px; text-decoration: none; border-radius: 50px; font-weight: bold; font-size: 18px; box-shadow: 0 10px 30px rgba(220, 38, 38, 0.4);">MONTAR MEU PC</a>
         </div>
       </div>
       <div style="padding: 20px; text-align: center; border-top: 1px solid rgba(255,255,255,0.1);">
