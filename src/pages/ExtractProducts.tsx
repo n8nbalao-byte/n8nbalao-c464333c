@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Upload, Loader2, Check, Trash2, Package, Percent, Tag, Link as LinkIcon, Globe } from "lucide-react";
+import { ArrowLeft, Upload, Loader2, Check, Trash2, Package, Percent, Tag, Link as LinkIcon, Globe, FileSpreadsheet } from "lucide-react";
 import { Link } from "react-router-dom";
 import { api, getCustomCategories, CustomCategory } from "@/lib/api";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -13,6 +13,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { RedWhiteHeader } from "@/components/RedWhiteHeader";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import * as XLSX from "xlsx";
 
 interface ParsedProduct {
   id: string;
@@ -25,6 +26,7 @@ interface ParsedProduct {
 
 const ExtractProducts = () => {
   const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [rawData, setRawData] = useState('');
   const [parsedProducts, setParsedProducts] = useState<ParsedProduct[]>([]);
@@ -39,6 +41,7 @@ const ExtractProducts = () => {
   // URL extraction states
   const [extractUrl, setExtractUrl] = useState('');
   const [isExtracting, setIsExtracting] = useState(false);
+  const [isLoadingFile, setIsLoadingFile] = useState(false);
 
   useEffect(() => {
     loadCategories();
@@ -53,7 +56,157 @@ const ExtractProducts = () => {
     }
   };
 
-  // Extract product from URL
+  // Parse price from various formats
+  const parsePrice = (priceText: string): number => {
+    if (!priceText) return 0;
+    const str = String(priceText).trim();
+    
+    // Remove currency symbols and spaces
+    let cleaned = str.replace(/R\$\s*/gi, '').replace(/\s/g, '').trim();
+    
+    // Handle Brazilian format: 1.234,56 -> 1234.56
+    if (cleaned.includes(',') && cleaned.includes('.')) {
+      // Check if comma is decimal separator (Brazilian format)
+      const lastComma = cleaned.lastIndexOf(',');
+      const lastDot = cleaned.lastIndexOf('.');
+      if (lastComma > lastDot) {
+        // Brazilian format: 1.234,56
+        cleaned = cleaned.replace(/\./g, '').replace(',', '.');
+      } else {
+        // US format: 1,234.56
+        cleaned = cleaned.replace(/,/g, '');
+      }
+    } else if (cleaned.includes(',')) {
+      // Only comma - could be decimal separator
+      const parts = cleaned.split(',');
+      if (parts.length === 2 && parts[1].length <= 2) {
+        // Decimal separator
+        cleaned = cleaned.replace(',', '.');
+      } else {
+        // Thousand separator
+        cleaned = cleaned.replace(/,/g, '');
+      }
+    }
+    
+    const parsed = parseFloat(cleaned);
+    return isNaN(parsed) ? 0 : parsed;
+  };
+
+  // Find best matching column for a field
+  const findColumn = (headers: string[], patterns: string[]): number => {
+    for (const pattern of patterns) {
+      const lowerPattern = pattern.toLowerCase();
+      for (let i = 0; i < headers.length; i++) {
+        const header = String(headers[i] || '').toLowerCase().trim();
+        if (header.includes(lowerPattern) || lowerPattern.includes(header)) {
+          return i;
+        }
+      }
+    }
+    return -1;
+  };
+
+  // Import from Excel/CSV file (Instant Data Scraper format)
+  const handleFileImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsLoadingFile(true);
+    
+    try {
+      const data = await file.arrayBuffer();
+      const workbook = XLSX.read(data, { type: 'array' });
+      const sheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
+      const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as any[][];
+
+      if (jsonData.length < 2) {
+        toast({
+          title: "Arquivo vazio",
+          description: "O arquivo não contém dados suficientes.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Get headers (first row)
+      const headers = jsonData[0].map(h => String(h || '').toLowerCase().trim());
+      
+      // Find columns by common patterns (Instant Data Scraper uses various names)
+      const imagePatterns = ['image', 'imagem', 'foto', 'photo', 'img', 'picture', 'thumbnail', 'src'];
+      const titlePatterns = ['title', 'titulo', 'título', 'nome', 'name', 'product', 'produto', 'description', 'descrição'];
+      const pricePatterns = ['price', 'preço', 'preco', 'valor', 'value', 'à vista', 'a vista', 'avista', 'cash'];
+      
+      const imageCol = findColumn(headers, imagePatterns);
+      const titleCol = findColumn(headers, titlePatterns);
+      const priceCol = findColumn(headers, pricePatterns);
+      
+      if (titleCol === -1) {
+        toast({
+          title: "Colunas não encontradas",
+          description: "Não foi possível identificar a coluna de nome/título do produto.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      const products: ParsedProduct[] = [];
+      
+      // Process rows (skip header)
+      for (let i = 1; i < jsonData.length; i++) {
+        const row = jsonData[i];
+        if (!row || row.length === 0) continue;
+        
+        const title = String(row[titleCol] || '').trim();
+        if (!title) continue;
+        
+        const imageUrl = imageCol >= 0 ? String(row[imageCol] || '').trim() : '';
+        const priceText = priceCol >= 0 ? String(row[priceCol] || '') : '';
+        const costPrice = parsePrice(priceText);
+        
+        // Only add products with valid title
+        if (title.length > 2) {
+          products.push({
+            id: crypto.randomUUID(),
+            imageUrl,
+            title,
+            costPrice,
+            selected: true
+          });
+        }
+      }
+
+      if (products.length === 0) {
+        toast({
+          title: "Nenhum produto encontrado",
+          description: "Não foi possível extrair produtos do arquivo.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      setParsedProducts(prev => [...prev, ...products]);
+      
+      toast({
+        title: "Arquivo importado!",
+        description: `${products.length} produtos extraídos do arquivo.`
+      });
+    } catch (error) {
+      console.error('File import error:', error);
+      toast({
+        title: "Erro ao importar",
+        description: "Não foi possível ler o arquivo. Verifique se é um arquivo Excel ou CSV válido.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoadingFile(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  // Extract product from URL (using OpenAI API)
   const extractFromUrl = async () => {
     if (!extractUrl.trim()) {
       toast({
@@ -99,7 +252,6 @@ const ExtractProducts = () => {
         throw new Error(data.error);
       }
 
-      // Add extracted product to list
       const product: ParsedProduct = {
         id: crypto.randomUUID(),
         imageUrl: data.images?.[0] || '',
@@ -120,7 +272,7 @@ const ExtractProducts = () => {
       console.error('Extraction error:', error);
       toast({
         title: "Erro na extração",
-        description: error instanceof Error ? error.message : "Não foi possível extrair o produto. Tente usar o modo manual.",
+        description: error instanceof Error ? error.message : "Não foi possível extrair. Use o Instant Data Scraper e importe o arquivo.",
         variant: "destructive"
       });
     } finally {
@@ -311,8 +463,12 @@ const ExtractProducts = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <Tabs defaultValue="url" className="w-full">
-              <TabsList className="grid w-full grid-cols-2 mb-4">
+            <Tabs defaultValue="scraper" className="w-full">
+              <TabsList className="grid w-full grid-cols-3 mb-4">
+                <TabsTrigger value="scraper" className="flex items-center gap-2">
+                  <FileSpreadsheet className="h-4 w-4" />
+                  Instant Data Scraper
+                </TabsTrigger>
                 <TabsTrigger value="url" className="flex items-center gap-2">
                   <Globe className="h-4 w-4" />
                   Extrair por URL
@@ -322,6 +478,55 @@ const ExtractProducts = () => {
                   Dados Manuais
                 </TabsTrigger>
               </TabsList>
+              
+              {/* Instant Data Scraper Import */}
+              <TabsContent value="scraper" className="space-y-4">
+                <div className="p-6 border-2 border-dashed rounded-lg text-center" style={{ borderColor: '#DC2626' }}>
+                  <FileSpreadsheet className="h-12 w-12 mx-auto mb-4" style={{ color: '#DC2626' }} />
+                  <h3 className="font-semibold text-gray-800 mb-2">Importar do Instant Data Scraper</h3>
+                  <p className="text-sm text-gray-500 mb-4">
+                    Use a extensão Instant Data Scraper, exporte para Excel ou CSV, e importe aqui.
+                  </p>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".xlsx,.xls,.csv"
+                    onChange={handleFileImport}
+                    className="hidden"
+                  />
+                  <Button
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isLoadingFile}
+                    style={{ backgroundColor: '#DC2626' }}
+                    className="text-white hover:opacity-90"
+                  >
+                    {isLoadingFile ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Carregando...
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="h-4 w-4 mr-2" />
+                        Selecionar Arquivo Excel/CSV
+                      </>
+                    )}
+                  </Button>
+                </div>
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <h4 className="font-medium text-gray-800 mb-2">Como usar:</h4>
+                  <ol className="text-sm text-gray-600 space-y-1 list-decimal list-inside">
+                    <li>Instale a extensão "Instant Data Scraper" no Chrome</li>
+                    <li>Acesse a página de produtos que deseja extrair</li>
+                    <li>Clique no ícone da extensão e aguarde a detecção automática</li>
+                    <li>Clique em "Export to Excel" ou "Export to CSV"</li>
+                    <li>Importe o arquivo aqui</li>
+                  </ol>
+                  <p className="text-xs text-gray-500 mt-3">
+                    O sistema detecta automaticamente as colunas de imagem, nome e preço.
+                  </p>
+                </div>
+              </TabsContent>
               
               <TabsContent value="url" className="space-y-4">
                 <div className="flex gap-2">
@@ -353,8 +558,7 @@ const ExtractProducts = () => {
                   </Button>
                 </div>
                 <p className="text-sm text-gray-500">
-                  Cole a URL de um produto de lojas como Kabum, Pichau, Mercado Livre, etc.
-                  O sistema extrairá automaticamente: foto, nome, descrição e preço à vista.
+                  Extração direta por URL. Se falhar, use o Instant Data Scraper.
                 </p>
               </TabsContent>
               
