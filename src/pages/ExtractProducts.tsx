@@ -180,6 +180,126 @@ const ExtractProducts = () => {
     return -1;
   };
 
+  // Parse Mercado Livre format: extract price from multiple columns
+  const parseMercadoLivreRow = (row: any[], headers: string[]): { imageUrl: string; title: string; price: number } => {
+    let imageUrl = '';
+    let title = '';
+    let price = 0;
+
+    // Find image: look for column with URL starting with http or containing picture/src
+    for (let i = 0; i < headers.length; i++) {
+      const header = headers[i].toLowerCase();
+      const value = String(row[i] || '').trim();
+      
+      if (header.includes('picture') || header.includes('src') || header.includes('image') || header.includes('img')) {
+        if (value.startsWith('http') && !value.includes('data:image/gif')) {
+          imageUrl = value;
+          break;
+        }
+      }
+    }
+    
+    // If no image found by header, look for first http URL that's an image
+    if (!imageUrl) {
+      for (const cell of row) {
+        const value = String(cell || '').trim();
+        if (value.startsWith('http') && (value.includes('.webp') || value.includes('.jpg') || value.includes('.png') || value.includes('.jpeg'))) {
+          imageUrl = value;
+          break;
+        }
+      }
+    }
+
+    // Find title: look for column with 'title' in header
+    for (let i = 0; i < headers.length; i++) {
+      const header = headers[i].toLowerCase();
+      if (header.includes('title') || header.includes('titulo') || header.includes('nome') || header.includes('name')) {
+        title = String(row[i] || '').trim();
+        if (title) break;
+      }
+    }
+    
+    // If no title found by header, use the longest text string
+    if (!title) {
+      let maxLen = 0;
+      for (const cell of row) {
+        const value = String(cell || '').trim();
+        if (value.length > maxLen && !value.startsWith('http') && !value.startsWith('R$') && isNaN(Number(value))) {
+          maxLen = value.length;
+          title = value;
+        }
+      }
+    }
+
+    // Find price: Mercado Livre splits price into multiple columns
+    // Pattern: R$ | integer | , | cents OR just look for "fraction" columns
+    let foundCurrency = false;
+    let priceInteger = '';
+    let priceCents = '';
+    
+    for (let i = 0; i < headers.length; i++) {
+      const header = headers[i].toLowerCase();
+      const value = String(row[i] || '').trim();
+      
+      // Look for first occurrence of R$ (preço à vista)
+      if (value === 'R$' && !foundCurrency) {
+        foundCurrency = true;
+        // Next column should be the integer part
+        if (i + 1 < row.length) {
+          const nextVal = String(row[i + 1] || '').trim();
+          if (/^\d+$/.test(nextVal) || /^\d{1,3}(\.\d{3})*$/.test(nextVal)) {
+            priceInteger = nextVal.replace(/\./g, ''); // Remove thousand separators
+          }
+        }
+        // Look for cents (might be 2-3 columns after)
+        for (let j = i + 2; j < Math.min(i + 5, row.length); j++) {
+          const checkVal = String(row[j] || '').trim();
+          // Cents are typically 2 digits after a comma
+          if (/^\d{1,2}$/.test(checkVal) && checkVal !== '20' && checkVal !== '30' && checkVal !== '35') {
+            priceCents = checkVal;
+            break;
+          }
+        }
+        break;
+      }
+      
+      // Alternative: look for fraction column (andes-money-amount__fraction 2 is usually the main price)
+      if (header.includes('fraction') && header.includes('2') && !priceInteger) {
+        const val = String(row[i] || '').trim();
+        if (/^\d+$/.test(val)) {
+          priceInteger = val;
+        }
+      }
+      
+      // Look for cents column
+      if (header.includes('cents') && !header.includes('3') && !priceCents) {
+        const val = String(row[i] || '').trim();
+        if (/^\d{1,2}$/.test(val)) {
+          priceCents = val;
+        }
+      }
+    }
+    
+    // Build price
+    if (priceInteger) {
+      price = parseFloat(`${priceInteger}.${priceCents || '00'}`);
+    }
+    
+    // Fallback: try to find any number that looks like a price
+    if (price === 0) {
+      for (const cell of row) {
+        const value = String(cell || '').trim();
+        const parsed = parsePrice(value);
+        if (parsed > 0 && parsed < 100000) {
+          price = parsed;
+          break;
+        }
+      }
+    }
+
+    return { imageUrl, title, price };
+  };
+
   // Import from Excel/CSV file (Instant Data Scraper format)
   const handleFileImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -206,24 +326,13 @@ const ExtractProducts = () => {
       // Get headers (first row)
       const headers = jsonData[0].map(h => String(h || '').toLowerCase().trim());
       
-      // Find columns by common patterns (Instant Data Scraper uses various names)
-      const imagePatterns = ['image', 'imagem', 'foto', 'photo', 'img', 'picture', 'thumbnail', 'src'];
-      const titlePatterns = ['title', 'titulo', 'título', 'nome', 'name', 'product', 'produto', 'description', 'descrição'];
-      const pricePatterns = ['price', 'preço', 'preco', 'valor', 'value', 'à vista', 'a vista', 'avista', 'cash'];
+      // Check if this is Mercado Livre format (has specific column names)
+      const isMercadoLivreFormat = headers.some(h => 
+        h.includes('poly-component') || 
+        h.includes('andes-money') || 
+        h.includes('fraction')
+      );
       
-      const imageCol = findColumn(headers, imagePatterns);
-      const titleCol = findColumn(headers, titlePatterns);
-      const priceCol = findColumn(headers, pricePatterns);
-      
-      if (titleCol === -1) {
-        toast({
-          title: "Colunas não encontradas",
-          description: "Não foi possível identificar a coluna de nome/título do produto.",
-          variant: "destructive"
-        });
-        return;
-      }
-
       const products: ParsedProduct[] = [];
       
       // Process rows (skip header)
@@ -231,27 +340,67 @@ const ExtractProducts = () => {
         const row = jsonData[i];
         if (!row || row.length === 0) continue;
         
-        const title = String(row[titleCol] || '').trim();
-        if (!title) continue;
+        let imageUrl = '';
+        let title = '';
+        let costPrice = 0;
         
-        const imageUrl = imageCol >= 0 ? String(row[imageCol] || '').trim() : '';
-        const priceText = priceCol >= 0 ? String(row[priceCol] || '') : '';
-        const costPrice = parsePrice(priceText);
-        
-        // Only add products with valid title
-        if (title.length > 2) {
-          const detected = detectCategory(title);
-          products.push({
-            id: crypto.randomUUID(),
-            imageUrl,
-            title,
-            costPrice,
-            selected: true,
-            detectedCategory: detected.category,
-            isHardware: detected.isHardware
-          });
+        if (isMercadoLivreFormat) {
+          // Use special Mercado Livre parser
+          const parsed = parseMercadoLivreRow(row, headers);
+          imageUrl = parsed.imageUrl;
+          title = parsed.title;
+          costPrice = parsed.price;
+        } else {
+          // Standard parsing for other scrapers
+          const imagePatterns = ['image', 'imagem', 'foto', 'photo', 'img', 'picture', 'thumbnail', 'src'];
+          const titlePatterns = ['title', 'titulo', 'título', 'nome', 'name', 'product', 'produto', 'description', 'descrição'];
+          const pricePatterns = ['price', 'preço', 'preco', 'valor', 'value', 'à vista', 'a vista', 'avista', 'cash'];
+          
+          const imageCol = findColumn(headers, imagePatterns);
+          const titleCol = findColumn(headers, titlePatterns);
+          const priceCol = findColumn(headers, pricePatterns);
+          
+          title = titleCol >= 0 ? String(row[titleCol] || '').trim() : '';
+          imageUrl = imageCol >= 0 ? String(row[imageCol] || '').trim() : '';
+          const priceText = priceCol >= 0 ? String(row[priceCol] || '') : '';
+          costPrice = parsePrice(priceText);
         }
+        
+        // Skip rows without valid title
+        if (!title || title.length < 3) continue;
+        
+        // Skip placeholder images
+        if (imageUrl.startsWith('data:image/gif')) {
+          imageUrl = '';
+        }
+        
+        const detected = detectCategory(title);
+        products.push({
+          id: crypto.randomUUID(),
+          imageUrl,
+          title,
+          costPrice,
+          selected: true,
+          detectedCategory: detected.category,
+          isHardware: detected.isHardware
+        });
       }
+
+      if (products.length === 0) {
+        toast({
+          title: "Nenhum produto encontrado",
+          description: "Não foi possível extrair produtos do arquivo.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      setParsedProducts(prev => [...prev, ...products]);
+      
+      toast({
+        title: "Arquivo importado!",
+        description: `${products.length} produtos extraídos do arquivo.`
+      });
 
       if (products.length === 0) {
         toast({
