@@ -34,6 +34,20 @@ if (!$openaiApiKey) {
     exit;
 }
 
+// Get model from settings
+$stmt = $pdo->prepare("SELECT value FROM settings WHERE `key` = 'bulk_gen_model'");
+$stmt->execute();
+$row = $stmt->fetch(PDO::FETCH_ASSOC);
+$model = $row && $row['value'] ? $row['value'] : 'gpt-4o-mini';
+
+// Model costs per 1M tokens (USD)
+$modelCosts = [
+    'gpt-4o-mini' => ['input' => 0.15, 'output' => 0.60],
+    'gpt-4o' => ['input' => 2.50, 'output' => 10.00],
+    'gpt-4-turbo' => ['input' => 10.00, 'output' => 30.00],
+    'gpt-3.5-turbo' => ['input' => 0.50, 'output' => 1.50],
+];
+
 $input = json_decode(file_get_contents('php://input'), true);
 $products = $input['products'] ?? [];
 $storeText = $input['storeText'] ?? '';
@@ -44,6 +58,8 @@ if (empty($products)) {
 }
 
 $results = [];
+$totalInputTokens = 0;
+$totalOutputTokens = 0;
 
 foreach ($products as $product) {
     $title = $product['title'] ?? '';
@@ -87,7 +103,7 @@ Responda EXATAMENTE neste formato JSON (sem markdown, sem código):
             'Authorization: Bearer ' . $openaiApiKey
         ],
         CURLOPT_POSTFIELDS => json_encode([
-            'model' => 'gpt-4o-mini',
+            'model' => $model,
             'messages' => [
                 ['role' => 'system', 'content' => 'Você é um assistente que gera descrições de produtos. Responda sempre em JSON válido.'],
                 ['role' => 'user', 'content' => $prompt]
@@ -115,6 +131,12 @@ Responda EXATAMENTE neste formato JSON (sem markdown, sem código):
     $data = json_decode($response, true);
     $content = $data['choices'][0]['message']['content'] ?? '';
     
+    // Track token usage
+    if (isset($data['usage'])) {
+        $totalInputTokens += $data['usage']['prompt_tokens'] ?? 0;
+        $totalOutputTokens += $data['usage']['completion_tokens'] ?? 0;
+    }
+    
     // Parse JSON response
     $parsed = json_decode($content, true);
     
@@ -138,7 +160,25 @@ Responda EXATAMENTE neste formato JSON (sem markdown, sem código):
     usleep(200000); // 200ms
 }
 
+// Calculate costs
+$costs = $modelCosts[$model] ?? $modelCosts['gpt-4o-mini'];
+$inputCostUSD = ($totalInputTokens / 1000000) * $costs['input'];
+$outputCostUSD = ($totalOutputTokens / 1000000) * $costs['output'];
+$totalCostUSD = $inputCostUSD + $outputCostUSD;
+
+// Convert to BRL (approximate rate)
+$usdToBrl = 5.0; // You can update this rate
+$totalCostBRL = $totalCostUSD * $usdToBrl;
+
 echo json_encode([
     'success' => true,
-    'results' => $results
+    'results' => $results,
+    'usage' => [
+        'model' => $model,
+        'inputTokens' => $totalInputTokens,
+        'outputTokens' => $totalOutputTokens,
+        'totalTokens' => $totalInputTokens + $totalOutputTokens,
+        'costUSD' => round($totalCostUSD, 6),
+        'costBRL' => round($totalCostBRL, 4)
+    ]
 ]);
