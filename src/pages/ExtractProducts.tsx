@@ -234,9 +234,7 @@ const ExtractProducts = () => {
             <Textarea
               value={rawData}
               onChange={(e) => setRawData(e.target.value)}
-              placeholder={`Cole aqui os dados do scraper (formato tab-separated):
-imageCard src	titulo	preço	...
-https://images.kabum.com.br/...	Gift Card KaBuM: 1.000 Reais	R$ 1.000,00	...`}
+              placeholder="Cole aqui os dados do scraper (formato tab-separated)"
               className="min-h-[200px] font-mono text-xs"
             />
             <Button onClick={parseScraperData} className="w-full">
