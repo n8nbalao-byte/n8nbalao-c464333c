@@ -5,7 +5,9 @@ import { Footer } from "@/components/Footer";
 import { Sidebar } from "@/components/Sidebar";
 import { MediaCarousel } from "@/components/MediaCarousel";
 import { api, type Product, type HardwareItem } from "@/lib/api";
-import { ArrowLeft, Shield, Headphones, Zap, MessageCircle, Cpu, CircuitBoard, MemoryStick, HardDrive, Monitor, Box, Download, Droplets } from "lucide-react";
+import { ArrowLeft, Shield, Headphones, Zap, MessageCircle, Cpu, CircuitBoard, MemoryStick, HardDrive, Monitor, Box, Download, Droplets, ShoppingCart } from "lucide-react";
+import { useCart } from "@/contexts/CartContext";
+import { Button } from "@/components/ui/button";
 
 const componentLabels: Record<string, string> = {
   processor: "Processador",
@@ -37,6 +39,7 @@ export default function Produto() {
   const [product, setProduct] = useState<Product | null>(null);
   const [hardwareDetails, setHardwareDetails] = useState<Record<string, HardwareItem>>({});
   const [loading, setLoading] = useState(true);
+  const { addToCart } = useCart();
 
   useEffect(() => {
     async function fetchProduct() {
@@ -217,15 +220,25 @@ export default function Produto() {
                     Baixar Agora
                   </a>
                 ) : (
-                  <a
-                    href={`https://wa.me/5519981470446?text=Olá! Tenho interesse no produto: ${product.title}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-8 py-4 text-lg font-semibold text-primary-foreground shadow-glow transition-colors hover:bg-primary/90"
-                  >
-                    <MessageCircle className="h-5 w-5" />
-                    Comprar Agora
-                  </a>
+                  <>
+                    <Button
+                      size="lg"
+                      className="gap-2 px-8 py-6 text-lg shadow-glow"
+                      onClick={() => addToCart(product)}
+                    >
+                      <ShoppingCart className="h-5 w-5" />
+                      Adicionar ao Carrinho
+                    </Button>
+                    <a
+                      href={`https://wa.me/5519981470446?text=Olá! Tenho interesse no produto: ${product.title}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center justify-center gap-2 rounded-lg border border-border px-8 py-4 text-lg font-semibold text-foreground transition-colors hover:bg-secondary"
+                    >
+                      <MessageCircle className="h-5 w-5" />
+                      Falar no WhatsApp
+                    </a>
+                  </>
                 )}
                 <Link
                   to="/loja"

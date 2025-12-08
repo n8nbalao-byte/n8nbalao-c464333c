@@ -1,12 +1,16 @@
 import { Link } from "react-router-dom";
 import type { Product } from "@/lib/api";
-import { Download } from "lucide-react";
+import { Download, ShoppingCart } from "lucide-react";
+import { useCart } from "@/contexts/CartContext";
+import { Button } from "@/components/ui/button";
 
 interface ProductCardProps {
   product: Product;
 }
 
 export function ProductCard({ product }: ProductCardProps) {
+  const { addToCart } = useCart();
+
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat("pt-BR", {
       style: "currency",
@@ -15,6 +19,12 @@ export function ProductCard({ product }: ProductCardProps) {
   };
 
   const isAutomacao = product.productType === 'automacao';
+
+  const handleAddToCart = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    addToCart(product);
+  };
 
   return (
     <Link
@@ -49,16 +59,26 @@ export function ProductCard({ product }: ProductCardProps) {
           </p>
         )}
 
-        <div className="mt-auto pt-4">
+        <div className="mt-auto pt-4 flex items-center justify-between gap-2">
           {isAutomacao ? (
             <span className="inline-flex items-center gap-2 text-lg font-bold text-primary">
               <Download className="h-5 w-5" />
               Download Grátis
             </span>
           ) : (
-            <span className="text-2xl font-bold text-primary">
-              {formatPrice(product.totalPrice)}
-            </span>
+            <>
+              <span className="text-xl font-bold text-primary">
+                {formatPrice(product.totalPrice)}
+              </span>
+              <Button
+                size="icon"
+                variant="secondary"
+                className="h-9 w-9 shrink-0"
+                onClick={handleAddToCart}
+              >
+                <ShoppingCart className="h-4 w-4" />
+              </Button>
+            </>
           )}
         </div>
       </div>

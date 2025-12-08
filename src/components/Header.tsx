@@ -1,6 +1,9 @@
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import logo from "@/assets/logo-white.svg";
+import { ShoppingCart } from "lucide-react";
+import { useCart } from "@/contexts/CartContext";
+import { Button } from "@/components/ui/button";
 
 const navLinks = [
   { href: "/", label: "Início" },
@@ -13,6 +16,7 @@ const navLinks = [
 
 export function Header() {
   const location = useLocation();
+  const { totalItems, setIsOpen } = useCart();
 
   return (
     <header className="sticky top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-md">
@@ -37,6 +41,20 @@ export function Header() {
             </Link>
           ))}
         </nav>
+
+        <Button
+          variant="ghost"
+          size="icon"
+          className="relative"
+          onClick={() => setIsOpen(true)}
+        >
+          <ShoppingCart className="h-5 w-5" />
+          {totalItems > 0 && (
+            <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
+              {totalItems}
+            </span>
+          )}
+        </Button>
       </div>
     </header>
   );
