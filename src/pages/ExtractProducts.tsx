@@ -227,7 +227,7 @@ const ExtractProducts = () => {
       if (!categoryExists) {
         // Create the category automatically
         const categoryLabel = category.charAt(0).toUpperCase() + category.slice(1).replace(/_/g, ' ');
-        await addCustomCategory(category, categoryLabel, 'Package');
+        await addCustomCategory(category, categoryLabel, 'Box');
         console.log(`Categoria "${categoryLabel}" criada automaticamente`);
       }
       
