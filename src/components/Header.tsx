@@ -11,8 +11,7 @@ const navLinks = [
   { href: "/automacao#pricing", label: "Preços", scrollTo: "pricing", targetPath: "/automacao" },
   { href: "/automacao#benefits", label: "Benefícios", scrollTo: "benefits", targetPath: "/automacao" },
   { href: "/automacao#testimonials", label: "Depoimentos", scrollTo: "testimonials", targetPath: "/automacao" },
-  { href: "/loja", label: "Loja", scrollTo: null },
-  { href: "/monte-voce-mesmo", label: "Monte Você Mesmo", scrollTo: null },
+  { href: "/loja?category=automacao", label: "Loja", scrollTo: null },
 ];
 
 export function Header() {
