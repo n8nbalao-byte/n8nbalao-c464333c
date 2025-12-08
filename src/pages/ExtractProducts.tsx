@@ -11,7 +11,7 @@ import { api, getCustomCategories, CustomCategory } from "@/lib/api";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { RedWhiteHeader } from "@/components/RedWhiteHeader";
+
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import * as XLSX from "xlsx";
 
@@ -427,8 +427,7 @@ const ExtractProducts = () => {
   const totalSale = parsedProducts.filter(p => p.selected).reduce((sum, p) => sum + calculateFinalPrice(p.costPrice), 0);
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: '#FEF2F2' }}>
-      <RedWhiteHeader hideCart />
+    <div className="min-h-screen bg-background text-foreground">
       
       <div className="container py-8 space-y-6">
         {/* Header */}
