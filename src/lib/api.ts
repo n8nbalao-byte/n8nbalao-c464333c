@@ -136,6 +136,41 @@ export interface CompanyData {
   logo: string;
 }
 
+export interface Customer {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  cpf?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  cep?: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface Order {
+  id: string;
+  customerId: string;
+  customerName?: string;
+  customerEmail?: string;
+  customerPhone?: string;
+  items: OrderItem[];
+  totalPrice: number;
+  status: 'pending' | 'confirmed' | 'shipped' | 'delivered' | 'cancelled';
+  notes?: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface OrderItem {
+  productId: string;
+  title: string;
+  price: number;
+  quantity: number;
+}
+
 export const api = {
   // Fetch all products
   async getProducts(): Promise<Product[]> {
@@ -312,6 +347,90 @@ export const api = {
       return response.ok;
     } catch (error) {
       console.error('Error saving company:', error);
+      return false;
+    }
+  },
+
+  // Customer endpoints
+  async getCustomers(): Promise<Customer[]> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/customers.php`);
+      if (!response.ok) throw new Error('Failed to fetch customers');
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching customers:', error);
+      return [];
+    }
+  },
+
+  async getCustomer(id: string): Promise<Customer | null> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/customers.php?id=${id}`);
+      if (!response.ok) throw new Error('Customer not found');
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching customer:', error);
+      return null;
+    }
+  },
+
+  async deleteCustomer(id: string): Promise<boolean> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/customers.php?id=${id}`, {
+        method: 'DELETE',
+      });
+      return response.ok;
+    } catch (error) {
+      console.error('Error deleting customer:', error);
+      return false;
+    }
+  },
+
+  // Order endpoints
+  async getOrders(): Promise<Order[]> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/orders.php`);
+      if (!response.ok) throw new Error('Failed to fetch orders');
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching orders:', error);
+      return [];
+    }
+  },
+
+  async getOrder(id: string): Promise<Order | null> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/orders.php?id=${id}`);
+      if (!response.ok) throw new Error('Order not found');
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching order:', error);
+      return null;
+    }
+  },
+
+  async updateOrderStatus(id: string, status: Order['status'], notes?: string): Promise<boolean> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/orders.php?id=${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status, notes }),
+      });
+      return response.ok;
+    } catch (error) {
+      console.error('Error updating order:', error);
+      return false;
+    }
+  },
+
+  async deleteOrder(id: string): Promise<boolean> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/orders.php?id=${id}`, {
+        method: 'DELETE',
+      });
+      return response.ok;
+    } catch (error) {
+      console.error('Error deleting order:', error);
       return false;
     }
   },
