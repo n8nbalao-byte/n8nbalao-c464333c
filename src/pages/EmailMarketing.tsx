@@ -21,14 +21,8 @@ const EmailMarketing = () => {
   const [sendResults, setSendResults] = useState<{ email: string; success: boolean }[]>([]);
 
   useEffect(() => {
-    // Check admin auth
-    const isAdmin = sessionStorage.getItem('adminLoggedIn');
-    if (!isAdmin) {
-      navigate('/admin');
-      return;
-    }
     fetchCustomers();
-  }, [navigate]);
+  }, []);
 
   const fetchCustomers = async () => {
     try {
