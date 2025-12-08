@@ -151,53 +151,39 @@ export default function Home() {
         />
       </section>
 
-      {/* Category Cards */}
-      <section className="py-8 bg-gray-50">
+      {/* Category Cards - Dynamic Single Row */}
+      <section className="py-6 bg-gray-50">
         <div className="container">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Link to="/monte-voce-mesmo" className="group bg-white rounded-xl p-4 shadow-sm hover:shadow-md transition-all border border-gray-100 flex items-center gap-4">
-              <div className="w-16 h-16 bg-primary/10 rounded-lg flex items-center justify-center">
-                <Cpu className="h-8 w-8 text-primary" />
+          <div className="flex items-center gap-3 overflow-x-auto pb-2 scrollbar-hide">
+            <Link 
+              to="/monte-voce-mesmo" 
+              className="shrink-0 group bg-white rounded-xl px-4 py-3 shadow-sm hover:shadow-md transition-all border border-gray-100 flex items-center gap-3"
+            >
+              <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
+                <Cpu className="h-5 w-5 text-primary" />
               </div>
               <div>
-                <span className="text-xs text-gray-500">MONTE O SEU</span>
-                <h3 className="font-bold text-primary text-lg">PC CUSTOM</h3>
-                <span className="text-xs text-gray-500">Do seu jeito</span>
+                <h3 className="font-bold text-primary text-sm whitespace-nowrap">MONTE SEU PC</h3>
               </div>
             </Link>
             
-            <Link to="/loja?category=pc" className="group bg-white rounded-xl p-4 shadow-sm hover:shadow-md transition-all border border-gray-100 flex items-center gap-4">
-              <div className="w-16 h-16 bg-primary/10 rounded-lg flex items-center justify-center">
-                <Monitor className="h-8 w-8 text-primary" />
-              </div>
-              <div>
-                <span className="text-xs text-gray-500">COMPRE PRONTO</span>
-                <h3 className="font-bold text-primary text-lg">PC GAMER</h3>
-                <span className="text-xs text-gray-500">Para jogar</span>
-              </div>
-            </Link>
-            
-            <Link to="/loja?category=notebook" className="group bg-white rounded-xl p-4 shadow-sm hover:shadow-md transition-all border border-gray-100 flex items-center gap-4">
-              <div className="w-16 h-16 bg-primary/10 rounded-lg flex items-center justify-center">
-                <Laptop className="h-8 w-8 text-primary" />
-              </div>
-              <div>
-                <span className="text-xs text-gray-500">MOBILIDADE</span>
-                <h3 className="font-bold text-primary text-lg">NOTEBOOKS</h3>
-                <span className="text-xs text-gray-500">Para levar</span>
-              </div>
-            </Link>
-            
-            <Link to="/automacao" className="group bg-white rounded-xl p-4 shadow-sm hover:shadow-md transition-all border border-gray-100 flex items-center gap-4">
-              <div className="w-16 h-16 bg-primary/10 rounded-lg flex items-center justify-center">
-                <Bot className="h-8 w-8 text-primary" />
-              </div>
-              <div>
-                <span className="text-xs text-gray-500">AUTOMATIZE</span>
-                <h3 className="font-bold text-primary text-lg">AUTOMAÇÃO</h3>
-                <span className="text-xs text-gray-500">Seu negócio</span>
-              </div>
-            </Link>
+            {categoryConfig.map((cat) => {
+              const Icon = cat.icon;
+              return (
+                <Link 
+                  key={cat.key}
+                  to={`/loja?category=${cat.key}`} 
+                  className="shrink-0 group bg-white rounded-xl px-4 py-3 shadow-sm hover:shadow-md transition-all border border-gray-100 flex items-center gap-3"
+                >
+                  <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
+                    <Icon className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-primary text-sm whitespace-nowrap">{cat.label.toUpperCase()}</h3>
+                  </div>
+                </Link>
+              );
+            })}
           </div>
         </div>
       </section>
