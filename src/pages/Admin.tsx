@@ -4362,7 +4362,7 @@ export default function Admin() {
         </div>
       )}
 
-      <RedWhiteFooter hideFooter />
+      <RedWhiteFooter />
     </div>
   );
 }
