@@ -230,6 +230,31 @@ export default function Loja() {
             </button>
           </div>
         </div>
+
+        {/* Category Navigation Bar */}
+        <nav className="bg-gray-100 border-t border-gray-200">
+          <div className="container">
+            <div className="flex items-center gap-1 overflow-x-auto py-2 scrollbar-hide">
+              {productTypes.map((type) => {
+                const Icon = type.icon;
+                const isActive = selectedType === type.key;
+                return (
+                  <button
+                    key={type.key}
+                    onClick={() => handleTypeSelect(type.key)}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors whitespace-nowrap font-medium ${
+                      isActive ? 'bg-white' : 'text-gray-700 hover:bg-white'
+                    }`}
+                    style={isActive ? { color: '#DC2626' } : {}}
+                  >
+                    <Icon className="h-4 w-4" />
+                    {type.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </nav>
       </header>
 
       <main className="py-12 bg-gray-50">
@@ -240,28 +265,6 @@ export default function Loja() {
             <p className="mt-2 text-gray-600">
               Escolha o produto ideal para suas necessidades
             </p>
-          </div>
-
-          {/* Product Type Tabs */}
-          <div className="mb-6 flex flex-wrap gap-2">
-            {productTypes.map((type) => {
-              const Icon = type.icon;
-              return (
-                <button
-                  key={type.key}
-                  onClick={() => handleTypeSelect(type.key)}
-                  className={`inline-flex items-center gap-2 rounded-lg px-5 py-3 font-medium transition-colors ${
-                    selectedType === type.key
-                      ? "text-white"
-                      : "bg-white text-gray-700 border border-gray-200 hover:bg-gray-50"
-                  }`}
-                  style={selectedType === type.key ? { backgroundColor: '#DC2626' } : {}}
-                >
-                  <Icon className="h-5 w-5" />
-                  {type.label}
-                </button>
-              );
-            })}
           </div>
 
           {/* Hardware Subcategories */}
