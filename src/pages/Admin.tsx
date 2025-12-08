@@ -170,6 +170,7 @@ export default function Admin() {
   const [productSortColumn, setProductSortColumn] = useState<'title' | 'type' | 'price'>('title');
   const [productSortDirection, setProductSortDirection] = useState<'asc' | 'desc'>('asc');
   const [productSearchTerm, setProductSearchTerm] = useState("");
+  const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set());
 
   // Hardware state
   const [activeHardwareCategory, setActiveHardwareCategory] = useState<HardwareCategory>('processor');
@@ -644,6 +645,45 @@ export default function Admin() {
       } else {
         toast({ title: "Erro", description: "Falha ao excluir produto", variant: "destructive" });
       }
+    }
+  }
+
+  async function handleBulkDeleteProducts() {
+    if (selectedProducts.size === 0) return;
+    
+    if (confirm(`Tem certeza que deseja excluir ${selectedProducts.size} produto(s)?`)) {
+      let successCount = 0;
+      for (const id of selectedProducts) {
+        const success = await api.deleteProduct(id);
+        if (success) successCount++;
+      }
+      
+      toast({ 
+        title: "Sucesso", 
+        description: `${successCount} produto(s) excluído(s)!` 
+      });
+      setSelectedProducts(new Set());
+      fetchProductsData();
+    }
+  }
+
+  function toggleProductSelection(id: string) {
+    setSelectedProducts(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(id)) {
+        newSet.delete(id);
+      } else {
+        newSet.add(id);
+      }
+      return newSet;
+    });
+  }
+
+  function toggleAllProducts() {
+    if (selectedProducts.size === products.length) {
+      setSelectedProducts(new Set());
+    } else {
+      setSelectedProducts(new Set(products.map(p => p.id)));
     }
   }
 
@@ -1549,6 +1589,15 @@ export default function Admin() {
                   />
                 </div>
                 <div className="flex gap-2">
+                  {selectedProducts.size > 0 && (
+                    <button
+                      onClick={handleBulkDeleteProducts}
+                      className="inline-flex items-center gap-2 rounded-lg bg-destructive px-4 py-2 text-sm font-medium text-destructive-foreground transition-colors hover:bg-destructive/80"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      Excluir ({selectedProducts.size})
+                    </button>
+                  )}
                   <button
                     onClick={downloadProductExcelTemplate}
                     className="inline-flex items-center gap-2 rounded-lg bg-secondary px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-secondary/80"
@@ -1576,7 +1625,15 @@ export default function Admin() {
                   <table className="w-full">
                     <thead className="border-b border-border bg-secondary">
                       <tr>
-                        <th className="px-6 py-4 text-left text-sm font-semibold text-foreground">Mídia</th>
+                        <th className="px-4 py-4 text-left">
+                          <input
+                            type="checkbox"
+                            checked={products.length > 0 && selectedProducts.size === products.length}
+                            onChange={toggleAllProducts}
+                            className="h-4 w-4 rounded border-border text-primary focus:ring-primary"
+                          />
+                        </th>
+                        <th className="px-4 py-4 text-left text-sm font-semibold text-foreground">Mídia</th>
                         <th 
                           className="px-6 py-4 text-left text-sm font-semibold text-foreground cursor-pointer hover:text-primary transition-colors"
                           onClick={() => {
@@ -1645,8 +1702,16 @@ export default function Admin() {
                         const typeInfo = productTypes.find(t => t.key === product.productType);
                         const TypeIcon = typeInfo?.icon || Tag;
                         return (
-                          <tr key={product.id} className="hover:bg-secondary/50">
-                            <td className="px-6 py-4">
+                          <tr key={product.id} className={`hover:bg-secondary/50 ${selectedProducts.has(product.id) ? 'bg-primary/10' : ''}`}>
+                            <td className="px-4 py-4">
+                              <input
+                                type="checkbox"
+                                checked={selectedProducts.has(product.id)}
+                                onChange={() => toggleProductSelection(product.id)}
+                                className="h-4 w-4 rounded border-border text-primary focus:ring-primary"
+                              />
+                            </td>
+                            <td className="px-4 py-4">
                               <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-lg bg-secondary">
                                 {product.media?.[0]?.type === 'video' ? (
                                   <Play className="h-6 w-6 text-muted-foreground" />
@@ -1661,17 +1726,17 @@ export default function Admin() {
                                 )}
                               </div>
                             </td>
-                            <td className="px-6 py-4 font-medium text-foreground">{product.title}</td>
-                            <td className="px-6 py-4">
+                            <td className="px-4 py-4 font-medium text-foreground">{product.title}</td>
+                            <td className="px-4 py-4">
                               <div className="flex items-center gap-2 text-muted-foreground">
                                 <TypeIcon className="h-4 w-4" />
                                 {typeInfo?.label || product.productType || 'Sem tipo'}
                               </div>
                             </td>
-                            <td className="px-6 py-4 font-semibold text-primary">
+                            <td className="px-4 py-4 font-semibold text-primary">
                               {product.productType === 'automacao' ? 'Download' : formatPrice(product.totalPrice)}
                             </td>
-                            <td className="px-6 py-4">
+                            <td className="px-4 py-4">
                               <div className="flex justify-end gap-2">
                                 <button
                                   onClick={() => openProductEditor(product)}
@@ -1692,7 +1757,7 @@ export default function Admin() {
                       })}
                       {products.length === 0 && (
                         <tr>
-                          <td colSpan={5} className="px-6 py-12 text-center text-muted-foreground">
+                          <td colSpan={6} className="px-6 py-12 text-center text-muted-foreground">
                             Nenhum produto cadastrado.
                           </td>
                         </tr>
