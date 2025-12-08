@@ -1,0 +1,59 @@
+import { useState } from 'react';
+import { MessageCircle } from 'lucide-react';
+import LorenzoChat from './LorenzoChat';
+
+interface LorenzoChatWidgetProps {
+  customerId?: string;
+}
+
+const LorenzoChatWidget = ({ customerId }: LorenzoChatWidgetProps) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [hasNewMessage, setHasNewMessage] = useState(true);
+
+  const handleOpen = () => {
+    setIsOpen(true);
+    setHasNewMessage(false);
+  };
+
+  return (
+    <>
+      {/* Floating Button */}
+      {!isOpen && (
+        <button
+          onClick={handleOpen}
+          className="fixed bottom-6 right-6 z-50 w-16 h-16 bg-gradient-to-br from-red-500 to-red-700 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110 flex items-center justify-center group"
+          aria-label="Abrir chat com Lorenzo"
+        >
+          <MessageCircle className="w-7 h-7 text-white" />
+          
+          {/* Pulse animation */}
+          <span className="absolute w-full h-full rounded-full bg-red-500 animate-ping opacity-30" />
+          
+          {/* Notification badge */}
+          {hasNewMessage && (
+            <span className="absolute -top-1 -right-1 w-5 h-5 bg-green-500 rounded-full flex items-center justify-center text-white text-xs font-bold border-2 border-white">
+              1
+            </span>
+          )}
+
+          {/* Tooltip */}
+          <div className="absolute bottom-full right-0 mb-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
+            <div className="bg-gray-900 text-white text-sm px-3 py-2 rounded-lg whitespace-nowrap shadow-lg">
+              Fale com o Lorenzo 🎈
+              <div className="absolute bottom-0 right-4 transform translate-y-1/2 rotate-45 w-2 h-2 bg-gray-900" />
+            </div>
+          </div>
+        </button>
+      )}
+
+      {/* Chat Component */}
+      <LorenzoChat 
+        isOpen={isOpen} 
+        onClose={() => setIsOpen(false)}
+        customerId={customerId}
+      />
+    </>
+  );
+};
+
+export default LorenzoChatWidget;

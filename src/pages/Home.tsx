@@ -9,6 +9,7 @@ import { ViewModeSelector } from "@/components/ViewModeSelector";
 import { Button } from "@/components/ui/button";
 import { HomeCarousel } from "@/components/HomeCarousel";
 import { CategorySidebar } from "@/components/CategorySidebar";
+import LorenzoChatWidget from "@/components/LorenzoChatWidget";
 import balaoLogo from "@/assets/balao-logo.png";
 
 const baseCategoryConfig = [
@@ -485,6 +486,9 @@ export default function Home() {
           </div>
         </div>
       </footer>
+
+      {/* Lorenzo Chat Widget */}
+      <LorenzoChatWidget />
     </div>
   );
 }
