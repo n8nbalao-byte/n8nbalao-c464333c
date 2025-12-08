@@ -4,21 +4,21 @@ import { Footer } from "@/components/Footer";
 import { StarryBackground } from "@/components/StarryBackground";
 import { ProductCard } from "@/components/ProductCard";
 import { HardwareCard } from "@/components/HardwareCard";
-import { api, type Product, type HardwareItem, getCustomCategories } from "@/lib/api";
+import { api, type Product, type HardwareItem, getCustomCategories, getHardwareCategories, type HardwareCategoryDef } from "@/lib/api";
 import { getIconFromKey } from "@/lib/icons";
 import { Search, ArrowUpDown, Package, Cpu, ChevronLeft } from "lucide-react";
 
 type ProductType = 'all' | 'hardware' | string;
 
-const hardwareCategories = [
-  { key: 'processor', label: 'Processadores', icon: Cpu },
-  { key: 'motherboard', label: 'Placas-mãe', icon: Cpu },
-  { key: 'memory', label: 'Memórias', icon: Cpu },
-  { key: 'storage', label: 'Armazenamento', icon: Cpu },
-  { key: 'gpu', label: 'Placas de Vídeo', icon: Cpu },
-  { key: 'cooler', label: 'Coolers', icon: Cpu },
-  { key: 'psu', label: 'Fontes', icon: Cpu },
-  { key: 'case', label: 'Gabinetes', icon: Cpu },
+const defaultHardwareCategories: HardwareCategoryDef[] = [
+  { key: 'processor', label: 'Processadores', icon: 'cpu', filters: [{ field: 'socket', label: 'Socket', options: ['LGA1700', 'LGA1200', 'LGA1155', 'LGA1150', 'LGA1151', 'AM4', 'AM5', 'AM3+'] }] },
+  { key: 'motherboard', label: 'Placas-mãe', icon: 'cpu', filters: [{ field: 'socket', label: 'Socket', options: ['LGA1700', 'LGA1200', 'LGA1155', 'LGA1150', 'LGA1151', 'AM4', 'AM5', 'AM3+'] }, { field: 'memoryType', label: 'Tipo de Memória', options: ['DDR3', 'DDR4', 'DDR5'] }] },
+  { key: 'memory', label: 'Memórias', icon: 'cpu', filters: [{ field: 'memoryType', label: 'Tipo de Memória', options: ['DDR3', 'DDR4', 'DDR5'] }] },
+  { key: 'storage', label: 'Armazenamento', icon: 'cpu', filters: [{ field: 'formFactor', label: 'Tipo', options: ['SSD SATA', 'SSD NVMe', 'HDD'] }] },
+  { key: 'gpu', label: 'Placas de Vídeo', icon: 'cpu' },
+  { key: 'cooler', label: 'Coolers', icon: 'cpu' },
+  { key: 'psu', label: 'Fontes', icon: 'cpu', filters: [{ field: 'tdp', label: 'Potência', options: ['500W', '600W', '700W', '800W', '1000W+'] }] },
+  { key: 'case', label: 'Gabinetes', icon: 'cpu', filters: [{ field: 'formFactor', label: 'Form Factor', options: ['ATX', 'Micro-ATX', 'Mini-ITX'] }] },
 ];
 
 export default function Loja() {
@@ -28,18 +28,33 @@ export default function Loja() {
   const [search, setSearch] = useState("");
   const [selectedType, setSelectedType] = useState<ProductType>("all");
   const [selectedHardwareCategory, setSelectedHardwareCategory] = useState<string | null>(null);
+  const [selectedFilters, setSelectedFilters] = useState<Record<string, string>>({});
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [productTypes, setProductTypes] = useState<{ key: ProductType; label: string; icon: React.ElementType }[]>([]);
+  const [hardwareCategoriesList, setHardwareCategoriesList] = useState<HardwareCategoryDef[]>(defaultHardwareCategories);
 
   useEffect(() => {
     async function fetchData() {
-      const [productsData, hardwareData, customCategories] = await Promise.all([
+      const [productsData, hardwareData, customCategories, dbHardwareCategories] = await Promise.all([
         api.getProducts(),
         api.getHardware(),
-        getCustomCategories()
+        getCustomCategories(),
+        getHardwareCategories()
       ]);
       setProducts(productsData);
       setHardware(hardwareData);
+      
+      // Merge default hardware categories with database ones
+      const mergedHardwareCategories = [...defaultHardwareCategories];
+      dbHardwareCategories.forEach(dbCat => {
+        const existingIndex = mergedHardwareCategories.findIndex(c => c.key === dbCat.key);
+        if (existingIndex >= 0) {
+          mergedHardwareCategories[existingIndex] = { ...mergedHardwareCategories[existingIndex], ...dbCat };
+        } else {
+          mergedHardwareCategories.push(dbCat);
+        }
+      });
+      setHardwareCategoriesList(mergedHardwareCategories);
       
       // Categories to exclude from display
       const excludedCategories = ['games', 'console', 'controle', 'controles'];
@@ -64,6 +79,9 @@ export default function Loja() {
     }
     fetchData();
   }, []);
+
+  // Get current hardware category definition
+  const currentHardwareCategory = hardwareCategoriesList.find(c => c.key === selectedHardwareCategory);
 
   const filteredProducts = products
     .filter((product) => {
@@ -94,7 +112,30 @@ export default function Loja() {
       
       const matchesCategory = !selectedHardwareCategory || item.category === selectedHardwareCategory;
       
-      return matchesSearch && matchesCategory;
+      // Apply dynamic filters
+      let matchesFilters = true;
+      if (currentHardwareCategory?.filters && Object.keys(selectedFilters).length > 0) {
+        for (const [filterKey, filterValue] of Object.entries(selectedFilters)) {
+          if (filterValue && filterValue !== 'all') {
+            if (filterKey === 'tdp') {
+              // Special handling for power/TDP filter
+              const itemTdp = item.tdp || 0;
+              if (filterValue === '1000W+') {
+                matchesFilters = matchesFilters && itemTdp >= 1000;
+              } else {
+                const targetWattage = parseInt(filterValue.replace('W', ''));
+                matchesFilters = matchesFilters && itemTdp >= targetWattage - 100 && itemTdp <= targetWattage;
+              }
+            } else {
+              // Direct field match for socket, memoryType, formFactor
+              const itemValue = (item as any)[filterKey];
+              matchesFilters = matchesFilters && itemValue?.toLowerCase() === filterValue.toLowerCase();
+            }
+          }
+        }
+      }
+      
+      return matchesSearch && matchesCategory && matchesFilters;
     })
     .sort((a, b) => {
       if (sortOrder === "asc") {
@@ -107,11 +148,13 @@ export default function Loja() {
     setSelectedType(type);
     if (type !== 'hardware') {
       setSelectedHardwareCategory(null);
+      setSelectedFilters({});
     }
   };
 
   const handleHardwareCategorySelect = (category: string) => {
     setSelectedHardwareCategory(category);
+    setSelectedFilters({});
   };
 
   const isHardwareMode = selectedType === 'hardware';
@@ -165,7 +208,7 @@ export default function Loja() {
                     Voltar
                   </button>
                 )}
-                {hardwareCategories.map((cat) => {
+                {hardwareCategoriesList.map((cat) => {
                   const count = hardware.filter(h => h.category === cat.key).length;
                   return (
                     <button
@@ -185,6 +228,27 @@ export default function Loja() {
                   );
                 })}
               </div>
+
+              {/* Hardware Filters */}
+              {selectedHardwareCategory && currentHardwareCategory?.filters && currentHardwareCategory.filters.length > 0 && (
+                <div className="mt-4 flex flex-wrap gap-4 p-4 bg-card/50 rounded-lg border border-border">
+                  {currentHardwareCategory.filters.map((filter) => (
+                    <div key={filter.field} className="flex items-center gap-2">
+                      <label className="text-sm font-medium text-muted-foreground">{filter.label}:</label>
+                      <select
+                        value={selectedFilters[filter.field] || 'all'}
+                        onChange={(e) => setSelectedFilters(prev => ({ ...prev, [filter.field]: e.target.value }))}
+                        className="rounded-lg border border-border bg-background px-3 py-1.5 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                      >
+                        <option value="all">Todos</option>
+                        {filter.options.map((opt) => (
+                          <option key={opt} value={opt}>{opt}</option>
+                        ))}
+                      </select>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
