@@ -667,7 +667,6 @@ export default function MonteVoceMesmo() {
           <Link to="/"><img src={balaoLogo} alt="Balão da Informática" className="h-12" /></Link>
           <Link to="/loja" className="text-primary hover:underline font-medium">Ver Loja</Link>
         </div>
-        <CategoryNavbar showMonteSeuPC={false} />
       </header>
       
       <main className="flex-1 container py-8">
