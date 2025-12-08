@@ -65,7 +65,7 @@ export default function Automacao() {
   };
 
   return (
-    <div className="min-h-screen relative dark bg-background text-foreground">
+    <div className="min-h-screen relative">
       <StarryBackground />
       <Header />
       <Sidebar />

@@ -8,7 +8,9 @@ import { useState, useEffect } from "react";
 
 const navLinks = [
   { href: "/", label: "Início", scrollTo: null },
-  { href: "/automacao", label: "Automação", scrollTo: null },
+  { href: "/#pricing", label: "Preços", scrollTo: "pricing" },
+  { href: "/#benefits", label: "Benefícios", scrollTo: "benefits" },
+  { href: "/#testimonials", label: "Depoimentos", scrollTo: "testimonials" },
   { href: "/loja", label: "Loja", scrollTo: null },
   { href: "/monte-voce-mesmo", label: "Monte Você Mesmo", scrollTo: null },
 ];
