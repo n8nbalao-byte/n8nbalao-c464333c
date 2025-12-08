@@ -1821,7 +1821,8 @@ export default function Admin() {
               )}
               <button
                 onClick={handleLogout}
-                className="rounded-lg border border-border px-4 py-3 text-foreground transition-colors hover:bg-secondary"
+                className="rounded-lg border-2 px-4 py-3 font-semibold transition-colors hover:opacity-90"
+                style={{ borderColor: '#DC2626', color: '#DC2626', backgroundColor: 'white' }}
               >
                 Sair
               </button>
@@ -1832,66 +1833,60 @@ export default function Admin() {
           <div className="mb-4 flex flex-wrap gap-2">
             <button
               onClick={() => setActiveTab('dashboard')}
-              className={`inline-flex items-center gap-2 rounded-lg px-6 py-3 font-medium transition-colors ${
-                activeTab === 'dashboard'
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-secondary text-foreground hover:bg-secondary/80"
-              }`}
+              className="inline-flex items-center gap-2 rounded-lg px-6 py-3 font-medium transition-colors"
+              style={activeTab === 'dashboard' 
+                ? { backgroundColor: '#DC2626', color: 'white' } 
+                : { backgroundColor: 'white', color: '#374151', border: '1px solid #E5E7EB' }}
             >
               <LayoutDashboard className="h-5 w-5" />
               Dashboard
             </button>
             <button
               onClick={() => setActiveTab('products')}
-              className={`inline-flex items-center gap-2 rounded-lg px-6 py-3 font-medium transition-colors ${
-                activeTab === 'products'
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-secondary text-foreground hover:bg-secondary/80"
-              }`}
+              className="inline-flex items-center gap-2 rounded-lg px-6 py-3 font-medium transition-colors"
+              style={activeTab === 'products' 
+                ? { backgroundColor: '#DC2626', color: 'white' } 
+                : { backgroundColor: 'white', color: '#374151', border: '1px solid #E5E7EB' }}
             >
               <Package className="h-5 w-5" />
               Produtos
             </button>
             <button
               onClick={() => setActiveTab('hardware')}
-              className={`inline-flex items-center gap-2 rounded-lg px-6 py-3 font-medium transition-colors ${
-                activeTab === 'hardware'
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-secondary text-foreground hover:bg-secondary/80"
-              }`}
+              className="inline-flex items-center gap-2 rounded-lg px-6 py-3 font-medium transition-colors"
+              style={activeTab === 'hardware' 
+                ? { backgroundColor: '#DC2626', color: 'white' } 
+                : { backgroundColor: 'white', color: '#374151', border: '1px solid #E5E7EB' }}
             >
               <Cpu className="h-5 w-5" />
               Hardware (PC)
             </button>
             <button
               onClick={() => setActiveTab('company')}
-              className={`inline-flex items-center gap-2 rounded-lg px-6 py-3 font-medium transition-colors ${
-                activeTab === 'company'
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-secondary text-foreground hover:bg-secondary/80"
-              }`}
+              className="inline-flex items-center gap-2 rounded-lg px-6 py-3 font-medium transition-colors"
+              style={activeTab === 'company' 
+                ? { backgroundColor: '#DC2626', color: 'white' } 
+                : { backgroundColor: 'white', color: '#374151', border: '1px solid #E5E7EB' }}
             >
               <Building2 className="h-5 w-5" />
               Dados da Empresa
             </button>
             <button
               onClick={() => setActiveTab('carousels')}
-              className={`inline-flex items-center gap-2 rounded-lg px-6 py-3 font-medium transition-colors ${
-                activeTab === 'carousels'
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-secondary text-foreground hover:bg-secondary/80"
-              }`}
+              className="inline-flex items-center gap-2 rounded-lg px-6 py-3 font-medium transition-colors"
+              style={activeTab === 'carousels' 
+                ? { backgroundColor: '#DC2626', color: 'white' } 
+                : { backgroundColor: 'white', color: '#374151', border: '1px solid #E5E7EB' }}
             >
               <Images className="h-5 w-5" />
               Carrosséis
             </button>
             <button
               onClick={() => setActiveTab('admins')}
-              className={`inline-flex items-center gap-2 rounded-lg px-6 py-3 font-medium transition-colors ${
-                activeTab === 'admins'
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-secondary text-foreground hover:bg-secondary/80"
-              }`}
+              className="inline-flex items-center gap-2 rounded-lg px-6 py-3 font-medium transition-colors"
+              style={activeTab === 'admins' 
+                ? { backgroundColor: '#DC2626', color: 'white' } 
+                : { backgroundColor: 'white', color: '#374151', border: '1px solid #E5E7EB' }}
             >
               <Users className="h-5 w-5" />
               Administradores
@@ -1900,7 +1895,7 @@ export default function Admin() {
 
           {/* Categories display with edit on click */}
           <div className="mb-6 flex flex-wrap gap-2">
-            <span className="text-sm text-muted-foreground self-center mr-2">Categorias:</span>
+            <span className="text-sm self-center mr-2" style={{ color: '#6B7280' }}>Categorias:</span>
             {customCategoriesList.map((cat) => {
               const Icon = getIconFromKey(cat.icon || 'tag');
               return (
@@ -1912,7 +1907,8 @@ export default function Admin() {
                     setEditCategoryIcon(cat.icon || 'tag');
                     setShowEditCategoryModal(true);
                   }}
-                  className="inline-flex items-center gap-2 rounded-lg px-4 py-2 font-medium transition-colors bg-secondary text-secondary-foreground hover:bg-primary/20 group relative text-sm cursor-pointer"
+                  className="inline-flex items-center gap-2 rounded-lg px-4 py-2 font-medium transition-colors group relative text-sm cursor-pointer"
+                  style={{ backgroundColor: 'white', color: '#374151', border: '1px solid #E5E7EB' }}
                   title="Clique para editar"
                 >
                   <Icon className="h-4 w-4" />
@@ -1927,7 +1923,8 @@ export default function Admin() {
                         toast({ title: "Categoria removida" });
                       }
                     }}
-                    className="h-4 w-4 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive/80 cursor-pointer ml-1"
+                    className="h-4 w-4 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer ml-1"
+                    style={{ backgroundColor: '#DC2626', color: 'white' }}
                   >
                     <X className="h-3 w-3" />
                   </span>
@@ -1942,7 +1939,8 @@ export default function Admin() {
                 setNewCategoryIcon("tag");
                 setShowNewCategoryModal(true);
               }}
-              className="inline-flex items-center gap-2 rounded-lg px-4 py-2 font-medium transition-colors bg-primary text-primary-foreground hover:bg-primary/90 text-sm"
+              className="inline-flex items-center gap-2 rounded-lg px-4 py-2 font-medium transition-colors text-sm text-white hover:opacity-90"
+              style={{ backgroundColor: '#DC2626' }}
             >
               <Plus className="h-4 w-4" />
               Adicionar Categoria
@@ -2500,6 +2498,190 @@ export default function Admin() {
           {/* Carousels Tab */}
           {activeTab === 'carousels' && (
             <CarouselManager />
+          )}
+
+          {/* Admins Tab */}
+          {activeTab === 'admins' && (
+            <div className="rounded-xl border bg-white p-6 shadow-sm" style={{ borderColor: '#E5E7EB' }}>
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h2 className="text-xl font-bold" style={{ color: '#111827' }}>Gerenciar Administradores</h2>
+                  <p className="text-sm" style={{ color: '#6B7280' }}>Cadastre e gerencie os administradores do sistema</p>
+                </div>
+                <button
+                  onClick={() => setShowNewAdminModal(true)}
+                  className="inline-flex items-center gap-2 rounded-lg px-4 py-2 font-semibold text-white transition-all hover:opacity-90"
+                  style={{ backgroundColor: '#DC2626' }}
+                >
+                  <UserPlus className="h-5 w-5" />
+                  Novo Administrador
+                </button>
+              </div>
+
+              {/* Admins List */}
+              <div className="overflow-hidden rounded-lg border" style={{ borderColor: '#E5E7EB' }}>
+                <table className="w-full">
+                  <thead style={{ backgroundColor: '#F9FAFB' }}>
+                    <tr>
+                      <th className="px-6 py-4 text-left text-sm font-semibold" style={{ color: '#374151' }}>Nome</th>
+                      <th className="px-6 py-4 text-left text-sm font-semibold" style={{ color: '#374151' }}>Email</th>
+                      <th className="px-6 py-4 text-left text-sm font-semibold" style={{ color: '#374151' }}>Função</th>
+                      <th className="px-6 py-4 text-left text-sm font-semibold" style={{ color: '#374151' }}>Status</th>
+                      <th className="px-6 py-4 text-right text-sm font-semibold" style={{ color: '#374151' }}>Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y" style={{ borderColor: '#E5E7EB' }}>
+                    {adminsList.map((admin) => (
+                      <tr key={admin.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-3">
+                            {admin.avatar ? (
+                              <img src={admin.avatar} alt={admin.name} className="h-10 w-10 rounded-full object-cover" />
+                            ) : (
+                              <div className="h-10 w-10 rounded-full flex items-center justify-center" style={{ backgroundColor: '#FEE2E2' }}>
+                                <Shield className="h-5 w-5" style={{ color: '#DC2626' }} />
+                              </div>
+                            )}
+                            <span className="font-medium" style={{ color: '#111827' }}>{admin.name}</span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4" style={{ color: '#6B7280' }}>{admin.email}</td>
+                        <td className="px-6 py-4">
+                          <span 
+                            className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium"
+                            style={admin.role === 'super_admin' 
+                              ? { backgroundColor: '#FEE2E2', color: '#DC2626' }
+                              : { backgroundColor: '#E5E7EB', color: '#374151' }}
+                          >
+                            {admin.role === 'super_admin' ? 'Super Admin' : 'Admin'}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span 
+                            className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium"
+                            style={admin.active 
+                              ? { backgroundColor: '#D1FAE5', color: '#059669' }
+                              : { backgroundColor: '#FEE2E2', color: '#DC2626' }}
+                          >
+                            {admin.active ? 'Ativo' : 'Inativo'}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex justify-end gap-2">
+                            {admin.role !== 'super_admin' && (
+                              <button
+                                onClick={() => toggleAdminActive(admin)}
+                                className="rounded-lg p-2 transition-colors hover:bg-gray-100"
+                                style={{ color: admin.active ? '#DC2626' : '#059669' }}
+                                title={admin.active ? 'Desativar' : 'Ativar'}
+                              >
+                                {admin.active ? <X className="h-4 w-4" /> : <Shield className="h-4 w-4" />}
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                    {adminsList.length === 0 && (
+                      <tr>
+                        <td colSpan={5} className="px-6 py-12 text-center" style={{ color: '#6B7280' }}>
+                          Nenhum administrador cadastrado.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* New Admin Modal */}
+          {showNewAdminModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+              <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-lg font-semibold" style={{ color: '#111827' }}>Novo Administrador</h3>
+                  <button
+                    onClick={() => setShowNewAdminModal(false)}
+                    className="hover:opacity-70"
+                    style={{ color: '#6B7280' }}
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
+                
+                <form onSubmit={handleCreateAdmin} className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-1" style={{ color: '#374151' }}>Nome *</label>
+                    <input
+                      type="text"
+                      value={newAdminData.name}
+                      onChange={(e) => setNewAdminData(prev => ({ ...prev, name: e.target.value }))}
+                      className="w-full rounded-lg border-2 px-4 py-2 focus:outline-none"
+                      style={{ borderColor: '#E5E7EB', color: '#111827' }}
+                      placeholder="Nome completo"
+                      required
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium mb-1" style={{ color: '#374151' }}>Email *</label>
+                    <input
+                      type="email"
+                      value={newAdminData.email}
+                      onChange={(e) => setNewAdminData(prev => ({ ...prev, email: e.target.value }))}
+                      className="w-full rounded-lg border-2 px-4 py-2 focus:outline-none"
+                      style={{ borderColor: '#E5E7EB', color: '#111827' }}
+                      placeholder="email@exemplo.com"
+                      required
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium mb-1" style={{ color: '#374151' }}>Senha (opcional para login Google)</label>
+                    <input
+                      type="password"
+                      value={newAdminData.password}
+                      onChange={(e) => setNewAdminData(prev => ({ ...prev, password: e.target.value }))}
+                      className="w-full rounded-lg border-2 px-4 py-2 focus:outline-none"
+                      style={{ borderColor: '#E5E7EB', color: '#111827' }}
+                      placeholder="Deixe em branco para login apenas via Google"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium mb-1" style={{ color: '#374151' }}>Telefone</label>
+                    <input
+                      type="tel"
+                      value={newAdminData.phone}
+                      onChange={(e) => setNewAdminData(prev => ({ ...prev, phone: e.target.value }))}
+                      className="w-full rounded-lg border-2 px-4 py-2 focus:outline-none"
+                      style={{ borderColor: '#E5E7EB', color: '#111827' }}
+                      placeholder="(00) 00000-0000"
+                    />
+                  </div>
+                  
+                  <div className="flex gap-3 pt-4">
+                    <button
+                      type="button"
+                      onClick={() => setShowNewAdminModal(false)}
+                      className="flex-1 rounded-lg border-2 px-4 py-2 font-medium transition-colors hover:bg-gray-50"
+                      style={{ borderColor: '#E5E7EB', color: '#374151' }}
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={isSavingAdmin}
+                      className="flex-1 rounded-lg px-4 py-2 font-medium text-white transition-colors hover:opacity-90 disabled:opacity-50"
+                      style={{ backgroundColor: '#DC2626' }}
+                    >
+                      {isSavingAdmin ? 'Salvando...' : 'Cadastrar'}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
           )}
 
           {/* Hardware Tab */}
