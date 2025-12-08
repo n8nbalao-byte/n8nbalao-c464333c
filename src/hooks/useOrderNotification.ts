@@ -19,7 +19,24 @@ export const useOrderNotification = (orders: Order[], isEnabled: boolean = true)
   }, []);
 
   const playNotificationSound = useCallback(() => {
-    if (audioRef.current) {
+    // Use Web Speech API for voice notification
+    if ('speechSynthesis' in window) {
+      const utterance = new SpeechSynthesisUtterance('Você recebeu um novo pedido!');
+      utterance.lang = 'pt-BR';
+      utterance.rate = 1.0;
+      utterance.pitch = 1.0;
+      utterance.volume = 1.0;
+      
+      // Try to find a Portuguese voice
+      const voices = speechSynthesis.getVoices();
+      const ptVoice = voices.find(voice => voice.lang.startsWith('pt'));
+      if (ptVoice) {
+        utterance.voice = ptVoice;
+      }
+      
+      speechSynthesis.speak(utterance);
+    } else if (audioRef.current) {
+      // Fallback to beep sound
       audioRef.current.currentTime = 0;
       audioRef.current.play().catch(err => {
         console.log('Could not play notification sound:', err);
