@@ -79,6 +79,13 @@ const ExtractProducts = () => {
     setExtractedProducts([]);
 
     try {
+      // Limit HTML size to avoid payload issues (max 500KB)
+      let htmlToSend = inputMode === 'html' ? manualHtml : undefined;
+      if (htmlToSend && htmlToSend.length > 500000) {
+        htmlToSend = htmlToSend.substring(0, 500000);
+        console.log('HTML truncated to 500KB');
+      }
+
       const response = await fetch(`${API_BASE_URL}/extract.php`, {
         method: 'POST',
         headers: {
@@ -86,11 +93,17 @@ const ExtractProducts = () => {
         },
         body: JSON.stringify({
           url: inputMode === 'url' ? url : 'manual-html',
-          html: inputMode === 'html' ? manualHtml : undefined,
+          html: htmlToSend,
           apiKey,
           extractType,
         }),
       });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Server response:', response.status, errorText);
+        throw new Error(`Erro do servidor: ${response.status}. Verifique se o extract.php foi atualizado no Hostinger.`);
+      }
 
       const result = await response.json();
 
