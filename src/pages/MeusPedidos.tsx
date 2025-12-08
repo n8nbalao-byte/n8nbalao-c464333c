@@ -73,6 +73,7 @@ export default function MeusPedidos() {
   const [customer, setCustomer] = useState<CustomerData | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [checkingAuth, setCheckingAuth] = useState(true);
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
 
   useEffect(() => {
@@ -82,9 +83,16 @@ export default function MeusPedidos() {
       return;
     }
 
-    const customerData = JSON.parse(savedCustomer);
-    setCustomer(customerData);
-    fetchOrders(customerData.id);
+    try {
+      const customerData = JSON.parse(savedCustomer);
+      setCustomer(customerData);
+      fetchOrders(customerData.id);
+    } catch (error) {
+      console.error("Error parsing customer data:", error);
+      navigate("/cliente");
+    } finally {
+      setCheckingAuth(false);
+    }
   }, [navigate]);
 
   async function fetchOrders(customerId: string) {
@@ -132,8 +140,16 @@ export default function MeusPedidos() {
     });
   };
 
-  if (!customer) {
-    return null;
+  if (checkingAuth || !customer) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col">
+        <Header />
+        <main className="flex-1 flex items-center justify-center">
+          <RefreshCw className="h-8 w-8 animate-spin text-primary" />
+        </main>
+        <Footer />
+      </div>
+    );
   }
 
   return (
