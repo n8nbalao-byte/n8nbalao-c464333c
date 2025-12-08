@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { api } from "@/lib/api";
+import { api, getCustomCategories } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Trash2, Upload, Save, Image } from "lucide-react";
 
@@ -9,7 +9,7 @@ interface CarouselConfig {
   description: string;
 }
 
-const CAROUSEL_CONFIGS: CarouselConfig[] = [
+const BASE_CAROUSEL_CONFIGS: CarouselConfig[] = [
   {
     key: "home_hero_banner",
     label: "Banner Principal",
@@ -37,11 +37,26 @@ const CAROUSEL_CONFIGS: CarouselConfig[] = [
   }
 ];
 
+// Default product categories for banners
+const DEFAULT_CATEGORY_BANNERS: CarouselConfig[] = [
+  { key: "category_pc_banner", label: "Banner Categoria: PCs Montados", description: "Banner acima dos produtos PCs (recomendado: 1200x200px)" },
+  { key: "category_kit_banner", label: "Banner Categoria: Kits", description: "Banner acima dos produtos Kits (recomendado: 1200x200px)" },
+  { key: "category_notebook_banner", label: "Banner Categoria: Notebooks", description: "Banner acima dos produtos Notebooks (recomendado: 1200x200px)" },
+  { key: "category_hardware_banner", label: "Banner Categoria: Hardware", description: "Banner acima dos produtos Hardware (recomendado: 1200x200px)" },
+  { key: "category_automacao_banner", label: "Banner Categoria: Automações", description: "Banner acima dos produtos Automações (recomendado: 1200x200px)" },
+  { key: "category_software_banner", label: "Banner Categoria: Softwares", description: "Banner acima dos produtos Softwares (recomendado: 1200x200px)" },
+  { key: "category_acessorio_banner", label: "Banner Categoria: Acessórios", description: "Banner acima dos produtos Acessórios (recomendado: 1200x200px)" },
+  { key: "category_licenca_banner", label: "Banner Categoria: Licenças", description: "Banner acima dos produtos Licenças (recomendado: 1200x200px)" },
+  { key: "category_monitor_banner", label: "Banner Categoria: Monitores", description: "Banner acima dos produtos Monitores (recomendado: 1200x200px)" },
+  { key: "category_cadeira_gamer_banner", label: "Banner Categoria: Cadeiras Gamer", description: "Banner acima dos produtos Cadeiras Gamer (recomendado: 1200x200px)" },
+];
+
 export function CarouselManager() {
   const { toast } = useToast();
   const [carousels, setCarousels] = useState<Record<string, string[]>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<string | null>(null);
+  const [carouselConfigs, setCarouselConfigs] = useState<CarouselConfig[]>([...BASE_CAROUSEL_CONFIGS, ...DEFAULT_CATEGORY_BANNERS]);
 
   useEffect(() => {
     fetchCarousels();
@@ -49,9 +64,27 @@ export function CarouselManager() {
 
   async function fetchCarousels() {
     setLoading(true);
+    
+    // Fetch custom categories to create dynamic banner configs
+    const customCategories = await getCustomCategories();
+    const customCategoryBanners: CarouselConfig[] = customCategories.map(cat => ({
+      key: `category_${cat.key}_banner`,
+      label: `Banner Categoria: ${cat.label}`,
+      description: `Banner acima dos produtos ${cat.label} (recomendado: 1200x200px)`
+    }));
+    
+    // Merge all configs, avoiding duplicates
+    const allConfigs = [...BASE_CAROUSEL_CONFIGS, ...DEFAULT_CATEGORY_BANNERS];
+    customCategoryBanners.forEach(config => {
+      if (!allConfigs.find(c => c.key === config.key)) {
+        allConfigs.push(config);
+      }
+    });
+    setCarouselConfigs(allConfigs);
+    
     const data: Record<string, string[]> = {};
     
-    for (const config of CAROUSEL_CONFIGS) {
+    for (const config of allConfigs) {
       const carousel = await api.getCarousel(config.key);
       data[config.key] = carousel.images || [];
     }
@@ -117,8 +150,8 @@ export function CarouselManager() {
   if (loading) {
     return (
       <div className="space-y-6">
-        {CAROUSEL_CONFIGS.map(config => (
-          <div key={config.key} className="h-48 animate-pulse rounded-xl bg-card" />
+        {carouselConfigs.map(config => (
+          <div key={config.key} className="h-48 animate-pulse rounded-xl bg-gray-200" />
         ))}
       </div>
     );
@@ -135,7 +168,7 @@ export function CarouselManager() {
         Adicione imagens aos carrosséis que aparecem na página inicial. As imagens serão exibidas alternando automaticamente.
       </p>
 
-      {CAROUSEL_CONFIGS.map(config => (
+      {carouselConfigs.map(config => (
         <div key={config.key} className="rounded-xl border border-border bg-card p-6 space-y-4">
           <div className="flex items-center justify-between">
             <div>

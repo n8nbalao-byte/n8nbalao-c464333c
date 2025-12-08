@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api, type Product, type HardwareItem, getCustomCategories } from "@/lib/api";
 import { getIconFromKey } from "@/lib/icons";
-import { ShoppingCart, ChevronRight, Cpu, HardDrive, Monitor, Package, Laptop, Bot, Code, Wrench, Key, Tv, Armchair, ChevronLeft, Search, Menu } from "lucide-react";
+import { ShoppingCart, ChevronRight, Cpu, HardDrive, Monitor, Package, Laptop, Bot, Code, Wrench, Key, Tv, Armchair, ChevronLeft, Search, Menu, Grid3X3, LayoutGrid, List } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
 import { Button } from "@/components/ui/button";
 import { HomeCarousel } from "@/components/HomeCarousel";
@@ -13,6 +13,7 @@ const baseCategoryConfig = [
   { key: 'pc', label: 'PCs Montados', icon: Monitor },
   { key: 'kit', label: 'Kits', icon: Package },
   { key: 'notebook', label: 'Notebooks', icon: Laptop },
+  { key: 'hardware', label: 'Hardware', icon: Cpu },
   { key: 'automacao', label: 'Automações', icon: Bot },
   { key: 'software', label: 'Softwares', icon: Code },
   { key: 'acessorio', label: 'Acessórios', icon: Wrench },
@@ -20,6 +21,8 @@ const baseCategoryConfig = [
   { key: 'monitor', label: 'Monitores', icon: Tv },
   { key: 'cadeira_gamer', label: 'Cadeiras Gamer', icon: Armchair },
 ];
+
+type ViewMode = 'compact' | 'standard' | 'list';
 
 export default function Home() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -30,6 +33,8 @@ export default function Home() {
   const { addToCart } = useCart();
   const [searchQuery, setSearchQuery] = useState("");
   const [showAdminChoice, setShowAdminChoice] = useState(false);
+  const [viewMode, setViewMode] = useState<ViewMode>('standard');
+  const [hoveredProduct, setHoveredProduct] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchData() {
@@ -52,6 +57,19 @@ export default function Home() {
   }, []);
 
   const getProductsByCategory = (category: string) => {
+    if (category === 'hardware') {
+      // Return hardware items as products
+      return hardware.slice(0, 6).map(h => ({
+        id: `hw_${h.id}`,
+        title: h.name,
+        subtitle: `${h.brand} ${h.model}`,
+        totalPrice: h.price,
+        media: h.image ? [{ type: 'image' as const, url: h.image }] : [],
+        productType: 'hardware',
+        isHardware: true,
+        hardwareId: h.id
+      }));
+    }
     return products
       .filter(p => p.productType === category || p.categories?.includes(category))
       .slice(0, 6);
@@ -80,6 +98,156 @@ export default function Home() {
     } else {
       window.location.href = '/extract-products';
     }
+  };
+
+  const getGridClasses = () => {
+    switch (viewMode) {
+      case 'compact':
+        return 'grid grid-cols-3 md:grid-cols-4 lg:grid-cols-8 gap-3';
+      case 'list':
+        return 'flex flex-col gap-3';
+      default:
+        return 'grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4';
+    }
+  };
+
+  const renderProductCard = (product: any, isHardware = false) => {
+    const productId = isHardware ? product.hardwareId : product.id;
+    const linkTo = isHardware ? `/hardware/${productId}` : `/produto/${productId}`;
+    const isHovered = hoveredProduct === (isHardware ? `hw_${productId}` : productId);
+    const hoverKey = isHardware ? `hw_${productId}` : productId;
+
+    if (viewMode === 'list') {
+      return (
+        <Link
+          key={product.id}
+          to={linkTo}
+          className="group bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-lg transition-all overflow-hidden flex items-center gap-4 p-4"
+          onMouseEnter={() => setHoveredProduct(hoverKey)}
+          onMouseLeave={() => setHoveredProduct(null)}
+        >
+          <div className="w-24 h-24 bg-gray-50 rounded-lg flex-shrink-0 overflow-hidden">
+            {product.media && product.media.length > 0 ? (
+              <img
+                src={product.media[0].type === 'video' && product.media[0].url.includes('youtube')
+                  ? `https://img.youtube.com/vi/${product.media[0].url.split('v=')[1]?.split('&')[0] || product.media[0].url.split('/').pop()}/0.jpg`
+                  : product.media[0].url}
+                alt={product.title}
+                className={`w-full h-full object-contain transition-all duration-300 ${isHovered ? 'scale-110' : ''}`}
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-gray-300">
+                <Package className="h-8 w-8" />
+              </div>
+            )}
+          </div>
+          <div className="flex-1">
+            <h3 className="text-sm font-medium text-gray-800 line-clamp-2">
+              {product.title}
+            </h3>
+            {product.subtitle && (
+              <p className="text-xs text-gray-500 mt-1">{product.subtitle}</p>
+            )}
+          </div>
+          <div className="text-right">
+            <span className="text-lg font-bold text-primary">
+              R$ {(product.totalPrice || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+            </span>
+          </div>
+        </Link>
+      );
+    }
+
+    if (viewMode === 'compact') {
+      return (
+        <Link
+          key={product.id}
+          to={linkTo}
+          className="group bg-white rounded-lg border border-gray-100 shadow-sm hover:shadow-lg transition-all overflow-hidden relative"
+          onMouseEnter={() => setHoveredProduct(hoverKey)}
+          onMouseLeave={() => setHoveredProduct(null)}
+        >
+          <div className="aspect-square bg-gray-50 p-2 relative overflow-hidden">
+            {product.media && product.media.length > 0 ? (
+              <img
+                src={product.media[0].type === 'video' && product.media[0].url.includes('youtube')
+                  ? `https://img.youtube.com/vi/${product.media[0].url.split('v=')[1]?.split('&')[0] || product.media[0].url.split('/').pop()}/0.jpg`
+                  : product.media[0].url}
+                alt={product.title}
+                className={`w-full h-full object-contain transition-all duration-300 ${isHovered ? 'scale-110 opacity-100' : 'opacity-80'}`}
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-gray-300">
+                <Package className="h-8 w-8" />
+              </div>
+            )}
+            {/* Overlay with product info on hover */}
+            <div className={`absolute inset-0 bg-black/70 flex flex-col justify-end p-2 transition-opacity duration-300 ${isHovered ? 'opacity-100' : 'opacity-0'}`}>
+              <h3 className="text-xs font-medium text-white line-clamp-2">
+                {product.title}
+              </h3>
+              <span className="text-sm font-bold text-primary mt-1">
+                R$ {(product.totalPrice || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+              </span>
+            </div>
+          </div>
+          <div className="p-2">
+            <span className="text-xs font-bold text-primary">
+              R$ {(product.totalPrice || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+            </span>
+          </div>
+        </Link>
+      );
+    }
+
+    // Standard view
+    return (
+      <Link
+        key={product.id}
+        to={linkTo}
+        className="group bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-lg transition-all overflow-hidden"
+        onMouseEnter={() => setHoveredProduct(hoverKey)}
+        onMouseLeave={() => setHoveredProduct(null)}
+      >
+        <div className="aspect-square bg-gray-50 p-4 relative overflow-hidden">
+          {product.media && product.media.length > 0 ? (
+            <img
+              src={product.media[0].type === 'video' && product.media[0].url.includes('youtube')
+                ? `https://img.youtube.com/vi/${product.media[0].url.split('v=')[1]?.split('&')[0] || product.media[0].url.split('/').pop()}/0.jpg`
+                : product.media[0].url}
+              alt={product.title}
+              className={`w-full h-full object-contain transition-all duration-300 ${isHovered ? 'scale-110' : ''}`}
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center text-gray-300">
+              <Package className="h-12 w-12" />
+            </div>
+          )}
+          {/* Hover overlay showing image larger */}
+          {isHovered && product.media && product.media.length > 0 && (
+            <div className="absolute inset-0 bg-white/95 flex items-center justify-center p-2 animate-fade-in">
+              <img
+                src={product.media[0].type === 'video' && product.media[0].url.includes('youtube')
+                  ? `https://img.youtube.com/vi/${product.media[0].url.split('v=')[1]?.split('&')[0] || product.media[0].url.split('/').pop()}/0.jpg`
+                  : product.media[0].url}
+                alt={product.title}
+                className="w-full h-full object-contain"
+              />
+            </div>
+          )}
+        </div>
+        <div className="p-3">
+          <h3 className="text-sm font-medium text-gray-800 line-clamp-2 min-h-[40px]">
+            {product.title}
+          </h3>
+          <div className="mt-2">
+            <span className="text-lg font-bold text-primary">
+              R$ {(product.totalPrice || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+            </span>
+          </div>
+        </div>
+      </Link>
+    );
   };
 
   return (
@@ -162,46 +330,68 @@ export default function Home() {
         <CategorySidebar />
 
         {/* Main Content */}
-        <div className="flex-1">
+        <div className="flex-1 px-4 md:px-6 lg:px-8">
           {/* Hero Banner Carousel */}
-          <section className="relative">
+          <section className="py-4">
             <HomeCarousel
               carouselKey="home_hero_banner"
               fallbackImage="https://img.terabyteshop.com.br/banner/3732.jpg"
               alt="Banner Principal"
-              className="w-full aspect-[3/1] md:aspect-[4/1] object-cover"
+              className="w-full aspect-[3/1] md:aspect-[4/1] object-cover rounded-xl"
             />
           </section>
 
           {/* Promo Banners */}
-          <section className="py-6">
-            <div className="container">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <HomeCarousel
-                  carouselKey="home_promo_left"
-                  fallbackImage="https://img.terabyteshop.com.br/banner/2390.jpg"
-                  alt="Promoção"
-                  className="w-full aspect-[2/1] rounded-xl object-cover"
-                />
-                <HomeCarousel
-                  carouselKey="home_promo_right"
-                  fallbackImage="https://img.terabyteshop.com.br/banner/3773.jpg"
-                  alt="Promoção"
-                  className="w-full aspect-[2/1] rounded-xl object-cover"
-                />
-              </div>
+          <section className="pb-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <HomeCarousel
+                carouselKey="home_promo_left"
+                fallbackImage="https://img.terabyteshop.com.br/banner/2390.jpg"
+                alt="Promoção"
+                className="w-full aspect-[2/1] rounded-xl object-cover"
+              />
+              <HomeCarousel
+                carouselKey="home_promo_right"
+                fallbackImage="https://img.terabyteshop.com.br/banner/3773.jpg"
+                alt="Promoção"
+                className="w-full aspect-[2/1] rounded-xl object-cover"
+              />
             </div>
           </section>
+
+          {/* View Mode Toggle */}
+          <div className="flex items-center justify-end gap-2 pb-4 border-b border-gray-100 mb-4">
+            <span className="text-sm text-gray-500 mr-2">Visualização:</span>
+            <button
+              onClick={() => setViewMode('compact')}
+              className={`p-2 rounded-lg transition-colors ${viewMode === 'compact' ? 'bg-primary text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+              title="Cards compactos"
+            >
+              <Grid3X3 className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => setViewMode('standard')}
+              className={`p-2 rounded-lg transition-colors ${viewMode === 'standard' ? 'bg-primary text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+              title="Cards padrão"
+            >
+              <LayoutGrid className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => setViewMode('list')}
+              className={`p-2 rounded-lg transition-colors ${viewMode === 'list' ? 'bg-primary text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+              title="Lista"
+            >
+              <List className="h-4 w-4" />
+            </button>
+          </div>
 
           {/* Featured Products by Category */}
           {loading ? (
             <section className="py-8">
-              <div className="container">
-                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                  {[1, 2, 3, 4, 5, 6].map((i) => (
-                    <div key={i} className="h-64 animate-pulse rounded-xl bg-gray-200" />
-                  ))}
-                </div>
+              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                {[1, 2, 3, 4, 5, 6].map((i) => (
+                  <div key={i} className="h-64 animate-pulse rounded-xl bg-gray-200" />
+                ))}
               </div>
             </section>
           ) : (
@@ -211,56 +401,33 @@ export default function Home() {
                 if (categoryProducts.length === 0) return null;
                 
                 const Icon = category.icon;
+                const isHardwareCategory = category.key === 'hardware';
                 
                 return (
-                  <section key={category.key} className="py-8 border-t border-gray-100">
-                    <div className="container">
-                      <div className="flex items-center justify-between mb-6">
-                        <div className="flex items-center gap-3">
-                          <Icon className="h-6 w-6 text-primary" />
-                          <h2 className="text-xl md:text-2xl font-bold text-gray-800">{category.label}</h2>
-                        </div>
-                        <Link to={`/loja?category=${category.key}`} className="flex items-center gap-1 text-primary hover:underline font-medium text-sm">
-                          Ver mais
-                          <ChevronRight className="h-4 w-4" />
-                        </Link>
+                  <section key={category.key} className="py-6 border-t border-gray-100">
+                    {/* Category Banner */}
+                    <div className="mb-4">
+                      <HomeCarousel
+                        carouselKey={`category_${category.key}_banner`}
+                        fallbackImage=""
+                        alt={`Banner ${category.label}`}
+                        className="w-full aspect-[6/1] rounded-xl object-cover"
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between mb-6">
+                      <div className="flex items-center gap-3">
+                        <Icon className="h-6 w-6 text-primary" />
+                        <h2 className="text-xl md:text-2xl font-bold text-gray-800">{category.label}</h2>
                       </div>
-                      
-                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-                        {categoryProducts.map((product) => (
-                          <Link
-                            key={product.id}
-                            to={`/produto/${product.id}`}
-                            className="group bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-lg transition-all overflow-hidden"
-                          >
-                            <div className="aspect-square bg-gray-50 p-4">
-                              {product.media && product.media.length > 0 ? (
-                                <img
-                                  src={product.media[0].type === 'video' && product.media[0].url.includes('youtube')
-                                    ? `https://img.youtube.com/vi/${product.media[0].url.split('v=')[1]?.split('&')[0] || product.media[0].url.split('/').pop()}/0.jpg`
-                                    : product.media[0].url}
-                                  alt={product.title}
-                                  className="w-full h-full object-contain group-hover:scale-105 transition-transform"
-                                />
-                              ) : (
-                                <div className="w-full h-full flex items-center justify-center text-gray-300">
-                                  <Package className="h-12 w-12" />
-                                </div>
-                              )}
-                            </div>
-                            <div className="p-3">
-                              <h3 className="text-sm font-medium text-gray-800 line-clamp-2 min-h-[40px]">
-                                {product.title}
-                              </h3>
-                              <div className="mt-2">
-                                <span className="text-lg font-bold text-primary">
-                                  R$ {(product.totalPrice || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                                </span>
-                              </div>
-                            </div>
-                          </Link>
-                        ))}
-                      </div>
+                      <Link to={`/loja?category=${category.key}`} className="flex items-center gap-1 text-primary hover:underline font-medium text-sm">
+                        Ver mais
+                        <ChevronRight className="h-4 w-4" />
+                      </Link>
+                    </div>
+                    
+                    <div className={getGridClasses()}>
+                      {categoryProducts.map((product: any) => renderProductCard(product, isHardwareCategory))}
                     </div>
                   </section>
                 );
@@ -269,8 +436,8 @@ export default function Home() {
           )}
 
           {/* CTA Banner */}
-          <section className="py-12 bg-primary">
-            <div className="container text-center">
+          <section className="py-12 bg-primary rounded-xl my-8">
+            <div className="text-center px-4">
               <h2 className="text-2xl md:text-3xl font-bold text-white mb-4">
                 Monte o PC dos seus sonhos!
               </h2>
