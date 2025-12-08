@@ -2,21 +2,12 @@ import { useEffect, useState } from "react";
 import { Link, useLocation, useSearchParams } from "react-router-dom";
 import { getCustomCategories } from "@/lib/api";
 import { getIconFromKey } from "@/lib/icons";
-import { Package, Cpu, Monitor, Laptop, Bot, Code, Wrench, Key, Tv, Armchair, HardDrive, Home, ShoppingBag, ChevronRight } from "lucide-react";
+import { Package, Cpu, Bot, Home, ChevronRight, HardDrive } from "lucide-react";
 
-// Base categories that are always available
-const baseCategories = [
+// Only system categories (not deletable by user)
+const systemCategories = [
   { key: 'all', label: 'Todos', icon: Package },
   { key: 'hardware', label: 'Hardware', icon: HardDrive },
-  { key: 'pc', label: 'PCs Montados', icon: Monitor },
-  { key: 'kit', label: 'Kits', icon: Package },
-  { key: 'notebook', label: 'Notebooks', icon: Laptop },
-  { key: 'automacao', label: 'Automações', icon: Bot },
-  { key: 'software', label: 'Softwares', icon: Code },
-  { key: 'acessorio', label: 'Acessórios', icon: Wrench },
-  { key: 'licenca', label: 'Licenças', icon: Key },
-  { key: 'monitor', label: 'Monitores', icon: Tv },
-  { key: 'cadeira_gamer', label: 'Cadeiras Gamer', icon: Armchair },
 ];
 
 interface CategorySidebarProps {
@@ -25,7 +16,7 @@ interface CategorySidebarProps {
 }
 
 export function CategorySidebar({ onCategorySelect, selectedCategory }: CategorySidebarProps) {
-  const [categories, setCategories] = useState(baseCategories);
+  const [categories, setCategories] = useState(systemCategories);
   const [searchParams] = useSearchParams();
   const location = useLocation();
   
@@ -38,17 +29,18 @@ export function CategorySidebar({ onCategorySelect, selectedCategory }: Category
         const customCats = await getCustomCategories();
         const excludedCategories = ['games', 'console', 'controle', 'controles'];
         
-        // Filter out duplicates and excluded categories
-        const baseKeys = baseCategories.map(c => c.key);
-        const newCustomCats = customCats
-          .filter(c => !baseKeys.includes(c.key) && !excludedCategories.includes(c.key.toLowerCase()))
+        // Get all categories from database, excluding system ones and excluded ones
+        const systemKeys = systemCategories.map(c => c.key);
+        const dbCategories = customCats
+          .filter(c => !systemKeys.includes(c.key) && !excludedCategories.includes(c.key.toLowerCase()))
           .map(c => ({
             key: c.key,
             label: c.label,
             icon: getIconFromKey(c.icon)
           }));
         
-        setCategories([...baseCategories, ...newCustomCats]);
+        // System categories first, then database categories
+        setCategories([...systemCategories, ...dbCategories]);
       } catch (error) {
         console.error('Failed to load categories:', error);
       }
