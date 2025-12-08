@@ -33,12 +33,21 @@ try {
 // Create categories table if it doesn't exist
 $pdo->exec("CREATE TABLE IF NOT EXISTS categories (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    category_key VARCHAR(50) NOT NULL UNIQUE,
+    category_key VARCHAR(50) NOT NULL,
     label VARCHAR(100) NOT NULL,
     icon VARCHAR(50),
-    category_type ENUM('product_type', 'product_category') DEFAULT 'product_type',
-    createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
+    category_type VARCHAR(50) DEFAULT 'product_type',
+    filters TEXT,
+    createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY unique_key_type (category_key, category_type)
 )");
+
+// Add filters column if it doesn't exist
+try {
+    $pdo->exec("ALTER TABLE categories ADD COLUMN filters TEXT");
+} catch (PDOException $e) {
+    // Column already exists, ignore
+}
 
 $method = $_SERVER['REQUEST_METHOD'];
 
@@ -55,12 +64,17 @@ switch ($method) {
         
         // Transform to expected format
         $result = array_map(function($cat) {
-            return [
+            $item = [
                 'key' => $cat['category_key'],
                 'label' => $cat['label'],
                 'icon' => $cat['icon'],
                 'type' => $cat['category_type']
             ];
+            // Parse filters JSON if exists
+            if (!empty($cat['filters'])) {
+                $item['filters'] = json_decode($cat['filters'], true);
+            }
+            return $item;
         }, $categories);
         
         echo json_encode($result);
@@ -75,21 +89,27 @@ switch ($method) {
             exit();
         }
 
-        // Check if already exists
-        $checkStmt = $pdo->prepare("SELECT id FROM categories WHERE category_key = ?");
-        $checkStmt->execute([$data['key']]);
+        // Check if already exists with same key AND type
+        $checkStmt = $pdo->prepare("SELECT id FROM categories WHERE category_key = ? AND category_type = ?");
+        $checkStmt->execute([$data['key'], $data['type'] ?? 'product_type']);
         if ($checkStmt->fetch()) {
             echo json_encode(['success' => true, 'message' => 'Category already exists']);
             exit();
         }
 
-        $stmt = $pdo->prepare("INSERT INTO categories (category_key, label, icon, category_type) VALUES (?, ?, ?, ?)");
+        $filtersJson = null;
+        if (isset($data['filters'])) {
+            $filtersJson = json_encode($data['filters']);
+        }
+
+        $stmt = $pdo->prepare("INSERT INTO categories (category_key, label, icon, category_type, filters) VALUES (?, ?, ?, ?, ?)");
         
         $success = $stmt->execute([
             $data['key'],
             $data['label'],
             $data['icon'] ?? null,
-            $data['type'] ?? 'product_type'
+            $data['type'] ?? 'product_type',
+            $filtersJson
         ]);
 
         if ($success) {
@@ -107,8 +127,14 @@ switch ($method) {
             exit();
         }
 
-        $stmt = $pdo->prepare("DELETE FROM categories WHERE category_key = ?");
-        $success = $stmt->execute([$_GET['key']]);
+        // If type is specified, delete only matching type
+        if (isset($_GET['type'])) {
+            $stmt = $pdo->prepare("DELETE FROM categories WHERE category_key = ? AND category_type = ?");
+            $success = $stmt->execute([$_GET['key'], $_GET['type']]);
+        } else {
+            $stmt = $pdo->prepare("DELETE FROM categories WHERE category_key = ?");
+            $success = $stmt->execute([$_GET['key']]);
+        }
 
         if ($success) {
             echo json_encode(['success' => true]);
@@ -142,6 +168,10 @@ switch ($method) {
             $updates[] = "category_key = ?";
             $params[] = $data['newKey'];
         }
+        if (isset($data['filters'])) {
+            $updates[] = "filters = ?";
+            $params[] = json_encode($data['filters']);
+        }
 
         if (empty($updates)) {
             http_response_code(400);
@@ -150,7 +180,15 @@ switch ($method) {
         }
 
         $params[] = $data['key'];
-        $sql = "UPDATE categories SET " . implode(", ", $updates) . " WHERE category_key = ?";
+        
+        // If type is specified, update only matching type
+        if (isset($data['type'])) {
+            $params[] = $data['type'];
+            $sql = "UPDATE categories SET " . implode(", ", $updates) . " WHERE category_key = ? AND category_type = ?";
+        } else {
+            $sql = "UPDATE categories SET " . implode(", ", $updates) . " WHERE category_key = ?";
+        }
+        
         $stmt = $pdo->prepare($sql);
         $success = $stmt->execute($params);
 
