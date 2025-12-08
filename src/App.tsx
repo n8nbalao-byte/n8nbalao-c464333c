@@ -18,6 +18,7 @@ import ExtractProducts from "./pages/ExtractProducts";
 import ClienteAuth from "./pages/ClienteAuth";
 import MeusPedidos from "./pages/MeusPedidos";
 import Hardware from "./pages/Hardware";
+import EmailMarketing from "./pages/EmailMarketing";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -44,6 +45,7 @@ const App = () => (
               <Route path="/extract-products" element={<ExtractProducts />} />
               <Route path="/cliente" element={<ClienteAuth />} />
               <Route path="/meus-pedidos" element={<MeusPedidos />} />
+              <Route path="/email-marketing" element={<EmailMarketing />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

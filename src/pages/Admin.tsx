@@ -4,7 +4,7 @@ import { RedWhiteHeader } from "@/components/RedWhiteHeader";
 import { RedWhiteFooter } from "@/components/RedWhiteFooter";
 import { api, type Product, type HardwareItem, type MediaItem, type ProductComponents, type CompanyData, type ProductCategory, type HardwareCategory, type HardwareCategoryDef, getCustomCategories, addCustomCategory, removeCustomCategory, updateCustomCategory, getHardwareCategories, addHardwareCategory, removeHardwareCategory, updateHardwareCategory } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Pencil, Trash2, Save, X, Upload, Play, Image, Cpu, CircuitBoard, MemoryStick, HardDrive, Monitor, Zap, Box, Package, Download, Droplets, Building2, Laptop, Bot, Code, Wrench, Key, Tv, Armchair, Tag, LucideIcon, Search, Sparkles, LayoutDashboard, Images, Users, UserPlus, Shield } from "lucide-react";
+import { Plus, Pencil, Trash2, Save, X, Upload, Play, Image, Cpu, CircuitBoard, MemoryStick, HardDrive, Monitor, Zap, Box, Package, Download, Droplets, Building2, Laptop, Bot, Code, Wrench, Key, Tv, Armchair, Tag, LucideIcon, Search, Sparkles, LayoutDashboard, Images, Users, UserPlus, Shield, Mail } from "lucide-react";
 import * as XLSX from "xlsx";
 import { availableIcons, getIconFromKey } from "@/lib/icons";
 import { HardwareCard } from "@/components/HardwareCard";
@@ -1933,6 +1933,14 @@ export default function Admin() {
             >
               <Users className="h-5 w-5" />
               Administradores
+            </button>
+            <button
+              onClick={() => navigate('/email-marketing')}
+              className="inline-flex items-center gap-2 rounded-lg px-6 py-3 font-medium transition-colors"
+              style={{ backgroundColor: 'white', color: '#374151', border: '1px solid #E5E7EB' }}
+            >
+              <Mail className="h-5 w-5" />
+              Email Marketing
             </button>
           </div>
 
