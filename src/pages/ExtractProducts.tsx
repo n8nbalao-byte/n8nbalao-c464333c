@@ -27,19 +27,21 @@ interface ParsedProduct {
 }
 
 // Hardware categories that should be imported as hardware items
-const hardwareCategories = ['processador', 'placa_mae', 'memoria', 'armazenamento', 'gpu', 'fonte', 'cooler', 'gabinete'];
+// MUST match Admin panel keys: processor, motherboard, memory, storage, gpu, psu, cooler, case
+const hardwareCategories = ['processor', 'motherboard', 'memory', 'storage', 'gpu', 'psu', 'cooler', 'case'];
 
 // Category detection keywords mapping - ORDER MATTERS (more specific first)
+// Keys MUST match Admin panel hardware categories for proper display
 const categoryKeywords: Record<string, string[]> = {
-  // Hardware - more specific keywords first
-  'processador': ['processador', 'intel core', 'amd ryzen', 'core i3', 'core i5', 'core i7', 'core i9', 'ryzen 3', 'ryzen 5', 'ryzen 7', 'ryzen 9'],
-  'placa_mae': ['placa mãe', 'placa-mãe', 'motherboard', 'mainboard'],
-  'memoria': ['memória ram', 'memoria ram', 'pente de memória', 'ram 8gb', 'ram 16gb', 'ram 32gb', 'fury beast', 'hyperx fury'],
-  'gpu': ['placa de vídeo', 'placa de video', 'rtx 3', 'rtx 4', 'gtx 1', 'radeon rx', 'geforce gtx', 'geforce rtx'],
-  'fonte': ['fonte gamer', 'fonte 500w', 'fonte 600w', 'fonte 700w', 'fonte 750w', 'fonte 850w', 'power supply', 'psu'],
+  // Hardware - using Admin panel keys (processor, motherboard, memory, storage, gpu, psu, cooler, case)
+  'processor': ['processador', 'intel core', 'amd ryzen', 'core i3', 'core i5', 'core i7', 'core i9', 'ryzen 3', 'ryzen 5', 'ryzen 7', 'ryzen 9', 'cpu'],
+  'motherboard': ['placa mãe', 'placa-mãe', 'motherboard', 'mainboard', 'placa mae'],
+  'memory': ['memória ram', 'memoria ram', 'pente de memória', 'ram 8gb', 'ram 16gb', 'ram 32gb', 'fury beast', 'hyperx fury', 'ddr4', 'ddr5'],
+  'gpu': ['placa de vídeo', 'placa de video', 'rtx 3', 'rtx 4', 'gtx 1', 'radeon rx', 'geforce gtx', 'geforce rtx', 'graphics card'],
+  'psu': ['fonte gamer', 'fonte 500w', 'fonte 600w', 'fonte 700w', 'fonte 750w', 'fonte 850w', 'power supply', 'psu', 'fonte atx'],
   'cooler': ['cooler', 'water cooler', 'watercooler', 'air cooler', 'refrigeração', 'ventoinha', 'fan rgb', 'fan 120mm', 'fan gamer'],
-  'gabinete': ['gabinete gamer', 'gabinete mid tower', 'gabinete atx', 'case gamer', 'mid tower', 'full tower'],
-  'armazenamento': ['ssd sata', 'ssd nvme', 'hdd ', 'disco rígido', 'ssd 240', 'ssd 480', 'ssd 500', 'ssd 1tb', 'wd blue', 'seagate barracuda'],
+  'case': ['gabinete gamer', 'gabinete mid tower', 'gabinete atx', 'case gamer', 'mid tower', 'full tower', 'gabinete'],
+  'storage': ['ssd sata', 'ssd nvme', 'hdd ', 'disco rígido', 'ssd 240', 'ssd 480', 'ssd 500', 'ssd 1tb', 'wd blue', 'seagate barracuda', 'armazenamento'],
   
   // Products
   'notebook': ['notebook', 'laptop', 'macbook', 'chromebook', 'ultrabook'],
@@ -53,19 +55,21 @@ const categoryKeywords: Record<string, string[]> = {
   'software': ['windows', 'office', 'licença', 'antivírus', 'software'],
 };
 
-// Icons for each category
+// Icons for each category - matching Admin panel keys
 const categoryIcons: Record<string, string> = {
+  // Hardware (matching Admin keys)
+  'processor': 'Cpu',
+  'motherboard': 'CircuitBoard',
+  'memory': 'MemoryStick',
+  'storage': 'HardDrive',
+  'gpu': 'Tv',
+  'psu': 'Zap',
+  'cooler': 'Fan',
+  'case': 'Box',
+  // Products
   'notebook': 'Laptop',
   'monitor': 'Monitor',
   'pc': 'Monitor',
-  'processador': 'Cpu',
-  'placa_mae': 'CircuitBoard',
-  'memoria': 'MemoryStick',
-  'armazenamento': 'HardDrive',
-  'gpu': 'Tv',
-  'fonte': 'Zap',
-  'cooler': 'Fan',
-  'gabinete': 'Box',
   'teclado': 'Keyboard',
   'mouse': 'Mouse',
   'headset': 'Headphones',
