@@ -54,26 +54,44 @@ $systemPrompt = "Você é um especialista em hardware de computadores. Analise o
 
 Para cada item, retorne um objeto JSON com os campos relevantes baseado na categoria:
 
-- processor: { socket: 'LGA1700' | 'LGA1200' | 'LGA1151' | 'LGA1150' | 'LGA1155' | 'AM5' | 'AM4' | 'AM3+' }
-- motherboard: { socket: mesmos valores, memoryType: 'DDR5' | 'DDR4' | 'DDR3', formFactor: 'ATX' | 'Micro-ATX' | 'Mini-ITX' | 'E-ATX' }
-- memory: { memoryType: 'DDR5' | 'DDR4' | 'DDR3' }
-- storage: { formFactor: 'NVMe' | 'SATA' | 'HDD' }
+- processor: { socket: 'LGA1700' | 'LGA1200' | 'LGA1151' | 'LGA1150' | 'LGA1155' | 'LGA775' | 'AM5' | 'AM4' | 'AM3+' | 'AM3' | 'AM2+' | 'AM2' }
+- motherboard: { socket: mesmos valores, memoryType: 'DDR5' | 'DDR4' | 'DDR3' | 'DDR2' | 'Optane', formFactor: 'ATX' | 'Micro-ATX' | 'Mini-ITX' | 'E-ATX' }
+- memory: { memoryType: 'DDR5' | 'DDR4' | 'DDR3' | 'DDR2' | 'Optane' }
+- storage: { formFactor: 'NVMe' | 'SATA' | 'HDD' | 'Optane' }
 - gpu: { tdp: número estimado em watts baseado no modelo (ex: RTX 4090 = 450, RTX 4080 = 320, RTX 4070 = 200, RTX 3080 = 320, RX 7900 = 355) }
 - psu: { tdp: número em watts extraído do nome (ex: 500, 650, 750, 850, 1000) }
 - cooler: { socket: 'Universal' | 'LGA1700' | 'AM5' | 'AM4' etc, formFactor: 'Air Cooler' | '120mm' | '140mm' | '240mm' | '280mm' | '360mm' | '420mm' }
 - case: { formFactor: 'Mini-ITX' | 'Micro-ATX' | 'ATX' | 'Full Tower' | 'E-ATX' }
 
-Regras de detecção:
+Regras de detecção para MEMÓRIA:
+- DDR5: procurar 'DDR5' no nome, frequências 4800MHz+, geralmente para LGA1700/AM5
+- DDR4: procurar 'DDR4' no nome, frequências 2133-4800MHz, para LGA1200/AM4
+- DDR3: procurar 'DDR3' no nome, frequências 800-2133MHz, para sistemas mais antigos
+- DDR2: procurar 'DDR2' no nome, frequências 400-1066MHz, sistemas legado
+- Optane: memória Intel Optane, módulos de cache/aceleração
+
+Regras de detecção para PROCESSADORES:
 - Intel Core 12ª/13ª/14ª Gen = LGA1700
 - Intel Core 10ª/11ª Gen = LGA1200
 - Intel Core 6ª/7ª/8ª/9ª Gen = LGA1151
+- Intel Core 4ª/5ª Gen = LGA1150
+- Intel Core 2ª/3ª Gen = LGA1155
+- Intel Core 2 Duo/Quad, Pentium E = LGA775
 - AMD Ryzen 7000+ = AM5
 - AMD Ryzen 1000-5000 = AM4
-- DDR5 geralmente vai com LGA1700/AM5
-- DDR4 geralmente vai com LGA1200/AM4 e anteriores
+- AMD FX = AM3+
+- AMD Phenom II = AM3
+- AMD Athlon 64 X2 = AM2
+
+Regras de detecção para PLACAS-MÃE:
 - Placas B760/Z790/H770 = LGA1700 + DDR5 ou DDR4
 - Placas B550/X570 = AM4 + DDR4
 - Placas B650/X670 = AM5 + DDR5
+- Placas H61/B75/H77/Z77 = LGA1155 + DDR3
+- Placas H81/B85/H97/Z97 = LGA1150 + DDR3
+- Placas com suporte a Optane mencionado = pode usar memória Optane
+
+Regras gerais:
 - Gabinete Mid Tower = ATX geralmente
 - Gabinete Full Tower = pode ser E-ATX
 - Gabinete Compact/SFF = Mini-ITX ou Micro-ATX
