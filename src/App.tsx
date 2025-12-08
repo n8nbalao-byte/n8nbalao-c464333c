@@ -15,6 +15,7 @@ import ImportProducts from "./pages/ImportProducts";
 import ExtractProducts from "./pages/ExtractProducts";
 import ClienteAuth from "./pages/ClienteAuth";
 import MeusPedidos from "./pages/MeusPedidos";
+import Hardware from "./pages/Hardware";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -31,6 +32,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/loja" element={<Loja />} />
             <Route path="/produto/:id" element={<Produto />} />
+            <Route path="/hardware/:id" element={<Hardware />} />
             <Route path="/admin" element={<Admin />} />
             <Route path="/monte-voce-mesmo" element={<MonteVoceMesmo />} />
             <Route path="/import-hardware" element={<ImportHardware />} />

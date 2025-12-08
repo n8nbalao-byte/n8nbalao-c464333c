@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import type { HardwareItem, Product } from "@/lib/api";
 import { Cpu, CircuitBoard, HardDrive, Zap, Box, MemoryStick, Monitor, ShoppingCart, Droplets } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
@@ -63,15 +64,12 @@ export function HardwareCard({ hardware, selected, onSelect, showSelect = false,
     toast.success(`${hardware.name} adicionado ao carrinho`);
   };
 
-  return (
-    <div
-      className={`group relative overflow-hidden rounded-xl border transition-all ${
-        selected
-          ? "border-primary bg-primary/10 shadow-glow"
-          : "border-border bg-card hover:border-primary/50 hover:shadow-card"
-      } ${showSelect ? "cursor-pointer" : ""}`}
-      onClick={showSelect ? onSelect : undefined}
-    >
+  // If showSelect is true, we're in selection mode (e.g., building a PC)
+  // Otherwise, make the card clickable to go to the hardware detail page
+  const isClickableLink = !showSelect && showBuyButton;
+
+  const cardContent = (
+    <>
       {/* Selection indicator */}
       {showSelect && (
         <div
@@ -124,6 +122,30 @@ export function HardwareCard({ hardware, selected, onSelect, showSelect = false,
           </div>
         </div>
       </div>
+    </>
+  );
+
+  if (isClickableLink) {
+    return (
+      <Link
+        to={`/hardware/${hardware.id}`}
+        className={`group relative block overflow-hidden rounded-xl border transition-all border-border bg-card hover:border-primary/50 hover:shadow-card`}
+      >
+        {cardContent}
+      </Link>
+    );
+  }
+
+  return (
+    <div
+      className={`group relative overflow-hidden rounded-xl border transition-all ${
+        selected
+          ? "border-primary bg-primary/10 shadow-glow"
+          : "border-border bg-card hover:border-primary/50 hover:shadow-card"
+      } ${showSelect ? "cursor-pointer" : ""}`}
+      onClick={showSelect ? onSelect : undefined}
+    >
+      {cardContent}
     </div>
   );
 }
