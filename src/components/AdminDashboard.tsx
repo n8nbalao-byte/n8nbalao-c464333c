@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { api, type Customer, type Order, type Product, type HardwareItem } from "@/lib/api";
+import { api, type Customer, type Order, type Product, type HardwareItem, getAIUsage, type AIUsageTotals, type AIUsageBreakdown } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { useOrderNotification } from "@/hooks/useOrderNotification";
 import {
@@ -24,6 +24,8 @@ import {
   BellOff,
   Volume2,
   Cpu,
+  Bot,
+  Sparkles,
 } from "lucide-react";
 
 interface DashboardStats {
@@ -34,6 +36,9 @@ interface DashboardStats {
   totalRevenue: number;
   pendingOrders: number;
   completedOrders: number;
+  aiTotalCostBrl: number;
+  aiTotalTokens: number;
+  aiOperations: number;
 }
 
 const statusLabels: Record<Order["status"], string> = {
@@ -77,6 +82,9 @@ export function AdminDashboard() {
     totalRevenue: 0,
     pendingOrders: 0,
     completedOrders: 0,
+    aiTotalCostBrl: 0,
+    aiTotalTokens: 0,
+    aiOperations: 0,
   });
 
   const [activeView, setActiveView] = useState<"overview" | "customers" | "orders">("overview");
@@ -134,6 +142,7 @@ export function AdminDashboard() {
       let ordersData: Order[] = [];
       let productsData: Product[] = [];
       let hardwareData: HardwareItem[] = [];
+      let aiUsageData: { totals: any } | null = null;
 
       try {
         customersData = await api.getCustomers();
@@ -159,6 +168,12 @@ export function AdminDashboard() {
         console.log("Hardware API error");
       }
 
+      try {
+        aiUsageData = await getAIUsage('all');
+      } catch (e) {
+        console.log("AI Usage API not available yet");
+      }
+
       setCustomers(Array.isArray(customersData) ? customersData : []);
       setOrders(Array.isArray(ordersData) ? ordersData : []);
       setProducts(Array.isArray(productsData) ? productsData : []);
@@ -178,6 +193,9 @@ export function AdminDashboard() {
         totalRevenue,
         pendingOrders: validOrders.filter((o) => o.status === "pending").length,
         completedOrders: validOrders.filter((o) => o.status === "delivered").length,
+        aiTotalCostBrl: parseFloat(aiUsageData?.totals?.total_cost_brl || 0),
+        aiTotalTokens: parseInt(aiUsageData?.totals?.total_tokens || 0),
+        aiOperations: parseInt(aiUsageData?.totals?.total_operations || 0),
       });
     } catch (error) {
       console.error("Error fetching dashboard data:", error);
@@ -300,7 +318,7 @@ export function AdminDashboard() {
   return (
     <div className="space-y-6">
       {/* Stats Cards */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8">
         <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
           <div className="flex items-center gap-3">
             <div className="rounded-lg bg-blue-100 p-2">
@@ -381,6 +399,20 @@ export function AdminDashboard() {
             <div>
               <p className="text-sm text-gray-500">Entregues</p>
               <p className="text-2xl font-bold text-gray-800">{stats.completedOrders}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* AI Usage Card */}
+        <div className="rounded-xl border border-violet-200 bg-gradient-to-br from-violet-50 to-purple-50 p-4 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="rounded-lg bg-violet-100 p-2">
+              <Sparkles className="h-5 w-5 text-violet-600" />
+            </div>
+            <div>
+              <p className="text-sm text-violet-600 font-medium">Custos IA</p>
+              <p className="text-xl font-bold text-violet-700">{formatPrice(stats.aiTotalCostBrl)}</p>
+              <p className="text-xs text-violet-500">{stats.aiOperations} ops | {(stats.aiTotalTokens / 1000).toFixed(1)}k tokens</p>
             </div>
           </div>
         </div>
