@@ -217,6 +217,13 @@ switch ($method) {
         break;
 
     case 'DELETE':
+        // Delete all products if 'all' parameter is set
+        if (isset($_GET['all']) && $_GET['all'] === 'true') {
+            $stmt = $pdo->exec("DELETE FROM products");
+            echo json_encode(['success' => true, 'message' => 'All products deleted']);
+            break;
+        }
+        
         if (!isset($_GET['id'])) {
             http_response_code(400);
             echo json_encode(['error' => 'Product ID is required']);
