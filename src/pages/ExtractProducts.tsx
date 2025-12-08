@@ -220,24 +220,13 @@ const ExtractProducts = () => {
     setIsExtracting(true);
     
     try {
-      const apiKey = localStorage.getItem('openai_api_key');
-      if (!apiKey) {
-        toast({
-          title: "Chave OpenAI necessária",
-          description: "Configure sua chave da OpenAI nas configurações.",
-          variant: "destructive"
-        });
-        setIsExtracting(false);
-        return;
-      }
-
-      const response = await fetch('https://www.n8nbalao.com/api/extract.php', {
+      // Usa o novo endpoint sem IA
+      const response = await fetch('https://www.n8nbalao.com/api/extract-simple.php', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          apiKey,
           url: extractUrl.trim()
         })
       });
@@ -248,16 +237,17 @@ const ExtractProducts = () => {
 
       const data = await response.json();
       
-      if (data.error) {
-        throw new Error(data.error);
+      if (!data.success) {
+        throw new Error(data.error || 'Falha na extração');
       }
 
+      const productData = data.product;
       const product: ParsedProduct = {
         id: crypto.randomUUID(),
-        imageUrl: data.images?.[0] || '',
-        title: data.title || 'Produto sem nome',
-        description: data.description || '',
-        costPrice: parseFloat(data.price) || 0,
+        imageUrl: productData.images?.[0] || '',
+        title: productData.title || 'Produto sem nome',
+        description: productData.description || '',
+        costPrice: parseFloat(productData.price) || 0,
         selected: true
       };
 
@@ -535,7 +525,7 @@ const ExtractProducts = () => {
                     value={extractUrl}
                     onChange={(e) => setExtractUrl(e.target.value)}
                     placeholder="Cole a URL do produto (ex: https://www.kabum.com.br/produto/...)"
-                    className="flex-1 border-2"
+                    className="flex-1 border-2 bg-white text-gray-800 placeholder:text-gray-400"
                     style={{ borderColor: '#E5E7EB' }}
                   />
                   <Button 
@@ -567,7 +557,7 @@ const ExtractProducts = () => {
                   value={rawData}
                   onChange={(e) => setRawData(e.target.value)}
                   placeholder="Cole aqui os dados do scraper (formato tab-separated: imagem, nome, preço)"
-                  className="min-h-[200px] font-mono text-xs border-2"
+                  className="min-h-[200px] font-mono text-xs border-2 bg-white text-gray-800 placeholder:text-gray-400"
                   style={{ borderColor: '#E5E7EB' }}
                 />
                 <Button 
@@ -602,7 +592,7 @@ const ExtractProducts = () => {
                   placeholder="0"
                   min="0"
                   max="100"
-                  className="border-2"
+                  className="border-2 bg-white text-gray-800"
                   style={{ borderColor: '#E5E7EB' }}
                 />
                 <p className="text-xs text-gray-500">Aplicada sobre o custo</p>
@@ -620,7 +610,7 @@ const ExtractProducts = () => {
                   placeholder="30"
                   min="0"
                   max="500"
-                  className="border-2"
+                  className="border-2 bg-white text-gray-800"
                   style={{ borderColor: '#E5E7EB' }}
                 />
               </div>
@@ -631,12 +621,12 @@ const ExtractProducts = () => {
                   Tipo do Produto
                 </Label>
                 <Select value={productType} onValueChange={setProductType}>
-                  <SelectTrigger className="border-2" style={{ borderColor: '#E5E7EB' }}>
+                  <SelectTrigger className="border-2 bg-white text-gray-800" style={{ borderColor: '#E5E7EB' }}>
                     <SelectValue placeholder="Selecione o tipo" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="bg-white">
                     {categories.map(cat => (
-                      <SelectItem key={cat.key} value={cat.key}>
+                      <SelectItem key={cat.key} value={cat.key} className="text-gray-800">
                         {cat.label}
                       </SelectItem>
                     ))}
@@ -650,12 +640,12 @@ const ExtractProducts = () => {
                   Categoria
                 </Label>
                 <Select value={category} onValueChange={setCategory}>
-                  <SelectTrigger className="border-2" style={{ borderColor: '#E5E7EB' }}>
+                  <SelectTrigger className="border-2 bg-white text-gray-800" style={{ borderColor: '#E5E7EB' }}>
                     <SelectValue placeholder="Selecione a categoria" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="bg-white">
                     {categories.map(cat => (
-                      <SelectItem key={cat.key} value={cat.key}>
+                      <SelectItem key={cat.key} value={cat.key} className="text-gray-800">
                         {cat.label}
                       </SelectItem>
                     ))}
