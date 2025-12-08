@@ -2896,20 +2896,6 @@ export default function Admin() {
                           </div>
                         </div>
                         
-                        {/* Cost info */}
-                        <div className="mt-4 p-3 rounded-lg" style={{ backgroundColor: '#FEF3C7' }}>
-                          <p className="text-xs font-medium" style={{ color: '#92400E' }}>
-                            💰 Custo aproximado por 1M tokens:
-                          </p>
-                          <div className="mt-2 grid grid-cols-2 gap-2 text-xs" style={{ color: '#78350F' }}>
-                            {availableModels.map(m => (
-                              <div key={m.value} className="flex justify-between">
-                                <span>{m.value}:</span>
-                                <span>In: ${m.inputCost} / Out: ${m.outputCost}</span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
                       </div>
                     </div>
                   </div>
