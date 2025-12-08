@@ -107,38 +107,6 @@ export default function Home() {
             </Link>
           </div>
         </div>
-
-        {/* Navigation */}
-        <nav className="bg-gray-100 border-t border-gray-200">
-          <div className="container">
-            <div className="flex items-center gap-1 overflow-x-auto py-2 scrollbar-hide">
-              <Link to="/loja" className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:text-primary hover:bg-white rounded-lg transition-colors whitespace-nowrap font-medium">
-                <Menu className="h-4 w-4" />
-                Loja
-              </Link>
-              <Link to="/monte-voce-mesmo" className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:text-primary hover:bg-white rounded-lg transition-colors whitespace-nowrap font-medium">
-                <Cpu className="h-4 w-4" />
-                Monte seu PC
-              </Link>
-              <Link to="/automacao" className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:text-primary hover:bg-white rounded-lg transition-colors whitespace-nowrap font-medium">
-                <Bot className="h-4 w-4" />
-                Automação
-              </Link>
-              <Link to="/loja?category=notebook" className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:text-primary hover:bg-white rounded-lg transition-colors whitespace-nowrap font-medium">
-                <Laptop className="h-4 w-4" />
-                Notebooks
-              </Link>
-              <Link to="/loja?category=hardware" className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:text-primary hover:bg-white rounded-lg transition-colors whitespace-nowrap font-medium">
-                <HardDrive className="h-4 w-4" />
-                Hardware
-              </Link>
-              <Link to="/loja?category=monitor" className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:text-primary hover:bg-white rounded-lg transition-colors whitespace-nowrap font-medium">
-                <Monitor className="h-4 w-4" />
-                Monitores
-              </Link>
-            </div>
-          </div>
-        </nav>
       </header>
 
       {/* Hero Banner Carousel */}
