@@ -16,22 +16,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit();
 }
 
-// Get OpenAI API key from config
-$configFile = __DIR__ . '/config.php';
-$openaiApiKey = null;
-
-if (file_exists($configFile)) {
-    include $configFile;
-    $openaiApiKey = defined('OPENAI_API_KEY') ? OPENAI_API_KEY : null;
-}
-
-if (!$openaiApiKey) {
-    http_response_code(500);
-    echo json_encode(['error' => 'OpenAI API key not configured. Add OPENAI_API_KEY to config.php']);
-    exit();
-}
-
-// Database connection for context
+// Database connection
 $host = 'localhost';
 $dbname = 'u770915504_n8nbalao';
 $username = 'u770915504_n8nbalao';
@@ -41,8 +26,61 @@ try {
     $pdo = new PDO("mysql:host=$host;dbname=$dbname;charset=utf8mb4", $username, $password);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 } catch (PDOException $e) {
-    // Continue without database - AI will work but without real data
-    $pdo = null;
+    http_response_code(500);
+    echo json_encode(['error' => 'Database connection failed']);
+    exit();
+}
+
+// Create settings table if not exists
+try {
+    $pdo->exec("CREATE TABLE IF NOT EXISTS settings (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        `key` VARCHAR(100) UNIQUE NOT NULL,
+        `value` TEXT,
+        createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    )");
+} catch (PDOException $e) {
+    // Table might already exist
+}
+
+// Get OpenAI API key and settings from database
+$openaiApiKey = null;
+$lorenzoName = 'Lorenzo';
+$lorenzoModel = 'gpt-4o-mini';
+
+try {
+    $stmt = $pdo->query("SELECT `key`, `value` FROM settings WHERE `key` IN ('openai_api_key', 'lorenzo_name', 'lorenzo_model')");
+    $settings = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    foreach ($settings as $setting) {
+        if ($setting['key'] === 'openai_api_key') {
+            $openaiApiKey = trim($setting['value']);
+        }
+        if ($setting['key'] === 'lorenzo_name') {
+            $lorenzoName = $setting['value'] ?: 'Lorenzo';
+        }
+        if ($setting['key'] === 'lorenzo_model') {
+            $lorenzoModel = $setting['value'] ?: 'gpt-4o-mini';
+        }
+    }
+} catch (PDOException $e) {
+    // Continue with defaults
+}
+
+// Fallback to config.php if not in database
+if (!$openaiApiKey || $openaiApiKey === '') {
+    $configFile = __DIR__ . '/config.php';
+    if (file_exists($configFile)) {
+        include $configFile;
+        $openaiApiKey = defined('OPENAI_API_KEY') ? OPENAI_API_KEY : null;
+    }
+}
+
+if (!$openaiApiKey || $openaiApiKey === '') {
+    http_response_code(400);
+    echo json_encode(['error' => 'Chave OpenAI não configurada. Vá em Admin > Configurações e adicione sua chave API.']);
+    exit();
 }
 
 // Get request data
@@ -53,50 +91,48 @@ $customerId = $input['customerId'] ?? null;
 // Fetch real data from database for context
 $contextData = [];
 
-if ($pdo) {
-    try {
-        // Get products
-        $stmt = $pdo->query("SELECT id, title, subtitle, productType, totalPrice, description FROM products ORDER BY totalPrice ASC LIMIT 50");
-        $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        $contextData['products'] = $products;
+try {
+    // Get products
+    $stmt = $pdo->query("SELECT id, title, subtitle, productType, totalPrice, description FROM products ORDER BY totalPrice ASC LIMIT 50");
+    $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $contextData['products'] = $products;
 
-        // Get hardware
-        $stmt = $pdo->query("SELECT id, name, brand, model, price, category, socket, memoryType FROM hardware ORDER BY price ASC LIMIT 100");
-        $hardware = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        $contextData['hardware'] = $hardware;
+    // Get hardware
+    $stmt = $pdo->query("SELECT id, name, brand, model, price, category, socket, memoryType FROM hardware ORDER BY price ASC LIMIT 100");
+    $hardware = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $contextData['hardware'] = $hardware;
 
-        // Get company info
-        $stmt = $pdo->query("SELECT * FROM company LIMIT 1");
-        $company = $stmt->fetch(PDO::FETCH_ASSOC);
-        $contextData['company'] = $company;
+    // Get company info
+    $stmt = $pdo->query("SELECT * FROM company LIMIT 1");
+    $company = $stmt->fetch(PDO::FETCH_ASSOC);
+    $contextData['company'] = $company;
 
-        // Get categories
-        $stmt = $pdo->query("SELECT name, icon FROM categories");
-        $categories = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        $contextData['categories'] = $categories;
+    // Get categories
+    $stmt = $pdo->query("SELECT name, icon FROM categories");
+    $categories = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $contextData['categories'] = $categories;
 
-        // Get customer info if provided
-        if ($customerId) {
-            $stmt = $pdo->prepare("SELECT name, email, phone, city, state FROM customers WHERE id = ?");
-            $stmt->execute([$customerId]);
-            $customer = $stmt->fetch(PDO::FETCH_ASSOC);
-            $contextData['customer'] = $customer;
+    // Get customer info if provided
+    if ($customerId) {
+        $stmt = $pdo->prepare("SELECT name, email, phone, city, state FROM customers WHERE id = ?");
+        $stmt->execute([$customerId]);
+        $customer = $stmt->fetch(PDO::FETCH_ASSOC);
+        $contextData['customer'] = $customer;
 
-            // Get customer orders
-            $stmt = $pdo->prepare("SELECT id, total, status, createdAt FROM orders WHERE customerId = ? ORDER BY createdAt DESC LIMIT 5");
-            $stmt->execute([$customerId]);
-            $orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
-            $contextData['customerOrders'] = $orders;
-        }
-    } catch (PDOException $e) {
-        // Continue without data
+        // Get customer orders
+        $stmt = $pdo->prepare("SELECT id, total, status, createdAt FROM orders WHERE customerId = ? ORDER BY createdAt DESC LIMIT 5");
+        $stmt->execute([$customerId]);
+        $orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $contextData['customerOrders'] = $orders;
     }
+} catch (PDOException $e) {
+    // Continue without data
 }
 
 // Build system prompt with real data
-$systemPrompt = "# Você é o Lorenzo 🎈
+$systemPrompt = "# Você é o {$lorenzoName} 🎈
 
-Você é o Lorenzo, o assistente virtual inteligente da **Balão da Informática**. Você é amigável, prestativo e especialista em tecnologia, computadores e automação.
+Você é o {$lorenzoName}, o assistente virtual inteligente da **Balão da Informática**. Você é amigável, prestativo e especialista em tecnologia, computadores e automação.
 
 ## Sua Personalidade
 - Simpático e acolhedor
@@ -215,7 +251,7 @@ curl_setopt($ch, CURLOPT_HTTPHEADER, [
     'Content-Type: application/json'
 ]);
 curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode([
-    'model' => 'gpt-4o-mini',
+    'model' => $lorenzoModel,
     'messages' => $apiMessages,
     'max_tokens' => 1000,
     'temperature' => 0.7
@@ -245,6 +281,7 @@ $assistantMessage = $data['choices'][0]['message']['content'] ?? 'Desculpe, não
 echo json_encode([
     'success' => true,
     'message' => $assistantMessage,
+    'model' => $lorenzoModel,
     'usage' => $data['usage'] ?? null
 ]);
 ?>
