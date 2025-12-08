@@ -118,6 +118,50 @@ switch ($method) {
         }
         break;
 
+    case 'PUT':
+        $data = json_decode(file_get_contents('php://input'), true);
+        
+        if (!$data || !isset($data['key'])) {
+            http_response_code(400);
+            echo json_encode(['error' => 'Category key is required']);
+            exit();
+        }
+
+        $updates = [];
+        $params = [];
+
+        if (isset($data['newLabel'])) {
+            $updates[] = "label = ?";
+            $params[] = $data['newLabel'];
+        }
+        if (isset($data['newIcon'])) {
+            $updates[] = "icon = ?";
+            $params[] = $data['newIcon'];
+        }
+        if (isset($data['newKey'])) {
+            $updates[] = "category_key = ?";
+            $params[] = $data['newKey'];
+        }
+
+        if (empty($updates)) {
+            http_response_code(400);
+            echo json_encode(['error' => 'No fields to update']);
+            exit();
+        }
+
+        $params[] = $data['key'];
+        $sql = "UPDATE categories SET " . implode(", ", $updates) . " WHERE category_key = ?";
+        $stmt = $pdo->prepare($sql);
+        $success = $stmt->execute($params);
+
+        if ($success) {
+            echo json_encode(['success' => true]);
+        } else {
+            http_response_code(500);
+            echo json_encode(['error' => 'Failed to update category']);
+        }
+        break;
+
     default:
         http_response_code(405);
         echo json_encode(['error' => 'Method not allowed']);

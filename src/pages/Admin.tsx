@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Sidebar } from "@/components/Sidebar";
-import { api, type Product, type HardwareItem, type MediaItem, type ProductComponents, type CompanyData, type ProductCategory, type HardwareCategory, getCustomCategories, addCustomCategory, removeCustomCategory } from "@/lib/api";
+import { api, type Product, type HardwareItem, type MediaItem, type ProductComponents, type CompanyData, type ProductCategory, type HardwareCategory, getCustomCategories, addCustomCategory, removeCustomCategory, updateCustomCategory } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Pencil, Trash2, Save, X, Upload, Play, Image, Cpu, CircuitBoard, MemoryStick, HardDrive, Monitor, Zap, Box, Package, Download, Droplets, Building2, Laptop, Bot, Code, Wrench, Key, Tv, Armchair, Tag, LucideIcon, Search, Sparkles, LayoutDashboard } from "lucide-react";
 import * as XLSX from "xlsx";
@@ -208,6 +208,12 @@ export default function Admin() {
   const [inlineNewCategoryIcon, setInlineNewCategoryIcon] = useState("tag");
   const [extraProductCategory, setExtraProductCategory] = useState<string | null>(null);
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
+  
+  // Edit category modal state
+  const [showEditCategoryModal, setShowEditCategoryModal] = useState(false);
+  const [editingCategory, setEditingCategory] = useState<{ key: string; label: string; icon?: string } | null>(null);
+  const [editCategoryLabel, setEditCategoryLabel] = useState("");
+  const [editCategoryIcon, setEditCategoryIcon] = useState("tag");
 
   // All categories come from database now
   const productTypes = customCategoriesList.map(c => ({ 
@@ -1509,7 +1515,7 @@ export default function Admin() {
             </button>
           </div>
 
-          {/* Categories display only (creation via product form) */}
+          {/* Categories display with edit on click */}
           {customCategoriesList.length > 0 && (
             <div className="mb-6 flex flex-wrap gap-2">
               <span className="text-sm text-muted-foreground self-center mr-2">Categorias:</span>
@@ -1518,7 +1524,14 @@ export default function Admin() {
                 return (
                   <button
                     key={cat.key}
-                    className="inline-flex items-center gap-2 rounded-lg px-4 py-2 font-medium transition-colors bg-secondary text-secondary-foreground hover:bg-secondary/80 group relative text-sm"
+                    onClick={() => {
+                      setEditingCategory(cat);
+                      setEditCategoryLabel(cat.label);
+                      setEditCategoryIcon(cat.icon || 'tag');
+                      setShowEditCategoryModal(true);
+                    }}
+                    className="inline-flex items-center gap-2 rounded-lg px-4 py-2 font-medium transition-colors bg-secondary text-secondary-foreground hover:bg-primary/20 group relative text-sm cursor-pointer"
+                    title="Clique para editar"
                   >
                     <Icon className="h-4 w-4" />
                     {cat.label}
@@ -1539,6 +1552,100 @@ export default function Admin() {
                   </button>
                 );
               })}
+            </div>
+          )}
+
+          {/* Edit Category Modal */}
+          {showEditCategoryModal && editingCategory && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+              <div className="w-full max-w-md rounded-xl bg-card p-6 shadow-xl border border-border">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold">Editar Categoria</h3>
+                  <button
+                    onClick={() => {
+                      setShowEditCategoryModal(false);
+                      setEditingCategory(null);
+                    }}
+                    className="text-muted-foreground hover:text-foreground"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
+                
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Nome da Categoria</label>
+                    <input
+                      type="text"
+                      value={editCategoryLabel}
+                      onChange={(e) => setEditCategoryLabel(e.target.value)}
+                      className="w-full rounded-lg border border-border bg-background px-3 py-2 text-foreground focus:border-primary focus:outline-none"
+                      placeholder="Ex: Notebooks"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Ícone</label>
+                    <div className="grid grid-cols-8 gap-2 max-h-40 overflow-y-auto p-2 border border-border rounded-lg bg-background">
+                      {availableIcons.map((iconOption) => {
+                        const IconComp = iconOption.icon;
+                        return (
+                          <button
+                            key={iconOption.key}
+                            type="button"
+                            onClick={() => setEditCategoryIcon(iconOption.key)}
+                            className={`p-2 rounded-lg transition-colors ${
+                              editCategoryIcon === iconOption.key
+                                ? "bg-primary text-primary-foreground"
+                                : "bg-secondary hover:bg-secondary/80"
+                            }`}
+                            title={iconOption.key}
+                          >
+                            <IconComp className="h-4 w-4" />
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  
+                  <div className="flex gap-2 pt-2">
+                    <button
+                      onClick={() => {
+                        setShowEditCategoryModal(false);
+                        setEditingCategory(null);
+                      }}
+                      className="flex-1 rounded-lg border border-border px-4 py-2 text-foreground hover:bg-secondary"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      onClick={async () => {
+                        if (!editCategoryLabel.trim()) {
+                          toast({ title: "Erro", description: "Nome é obrigatório", variant: "destructive" });
+                          return;
+                        }
+                        const success = await updateCustomCategory(
+                          editingCategory.key,
+                          editCategoryLabel.trim(),
+                          editCategoryIcon
+                        );
+                        if (success) {
+                          const updatedCategories = await getCustomCategories();
+                          setCustomCategoriesList(updatedCategories);
+                          toast({ title: "Categoria atualizada" });
+                          setShowEditCategoryModal(false);
+                          setEditingCategory(null);
+                        } else {
+                          toast({ title: "Erro", description: "Falha ao atualizar categoria", variant: "destructive" });
+                        }
+                      }}
+                      className="flex-1 rounded-lg bg-primary px-4 py-2 text-primary-foreground hover:bg-primary/80"
+                    >
+                      Salvar
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 

@@ -48,6 +48,20 @@ export async function removeCustomCategory(key: string): Promise<boolean> {
   }
 }
 
+// Update category in database
+export async function updateCustomCategory(key: string, newLabel: string, newIcon?: string, newKey?: string): Promise<boolean> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/categories.php`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key, newLabel, newIcon, newKey }),
+    });
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
+
 export interface Product {
   id: string;
   title: string;
