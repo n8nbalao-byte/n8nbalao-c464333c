@@ -362,21 +362,73 @@ IMPORTANTE:
     echo json_encode(['success' => true, 'type' => 'product', 'data' => $productData, 'sourceUrl' => $url]);
     
 } else {
+    // For Mercado Livre and similar sites, try to extract product links first
+    $isMercadoLivre = strpos($url, 'mercadolivre.com') !== false || strpos($url, 'mercadolibre.com') !== false;
+    $isKabum = strpos($url, 'kabum.com') !== false;
+    
+    // Try to find product links in the HTML
+    $productLinks = [];
+    
+    if ($isMercadoLivre) {
+        // Mercado Livre product links patterns
+        preg_match_all('/href=["\']([^"\']*MLB[0-9]+[^"\']*)["\']/', $html, $mlbMatches);
+        foreach ($mlbMatches[1] as $link) {
+            if (strpos($link, '/p/') !== false || strpos($link, 'produto') !== false || preg_match('/MLB[0-9]+/', $link)) {
+                if (strpos($link, 'http') !== 0) {
+                    $link = 'https://www.mercadolivre.com.br' . $link;
+                }
+                // Clean up the link
+                $link = preg_replace('/\?.*$/', '', $link);
+                if (!in_array($link, $productLinks)) {
+                    $productLinks[] = $link;
+                }
+            }
+        }
+        
+        // Also try to find in JSON data
+        preg_match_all('/"permalink"\s*:\s*"([^"]+)"/', $html, $permalinkMatches);
+        foreach ($permalinkMatches[1] as $link) {
+            $link = str_replace('\\/', '/', $link);
+            if (!in_array($link, $productLinks)) {
+                $productLinks[] = $link;
+            }
+        }
+    }
+    
+    if ($isKabum) {
+        // Kabum product links
+        preg_match_all('/href=["\']([^"\']*\/produto\/[^"\']+)["\']/', $html, $kabumMatches);
+        foreach ($kabumMatches[1] as $link) {
+            if (strpos($link, 'http') !== 0) {
+                $link = 'https://www.kabum.com.br' . $link;
+            }
+            if (!in_array($link, $productLinks)) {
+                $productLinks[] = $link;
+            }
+        }
+    }
+    
+    // Limit to 20 links
+    $productLinks = array_slice(array_unique($productLinks), 0, 20);
+    
     // For store pages, try to find products in JSON data first
-    $systemPrompt = 'Você é um especialista em extrair produtos de páginas de lojas online. Analise o HTML e JSON para encontrar TODOS os produtos listados. Retorne APENAS JSON válido.';
+    $systemPrompt = 'Você é um especialista em extrair produtos de páginas de lojas online. Analise o HTML e JSON para encontrar TODOS os produtos listados na página. Procure por cards de produtos, listas, grids. Retorne APENAS JSON válido.';
     
     $prompt = "Extraia TODOS os produtos desta página de loja.
 
 DADOS PRÉ-EXTRAÍDOS:
 " . json_encode($preExtracted, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) . "
 
+LINKS DE PRODUTOS ENCONTRADOS:
+" . json_encode($productLinks, JSON_PRETTY_PRINT) . "
+
 HTML (parcial):
 " . substr($cleanedHtml, 0, 45000) . "
 
 Procure por:
-- Listas de produtos com nome, preço e imagem
-- Dados em formato JSON dentro do HTML
-- Cards de produtos com links
+- Dados de produtos em formato JSON dentro do HTML (procure por 'initialState', 'products', 'items')
+- Cards de produtos com nome, preço e imagem
+- Listas ou grids de produtos
 
 Retorne um JSON array:
 [{
@@ -388,10 +440,11 @@ Retorne um JSON array:
 }]
 
 IMPORTANTE:
-- Extraia TODOS os produtos que encontrar
+- Se encontrar dados JSON com produtos, extraia TODOS
 - O preço deve ser número (sem R$)
-- Se não encontrar produtos, retorne array vazio []
-- Para links relativos, converta para absolutos usando: " . parse_url($url, PHP_URL_SCHEME) . "://" . parse_url($url, PHP_URL_HOST);
+- Se não encontrar produtos no HTML mas encontrar links, crie items com os links
+- Para links relativos, converta para absolutos
+- Se não encontrar nada, retorne array vazio []";
 
     $aiResult = callOpenAI($apiKey, $prompt, $systemPrompt);
     
@@ -404,20 +457,72 @@ IMPORTANTE:
     $content = preg_replace('/```\s*/', '', $content);
     $productsData = json_decode(trim($content), true);
     
+    // If AI didn't find products but we have product links, create basic items from links
+    if ((!$productsData || count($productsData) === 0) && count($productLinks) > 0) {
+        $productsData = [];
+        foreach ($productLinks as $link) {
+            // Extract product ID from URL for title
+            preg_match('/MLB[0-9]+/', $link, $idMatch);
+            $productId = $idMatch[0] ?? 'Produto';
+            
+            $productsData[] = [
+                'title' => 'Produto ' . $productId . ' (clique + para extrair detalhes)',
+                'price' => null,
+                'image' => '',
+                'link' => $link,
+                'category' => 'acessorio',
+                'needsExtraction' => true
+            ];
+        }
+        
+        echo json_encode([
+            'success' => true, 
+            'type' => 'store', 
+            'data' => $productsData, 
+            'count' => count($productsData), 
+            'sourceUrl' => $url,
+            'note' => 'Links de produtos encontrados. Clique em cada produto para extrair detalhes completos.'
+        ]);
+        exit();
+    }
+    
     if (!$productsData || !is_array($productsData)) {
+        // Return product links if found
+        if (count($productLinks) > 0) {
+            echo json_encode([
+                'success' => true,
+                'type' => 'links',
+                'data' => $productLinks,
+                'count' => count($productLinks),
+                'note' => 'Não foi possível extrair detalhes dos produtos, mas encontramos ' . count($productLinks) . ' links. Copie e extraia cada produto individualmente.'
+            ]);
+            exit();
+        }
+        
         echo json_encode([
             'success' => false, 
-            'error' => 'Não foi possível extrair produtos. O site pode usar JavaScript para carregar os produtos dinamicamente. Tente extrair produtos individuais usando links diretos.',
-            'hint' => 'Copie os links dos produtos individuais e use a opção "Produto Único" para cada um.'
+            'error' => 'Não foi possível extrair produtos. O site usa JavaScript para carregar os produtos. Use o modo "Colar HTML" - abra DevTools (F12), aba Elements, clique com botão direito no <html> e copie o outerHTML.',
+            'hint' => 'Para Mercado Livre: abra a página, pressione F12, vá em Elements, clique direito no <html>, Copy > Copy outerHTML'
         ]);
         exit();
     }
     
     if (count($productsData) === 0) {
+        if (count($productLinks) > 0) {
+            echo json_encode([
+                'success' => true,
+                'type' => 'links',
+                'data' => $productLinks,
+                'count' => count($productLinks),
+                'note' => 'Produtos não extraídos automaticamente, mas encontramos ' . count($productLinks) . ' links de produtos.'
+            ]);
+            exit();
+        }
+        
         echo json_encode([
             'success' => false, 
-            'error' => 'Nenhum produto encontrado na página. O site pode carregar produtos via JavaScript.',
-            'hint' => 'Tente usar links de produtos individuais.'
+            'error' => 'Nenhum produto encontrado na página. O site carrega produtos via JavaScript.',
+            'hint' => 'Tente usar links de produtos individuais ou o modo "Colar HTML".'
         ]);
         exit();
     }
