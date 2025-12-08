@@ -25,19 +25,30 @@ export function StarryBackground() {
       opacity: number;
       twinkleSpeed: number;
       twinklePhase: number;
+      color: string;
     }
 
     const stars: Star[] = [];
-    const starCount = 150;
+    const starCount = 200;
+
+    // Colors for stars - white and subtle pink/coral tints
+    const starColors = [
+      "255, 255, 255",
+      "255, 255, 255",
+      "255, 255, 255",
+      "255, 200, 200",
+      "200, 200, 255",
+    ];
 
     for (let i = 0; i < starCount; i++) {
       stars.push({
         x: Math.random() * canvas.width,
         y: Math.random() * canvas.height,
-        radius: Math.random() * 1.5 + 0.5,
-        opacity: Math.random() * 0.5 + 0.3,
-        twinkleSpeed: Math.random() * 0.02 + 0.01,
+        radius: Math.random() * 2 + 0.5,
+        opacity: Math.random() * 0.6 + 0.3,
+        twinkleSpeed: Math.random() * 0.03 + 0.01,
         twinklePhase: Math.random() * Math.PI * 2,
+        color: starColors[Math.floor(Math.random() * starColors.length)],
       });
     }
 
@@ -46,31 +57,53 @@ export function StarryBackground() {
     const animate = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      // Create gradient background (darker at bottom)
+      // Create gradient background - dark blue/purple like the reference
       const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-      gradient.addColorStop(0, "hsl(240, 10%, 8%)");
-      gradient.addColorStop(0.5, "hsl(240, 10%, 5%)");
-      gradient.addColorStop(1, "hsl(240, 10%, 2%)");
+      gradient.addColorStop(0, "hsl(230, 25%, 12%)");
+      gradient.addColorStop(0.3, "hsl(230, 25%, 10%)");
+      gradient.addColorStop(0.6, "hsl(235, 25%, 8%)");
+      gradient.addColorStop(1, "hsl(240, 25%, 6%)");
       ctx.fillStyle = gradient;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      // Draw twinkling stars
+      // Draw twinkling stars with glow
       stars.forEach((star) => {
         star.twinklePhase += star.twinkleSpeed;
-        const twinkle = Math.sin(star.twinklePhase) * 0.3 + 0.7;
+        const twinkle = Math.sin(star.twinklePhase) * 0.4 + 0.6;
         const currentOpacity = star.opacity * twinkle;
 
+        // Main star
         ctx.beginPath();
         ctx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(255, 255, 255, ${currentOpacity})`;
+        ctx.fillStyle = `rgba(${star.color}, ${currentOpacity})`;
         ctx.fill();
 
-        // Add glow effect for larger stars
-        if (star.radius > 1) {
+        // Glow effect for all stars
+        ctx.beginPath();
+        ctx.arc(star.x, star.y, star.radius * 3, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(${star.color}, ${currentOpacity * 0.15})`;
+        ctx.fill();
+
+        // Extra bright glow for larger stars
+        if (star.radius > 1.5) {
           ctx.beginPath();
-          ctx.arc(star.x, star.y, star.radius * 2, 0, Math.PI * 2);
-          ctx.fillStyle = `rgba(255, 255, 255, ${currentOpacity * 0.2})`;
+          ctx.arc(star.x, star.y, star.radius * 5, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(${star.color}, ${currentOpacity * 0.08})`;
           ctx.fill();
+          
+          // Add cross/sparkle effect for brightest stars
+          if (star.radius > 2 && twinkle > 0.8) {
+            ctx.strokeStyle = `rgba(${star.color}, ${currentOpacity * 0.3})`;
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(star.x - star.radius * 4, star.y);
+            ctx.lineTo(star.x + star.radius * 4, star.y);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(star.x, star.y - star.radius * 4);
+            ctx.lineTo(star.x, star.y + star.radius * 4);
+            ctx.stroke();
+          }
         }
       });
 
