@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Send, X, Minimize2, Maximize2, Bot, User, Loader2 } from 'lucide-react';
+import { Send, X, Minimize2, Maximize2, Bot, User, Loader2, Volume2, VolumeX } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -12,6 +12,7 @@ interface Message {
   role: 'user' | 'assistant';
   content: string;
   timestamp: Date;
+  audioUrl?: string;
 }
 
 interface LorenzoChatProps {
@@ -32,8 +33,11 @@ const LorenzoChat = ({ isOpen, onClose, customerId }: LorenzoChatProps) => {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
+  const [voiceEnabled, setVoiceEnabled] = useState(true);
+  const [isPlayingAudio, setIsPlayingAudio] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -46,6 +50,63 @@ const LorenzoChat = ({ isOpen, onClose, customerId }: LorenzoChatProps) => {
       inputRef.current.focus();
     }
   }, [isOpen, isMinimized]);
+
+  const playAudio = async (text: string): Promise<string | null> => {
+    try {
+      const response = await fetch(`${API_BASE}/text-to-speech.php`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text })
+      });
+
+      const data = await response.json();
+
+      if (data.success && data.audio) {
+        const audioBlob = base64ToBlob(data.audio, data.contentType || 'audio/mpeg');
+        const audioUrl = URL.createObjectURL(audioBlob);
+        
+        // Play audio
+        if (audioRef.current) {
+          audioRef.current.pause();
+        }
+        audioRef.current = new Audio(audioUrl);
+        setIsPlayingAudio(true);
+        audioRef.current.onended = () => setIsPlayingAudio(false);
+        audioRef.current.onerror = () => setIsPlayingAudio(false);
+        await audioRef.current.play();
+        
+        return audioUrl;
+      }
+    } catch (error) {
+      console.error('Error playing audio:', error);
+    }
+    return null;
+  };
+
+  const base64ToBlob = (base64: string, contentType: string): Blob => {
+    const byteCharacters = atob(base64);
+    const byteArrays = [];
+
+    for (let offset = 0; offset < byteCharacters.length; offset += 512) {
+      const slice = byteCharacters.slice(offset, offset + 512);
+      const byteNumbers = new Array(slice.length);
+      for (let i = 0; i < slice.length; i++) {
+        byteNumbers[i] = slice.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      byteArrays.push(byteArray);
+    }
+
+    return new Blob(byteArrays, { type: contentType });
+  };
+
+  const stopAudio = () => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+      setIsPlayingAudio(false);
+    }
+  };
 
   const sendMessage = async () => {
     if (!input.trim() || isLoading) return;
@@ -84,6 +145,23 @@ const LorenzoChat = ({ isOpen, onClose, customerId }: LorenzoChatProps) => {
           timestamp: new Date()
         };
         setMessages(prev => [...prev, assistantMessage]);
+
+        // Play voice response if enabled
+        if (voiceEnabled) {
+          // Clean markdown for better audio
+          const cleanText = data.message
+            .replace(/\*\*/g, '')
+            .replace(/\*/g, '')
+            .replace(/#{1,6}\s/g, '')
+            .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+            .replace(/`[^`]+`/g, '')
+            .replace(/\n+/g, ' ')
+            .trim();
+          
+          if (cleanText.length > 0 && cleanText.length < 5000) {
+            playAudio(cleanText);
+          }
+        }
       } else {
         throw new Error(data.error || 'Erro ao processar mensagem');
       }
@@ -122,10 +200,26 @@ const LorenzoChat = ({ isOpen, onClose, customerId }: LorenzoChatProps) => {
           </div>
           <div>
             <h3 className="font-bold">Lorenzo</h3>
-            <p className="text-xs text-white/80">Assistente Virtual 🎈</p>
+            <p className="text-xs text-white/80">
+              {isPlayingAudio ? '🔊 Falando...' : 'Assistente Virtual 🎈'}
+            </p>
           </div>
         </div>
         <div className="flex items-center gap-1">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="text-white hover:bg-white/20 h-8 w-8"
+            onClick={() => {
+              if (isPlayingAudio) {
+                stopAudio();
+              }
+              setVoiceEnabled(!voiceEnabled);
+            }}
+            title={voiceEnabled ? 'Desativar voz' : 'Ativar voz'}
+          >
+            {voiceEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+          </Button>
           <Button 
             variant="ghost" 
             size="icon" 
@@ -174,6 +268,16 @@ const LorenzoChat = ({ isOpen, onClose, customerId }: LorenzoChatProps) => {
                           ul: ({ children }) => <ul className="list-disc ml-4 mb-2">{children}</ul>,
                           li: ({ children }) => <li className="mb-1">{children}</li>,
                           strong: ({ children }) => <strong className="font-bold">{children}</strong>,
+                          a: ({ href, children }) => (
+                            <a 
+                              href={href} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="text-blue-600 underline hover:text-blue-800"
+                            >
+                              {children}
+                            </a>
+                          ),
                         }}
                       >
                         {message.content}
@@ -223,7 +327,7 @@ const LorenzoChat = ({ isOpen, onClose, customerId }: LorenzoChatProps) => {
               </Button>
             </div>
             <p className="text-xs text-center text-gray-400 mt-2">
-              Powered by Lorenzo AI 🎈
+              {voiceEnabled ? '🔊 Voz ativada' : '🔇 Voz desativada'} • Powered by Lorenzo AI 🎈
             </p>
           </div>
         </>
