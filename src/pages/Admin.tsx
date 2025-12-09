@@ -2517,16 +2517,24 @@ export default function Admin() {
                   />
                 </div>
                 <div className="flex gap-2">
+                  <button
+                    onClick={() => {
+                      if (selectedProducts.size === 0) {
+                        // Select all products first
+                        const allIds = new Set(getFilteredProducts().map(p => p.id));
+                        setSelectedProducts(allIds);
+                        toast({ title: "Produtos selecionados", description: `${allIds.size} produtos selecionados para classificação` });
+                      }
+                      setShowAIClassifier(true);
+                    }}
+                    className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors hover:opacity-90"
+                    style={{ background: 'linear-gradient(135deg, #8B5CF6 0%, #EC4899 100%)' }}
+                  >
+                    <Sparkles className="h-4 w-4" />
+                    Classificar com IA {selectedProducts.size > 0 && `(${selectedProducts.size})`}
+                  </button>
                   {selectedProducts.size > 0 && (
                     <>
-                      <button
-                        onClick={() => setShowAIClassifier(true)}
-                        className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors hover:opacity-90"
-                        style={{ background: 'linear-gradient(135deg, #8B5CF6 0%, #EC4899 100%)' }}
-                      >
-                        <Sparkles className="h-4 w-4" />
-                        Classificar com IA ({selectedProducts.size})
-                      </button>
                       <button
                         onClick={() => setShowBulkEditModal(true)}
                         className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/80"
