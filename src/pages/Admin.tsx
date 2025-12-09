@@ -5135,9 +5135,30 @@ export default function Admin() {
                   className="w-full rounded-lg border border-border bg-background px-4 py-3 text-foreground focus:border-primary focus:outline-none"
                 >
                   <option value="">Selecione uma categoria</option>
-                  {customCategoriesList.map((cat) => (
-                    <option key={cat.key} value={cat.key}>{cat.label}</option>
-                  ))}
+                  {bulkEditCategoryAction === 'remove' ? (
+                    // For remove action, show categories from selected products (including orphaned ones)
+                    (() => {
+                      const allCategories = new Set<string>();
+                      selectedProducts.forEach(id => {
+                        const product = products.find(p => p.id === id);
+                        if (product?.productType) allCategories.add(product.productType);
+                        product?.categories?.forEach(c => allCategories.add(c));
+                      });
+                      return Array.from(allCategories).map(cat => {
+                        const catInfo = customCategoriesList.find(c => c.key === cat) || productTypes.find(t => t.key === cat);
+                        return (
+                          <option key={cat} value={cat}>
+                            {catInfo?.label || cat} {!catInfo && '(não existe mais)'}
+                          </option>
+                        );
+                      });
+                    })()
+                  ) : (
+                    // For add/replace, show all available categories
+                    customCategoriesList.map((cat) => (
+                      <option key={cat.key} value={cat.key}>{cat.label}</option>
+                    ))
+                  )}
                 </select>
                 <p className="mt-1 text-xs text-muted-foreground">
                   {bulkEditCategoryAction === 'add' && 'A categoria será adicionada às categorias existentes'}
