@@ -230,8 +230,7 @@ const LandingVendas = () => {
             </Button>
             <Button 
               size="lg" 
-              variant="outline" 
-              className="border-slate-500 text-slate-200 hover:bg-slate-800 hover:text-white text-lg px-8 py-6"
+              className="bg-slate-700 text-white border border-slate-500 hover:bg-slate-600 text-lg px-8 py-6"
               onClick={() => window.open("https://wa.me/5511999999999?text=Olá! Gostaria de ver uma demonstração do LojaIA", "_blank")}
             >
               <Play className="mr-2 w-5 h-5" /> Ver Demonstração
