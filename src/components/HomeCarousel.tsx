@@ -1,5 +1,11 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { api } from "@/lib/api";
+
+interface CarouselImage {
+  url: string;
+  link?: string;
+}
 
 interface HomeCarouselProps {
   carouselKey: string;
@@ -9,7 +15,7 @@ interface HomeCarouselProps {
 }
 
 export function HomeCarousel({ carouselKey, fallbackImage, className = "", alt = "Carousel image" }: HomeCarouselProps) {
-  const [images, setImages] = useState<string[]>([]);
+  const [images, setImages] = useState<CarouselImage[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(true);
 
@@ -18,7 +24,11 @@ export function HomeCarousel({ carouselKey, fallbackImage, className = "", alt =
       try {
         const data = await api.getCarousel(carouselKey);
         if (data.images && data.images.length > 0) {
-          setImages(data.images);
+          // Handle both old format (string[]) and new format (CarouselImage[])
+          const normalizedImages: CarouselImage[] = data.images.map((img) =>
+            typeof img === 'string' ? { url: img, link: '' } : img
+          );
+          setImages(normalizedImages);
         }
       } catch (error) {
         console.error('Error fetching carousel images:', error);
@@ -60,20 +70,48 @@ export function HomeCarousel({ carouselKey, fallbackImage, className = "", alt =
     );
   }
 
+  const renderImage = (image: CarouselImage, index: number) => {
+    const imgElement = (
+      <img
+        src={image.url}
+        alt={`${alt} ${index + 1}`}
+        className={`flex-shrink-0 w-full ${className}`}
+      />
+    );
+
+    if (image.link) {
+      // External link
+      if (image.link.startsWith('http')) {
+        return (
+          <a
+            key={index}
+            href={image.link}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex-shrink-0 w-full"
+          >
+            {imgElement}
+          </a>
+        );
+      }
+      // Internal link
+      return (
+        <Link key={index} to={image.link} className="flex-shrink-0 w-full">
+          {imgElement}
+        </Link>
+      );
+    }
+
+    return <div key={index} className="flex-shrink-0 w-full">{imgElement}</div>;
+  };
+
   return (
     <div className="relative overflow-hidden">
       <div 
         className="flex transition-transform duration-700 ease-in-out"
         style={{ transform: `translateX(-${currentIndex * 100}%)` }}
       >
-        {images.map((image, index) => (
-          <img
-            key={index}
-            src={image}
-            alt={`${alt} ${index + 1}`}
-            className={`flex-shrink-0 w-full ${className}`}
-          />
-        ))}
+        {images.map((image, index) => renderImage(image, index))}
       </div>
       
       {/* Dots indicator */}

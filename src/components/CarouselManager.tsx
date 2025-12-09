@@ -1,12 +1,18 @@
 import { useState, useEffect } from "react";
 import { api, getCustomCategories } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2, Upload, Save, Image } from "lucide-react";
+import { Plus, Trash2, Upload, Save, Image, Link as LinkIcon, ExternalLink } from "lucide-react";
 
 interface CarouselConfig {
   key: string;
   label: string;
   description: string;
+  aspectRatio?: string; // For display preview
+}
+
+interface CarouselImage {
+  url: string;
+  link?: string;
 }
 
 const BASE_CAROUSEL_CONFIGS: CarouselConfig[] = [
@@ -26,6 +32,12 @@ const BASE_CAROUSEL_CONFIGS: CarouselConfig[] = [
     description: "Banner promocional lado direito (recomendado: 800x400px)"
   },
   {
+    key: "sidebar_promo_banners",
+    label: "Banners Laterais (Sidebar)",
+    description: "Banners promocionais na barra lateral - formato retrato (recomendado: 300x400px). Cada imagem pode ter um link.",
+    aspectRatio: "3/4"
+  },
+  {
     key: "nocode_section",
     label: "Seção No-Code (Automação)",
     description: "Imagens na página de Automação - seção 'Interface No-Code'"
@@ -39,10 +51,12 @@ const BASE_CAROUSEL_CONFIGS: CarouselConfig[] = [
 
 export function CarouselManager() {
   const { toast } = useToast();
-  const [carousels, setCarousels] = useState<Record<string, string[]>>({});
+  const [carousels, setCarousels] = useState<Record<string, CarouselImage[]>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<string | null>(null);
   const [carouselConfigs, setCarouselConfigs] = useState<CarouselConfig[]>(BASE_CAROUSEL_CONFIGS);
+  const [editingLink, setEditingLink] = useState<{ key: string; index: number } | null>(null);
+  const [linkValue, setLinkValue] = useState("");
 
   useEffect(() => {
     fetchCarousels();
@@ -51,25 +65,29 @@ export function CarouselManager() {
   async function fetchCarousels() {
     setLoading(true);
     
-    // Fetch custom categories to create dynamic banner configs - ONLY for existing categories
+    // Fetch custom categories to create dynamic banner configs
     const customCategories = await getCustomCategories();
     
-    // Create banner configs ONLY for categories that exist in the database
+    // Create banner configs for existing categories
     const categoryBanners: CarouselConfig[] = customCategories.map(cat => ({
       key: `category_${cat.key}_banner`,
       label: `Banner Categoria: ${cat.label}`,
       description: `Banner acima dos produtos ${cat.label} (recomendado: 1200x200px)`
     }));
     
-    // Combine base configs with category banners (only existing categories)
+    // Combine base configs with category banners
     const allConfigs = [...BASE_CAROUSEL_CONFIGS, ...categoryBanners];
     setCarouselConfigs(allConfigs);
     
-    const data: Record<string, string[]> = {};
+    const data: Record<string, CarouselImage[]> = {};
     
     for (const config of allConfigs) {
       const carousel = await api.getCarousel(config.key);
-      data[config.key] = carousel.images || [];
+      // Handle both old format (string[]) and new format (CarouselImage[])
+      const images = carousel.images || [];
+      data[config.key] = images.map((img: string | CarouselImage) => 
+        typeof img === 'string' ? { url: img, link: '' } : img
+      );
     }
     
     setCarousels(data);
@@ -111,7 +129,7 @@ export function CarouselManager() {
           
           setCarousels(prev => ({
             ...prev,
-            [key]: [...(prev[key] || []), compressedImage]
+            [key]: [...(prev[key] || []), { url: compressedImage, link: '' }]
           }));
         };
         img.src = reader.result as string;
@@ -130,6 +148,27 @@ export function CarouselManager() {
     }));
   }
 
+  function handleEditLink(key: string, index: number) {
+    const currentLink = carousels[key]?.[index]?.link || '';
+    setLinkValue(currentLink);
+    setEditingLink({ key, index });
+  }
+
+  function handleSaveLink() {
+    if (!editingLink) return;
+    
+    const { key, index } = editingLink;
+    setCarousels(prev => ({
+      ...prev,
+      [key]: (prev[key] || []).map((img, i) => 
+        i === index ? { ...img, link: linkValue } : img
+      )
+    }));
+    
+    setEditingLink(null);
+    setLinkValue('');
+  }
+
   if (loading) {
     return (
       <div className="space-y-6">
@@ -142,6 +181,40 @@ export function CarouselManager() {
 
   return (
     <div className="space-y-8">
+      {/* Link Edit Modal */}
+      {editingLink && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl p-6 max-w-md w-full shadow-2xl">
+            <h3 className="text-lg font-bold text-gray-800 mb-4">Definir Link da Imagem</h3>
+            <input
+              type="text"
+              value={linkValue}
+              onChange={(e) => setLinkValue(e.target.value)}
+              placeholder="Ex: /loja?category=pc ou https://..."
+              className="w-full px-4 py-3 border rounded-lg text-gray-800 mb-4"
+            />
+            <p className="text-sm text-gray-500 mb-4">
+              Links internos: /loja, /monte-voce-mesmo, /produto/123<br />
+              Links externos: https://exemplo.com
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => { setEditingLink(null); setLinkValue(''); }}
+                className="flex-1 py-2 border rounded-lg text-gray-600 hover:bg-gray-50"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleSaveLink}
+                className="flex-1 py-2 bg-primary text-white rounded-lg hover:bg-primary/90"
+              >
+                Salvar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="flex items-center gap-3">
         <Image className="h-6 w-6 text-primary" />
         <h2 className="text-2xl font-bold text-gray-800">Gerenciar Carrosséis da Home</h2>
@@ -169,28 +242,57 @@ export function CarouselManager() {
           </div>
 
           {/* Image Grid */}
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+          <div className={`grid ${config.aspectRatio === '3/4' ? 'grid-cols-2 md:grid-cols-4 lg:grid-cols-6' : 'grid-cols-2 md:grid-cols-4 lg:grid-cols-6'} gap-4`}>
             {(carousels[config.key] || []).map((image, index) => (
-              <div key={index} className="relative group aspect-video rounded-lg overflow-hidden border border-gray-200">
+              <div 
+                key={index} 
+                className="relative group rounded-lg overflow-hidden border border-gray-200"
+                style={{ aspectRatio: config.aspectRatio || '16/9' }}
+              >
                 <img
-                  src={image}
+                  src={image.url}
                   alt={`${config.label} ${index + 1}`}
                   className="w-full h-full object-cover"
                 />
-                <button
-                  onClick={() => handleRemoveImage(config.key, index)}
-                  className="absolute top-2 right-2 p-1.5 rounded-full bg-red-500 text-white opacity-0 group-hover:opacity-100 transition-opacity"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
+                
+                {/* Overlay with actions */}
+                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                  <button
+                    onClick={() => handleEditLink(config.key, index)}
+                    className="p-2 rounded-full bg-white text-gray-700 hover:bg-gray-100"
+                    title="Definir link"
+                  >
+                    <LinkIcon className="h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={() => handleRemoveImage(config.key, index)}
+                    className="p-2 rounded-full bg-red-500 text-white hover:bg-red-600"
+                    title="Remover"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+                
+                {/* Position indicator */}
                 <div className="absolute bottom-2 left-2 px-2 py-0.5 rounded bg-white/80 text-xs font-medium text-gray-700">
                   {index + 1}
                 </div>
+                
+                {/* Link indicator */}
+                {image.link && (
+                  <div className="absolute top-2 right-2 px-2 py-0.5 rounded bg-primary text-white text-xs flex items-center gap-1">
+                    <ExternalLink className="h-3 w-3" />
+                    Link
+                  </div>
+                )}
               </div>
             ))}
 
             {/* Add Image Button */}
-            <label className="flex flex-col items-center justify-center aspect-video rounded-lg border-2 border-dashed border-gray-300 hover:border-primary/50 cursor-pointer transition-colors bg-gray-50">
+            <label 
+              className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-300 hover:border-primary/50 cursor-pointer transition-colors bg-gray-50"
+              style={{ aspectRatio: config.aspectRatio || '16/9' }}
+            >
               <Upload className="h-8 w-8 text-gray-400 mb-2" />
               <span className="text-sm text-gray-500">Adicionar</span>
               <input

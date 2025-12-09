@@ -2,15 +2,17 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { RedWhiteHeader } from "@/components/RedWhiteHeader";
 import { RedWhiteFooter } from "@/components/RedWhiteFooter";
-import { api, type Product, type HardwareItem, type MediaItem, type ProductComponents, type CompanyData, type ProductCategory, type HardwareCategory, type HardwareCategoryDef, getCustomCategories, addCustomCategory, removeCustomCategory, updateCustomCategory, getHardwareCategories, addHardwareCategory, removeHardwareCategory, updateHardwareCategory } from "@/lib/api";
+import { api, type Product, type HardwareItem, type MediaItem, type ProductComponents, type CompanyData, type ProductCategory, type HardwareCategory, type HardwareCategoryDef, getCustomCategories, addCustomCategory, removeCustomCategory, updateCustomCategory, getHardwareCategories, addHardwareCategory, removeHardwareCategory, updateHardwareCategory, getCategories, type Category } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Pencil, Trash2, Save, X, Upload, Play, Image, Cpu, CircuitBoard, MemoryStick, HardDrive, Monitor, Zap, Box, Package, Download, Droplets, Building2, Laptop, Bot, Code, Wrench, Key, Tv, Armchair, Tag, LucideIcon, Search, Sparkles, LayoutDashboard, Images, Users, UserPlus, Shield, Mail, Settings, Eye, EyeOff, Volume2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Save, X, Upload, Play, Image, Cpu, CircuitBoard, MemoryStick, HardDrive, Monitor, Zap, Box, Package, Download, Droplets, Building2, Laptop, Bot, Code, Wrench, Key, Tv, Armchair, Tag, LucideIcon, Search, Sparkles, LayoutDashboard, Images, Users, UserPlus, Shield, Mail, Settings, Eye, EyeOff, Volume2, GripVertical } from "lucide-react";
 import * as XLSX from "xlsx";
 import { availableIcons, getIconFromKey } from "@/lib/icons";
 import { HardwareCard } from "@/components/HardwareCard";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { AdminDashboard } from "@/components/AdminDashboard";
 import { CarouselManager } from "@/components/CarouselManager";
+import { AICategoryClassifier } from "@/components/AICategoryClassifier";
+import { SortableCategories } from "@/components/SortableCategories";
 import balaoLogoFull from "@/assets/balao-logo-full.png";
 
 // Admin API URL
@@ -260,6 +262,10 @@ export default function Admin() {
   const [editingCategory, setEditingCategory] = useState<{ key: string; label: string; icon?: string } | null>(null);
   const [editCategoryLabel, setEditCategoryLabel] = useState("");
   const [editCategoryIcon, setEditCategoryIcon] = useState("tag");
+  
+  // AI Classifier state
+  const [showAIClassifier, setShowAIClassifier] = useState(false);
+  const [categoriesForSort, setCategoriesForSort] = useState<Category[]>([]);
   
   // Settings state
   const [openaiApiKey, setOpenaiApiKey] = useState("");
