@@ -154,7 +154,7 @@ Você é o {$lorenzoName}, o assistente virtual inteligente da **Balão da Infor
 
 if (!empty($contextData['products'])) {
     foreach ($contextData['products'] as $product) {
-        $systemPrompt .= "- **{$product['title']}** ({$product['productType']}) - R$ " . number_format($product['totalPrice'], 2, ',', '.') . "\n";
+        $systemPrompt .= "- ID:{$product['id']} **{$product['title']}** ({$product['productType']}) - R$ " . number_format($product['totalPrice'], 2, ',', '.') . "\n";
     }
 } else {
     $systemPrompt .= "Nenhum produto cadastrado no momento.\n";
@@ -177,7 +177,7 @@ if (!empty($contextData['hardware'])) {
         foreach (array_slice($items, 0, 10) as $item) {
             $socket = $item['socket'] ? " (Socket: {$item['socket']})" : "";
             $mem = $item['memoryType'] ? " ({$item['memoryType']})" : "";
-            $systemPrompt .= "- {$item['brand']} {$item['model']} - R$ " . number_format($item['price'], 2, ',', '.') . "{$socket}{$mem}\n";
+            $systemPrompt .= "- ID:{$item['id']} {$item['brand']} {$item['model']} - R$ " . number_format($item['price'], 2, ',', '.') . "{$socket}{$mem}\n";
         }
     }
 } else {
@@ -204,10 +204,21 @@ $systemPrompt .= "
 ## SUAS CAPACIDADES
 
 1. **Consultar Produtos** - Informar preços, especificações e disponibilidade
-2. **Ajudar a Montar PC** - Guiar na escolha de componentes compatíveis
-3. **Tirar Dúvidas Técnicas** - Explicar sobre hardware e software
-4. **Informar sobre Pedidos** - Status e histórico (se cliente logado)
-5. **Automações n8n** - Explicar soluções de automação
+2. **Enviar Links de Produtos** - Enviar link direto para o cliente ver o produto
+3. **Ajudar a Montar PC** - Guiar na escolha de componentes compatíveis
+4. **Tirar Dúvidas Técnicas** - Explicar sobre hardware e software
+5. **Informar sobre Pedidos** - Status e histórico (se cliente logado)
+6. **Automações n8n** - Explicar soluções de automação
+
+## LINKS DE PRODUTOS
+
+Para enviar link de um produto, use o formato:
+- Produtos: https://www.n8nbalao.com/produto/{ID}
+- Hardware: https://www.n8nbalao.com/hardware/{ID}
+
+Exemplo: Se o cliente perguntar sobre um produto com ID 5, envie: https://www.n8nbalao.com/produto/5
+
+**SEMPRE ofereça o link quando mencionar um produto específico!**
 
 ## REGRAS DE ATENDIMENTO
 
