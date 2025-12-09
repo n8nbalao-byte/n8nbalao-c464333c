@@ -1,6 +1,6 @@
 import { useState } from 'react';
+import { MessageCircle } from 'lucide-react';
 import LorenzoChat from './LorenzoChat';
-import whatsappIcon from '@/assets/whatsapp-icon.png';
 
 interface LorenzoChatWidgetProps {
   customerId?: string;
@@ -17,7 +17,7 @@ const LorenzoChatWidget = ({ customerId }: LorenzoChatWidgetProps) => {
 
   return (
     <>
-      {/* Floating Button - WhatsApp Style */}
+      {/* Floating Button - Green Style */}
       {!isOpen && (
         <button
           onClick={handleOpen}
@@ -25,11 +25,7 @@ const LorenzoChatWidget = ({ customerId }: LorenzoChatWidgetProps) => {
           style={{ backgroundColor: '#25D366' }}
           aria-label="Abrir chat com Lorenzo"
         >
-          <img 
-            src={whatsappIcon} 
-            alt="WhatsApp" 
-            className="w-10 h-10 object-contain"
-          />
+          <MessageCircle className="w-8 h-8 text-white" />
           
           {/* Pulse animation */}
           <span 
