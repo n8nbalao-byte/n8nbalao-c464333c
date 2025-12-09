@@ -66,6 +66,18 @@ export function AICategoryClassifier({ selectedProducts, onClose, onApply }: AIC
         })
       });
       
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('API Error:', response.status, errorText);
+        toast({ 
+          title: 'Erro na API', 
+          description: `Status ${response.status}: ${errorText.substring(0, 100)}`, 
+          variant: 'destructive' 
+        });
+        setLoading(false);
+        return;
+      }
+      
       const data = await response.json();
       
       if (data.success) {
@@ -82,7 +94,8 @@ export function AICategoryClassifier({ selectedProducts, onClose, onApply }: AIC
       }
     } catch (error) {
       console.error('Classification error:', error);
-      toast({ title: 'Erro', description: 'Falha ao conectar com a API', variant: 'destructive' });
+      const errMsg = error instanceof Error ? error.message : 'Erro desconhecido';
+      toast({ title: 'Erro de conexão', description: errMsg, variant: 'destructive' });
     }
     
     setLoading(false);
