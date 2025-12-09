@@ -202,6 +202,7 @@ export default function Admin() {
   const [showBulkEditModal, setShowBulkEditModal] = useState(false);
   const [bulkEditType, setBulkEditType] = useState<ProductCategory | "">("");
   const [bulkEditCategory, setBulkEditCategory] = useState<string>("");
+  const [bulkEditCategoryAction, setBulkEditCategoryAction] = useState<'add' | 'replace' | 'remove'>('add');
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string | null>(null);
 
   // Hardware state
@@ -1044,17 +1045,7 @@ export default function Admin() {
   async function handleBulkEditProducts() {
     if (selectedProducts.size === 0) return;
     
-    const updates: { productType?: ProductCategory; categories?: string[] } = {};
-    
-    if (bulkEditType) {
-      updates.productType = bulkEditType;
-    }
-    
-    if (bulkEditCategory) {
-      updates.categories = [bulkEditCategory];
-    }
-    
-    if (!updates.productType && !updates.categories) {
+    if (!bulkEditType && !bulkEditCategory) {
       toast({ title: "Erro", description: "Selecione o tipo ou categoria para aplicar", variant: "destructive" });
       return;
     }
@@ -1064,20 +1055,36 @@ export default function Admin() {
       const product = products.find(p => p.id === id);
       if (!product) continue;
       
-      const updateData: any = { ...updates };
+      const updateData: any = {};
       
-      // If adding category, merge with existing ones
-      if (bulkEditCategory && product.categories) {
+      // Apply type change if selected
+      if (bulkEditType) {
+        updateData.productType = bulkEditType;
+      }
+      
+      // Apply category change based on action
+      if (bulkEditCategory) {
         const existingCategories = product.categories || [];
-        if (!existingCategories.includes(bulkEditCategory)) {
-          updateData.categories = [...existingCategories, bulkEditCategory];
-        } else {
-          updateData.categories = existingCategories;
+        
+        if (bulkEditCategoryAction === 'add') {
+          // Add category if not already present
+          if (!existingCategories.includes(bulkEditCategory)) {
+            updateData.categories = [...existingCategories, bulkEditCategory];
+          }
+        } else if (bulkEditCategoryAction === 'replace') {
+          // Replace all categories with selected one
+          updateData.categories = [bulkEditCategory];
+        } else if (bulkEditCategoryAction === 'remove') {
+          // Remove specific category
+          updateData.categories = existingCategories.filter(c => c !== bulkEditCategory);
         }
       }
       
-      const success = await api.updateProduct(id, updateData);
-      if (success) successCount++;
+      // Only update if there are changes
+      if (Object.keys(updateData).length > 0) {
+        const success = await api.updateProduct(id, updateData);
+        if (success) successCount++;
+      }
     }
     
     toast({ 
@@ -1088,6 +1095,7 @@ export default function Admin() {
     setShowBulkEditModal(false);
     setBulkEditType("");
     setBulkEditCategory("");
+    setBulkEditCategoryAction('add');
     fetchProductsData();
   }
 
@@ -5011,7 +5019,7 @@ export default function Admin() {
       {/* Bulk Edit Products Modal */}
       {showBulkEditModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
-          <div className="w-full max-w-lg rounded-2xl border border-border bg-card p-6 shadow-card">
+          <div className="w-full max-w-lg rounded-2xl border border-border bg-card p-6 shadow-card max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-xl font-bold text-foreground">Editar {selectedProducts.size} Produto(s)</h3>
               <button
@@ -5019,11 +5027,39 @@ export default function Admin() {
                   setShowBulkEditModal(false);
                   setBulkEditType("");
                   setBulkEditCategory("");
+                  setBulkEditCategoryAction('add');
                 }}
                 className="text-muted-foreground hover:text-foreground"
               >
                 <X className="h-5 w-5" />
               </button>
+            </div>
+            
+            {/* Show current categories of selected products */}
+            <div className="mb-6 p-4 rounded-lg bg-secondary/50">
+              <p className="text-sm font-medium text-foreground mb-2">Categorias atuais dos produtos selecionados:</p>
+              <div className="flex flex-wrap gap-2">
+                {(() => {
+                  const allCategories = new Set<string>();
+                  selectedProducts.forEach(id => {
+                    const product = products.find(p => p.id === id);
+                    if (product?.productType) allCategories.add(product.productType);
+                    product?.categories?.forEach(c => allCategories.add(c));
+                  });
+                  const categoriesArray = Array.from(allCategories);
+                  if (categoriesArray.length === 0) {
+                    return <span className="text-sm text-muted-foreground">Nenhuma categoria</span>;
+                  }
+                  return categoriesArray.map(cat => {
+                    const catInfo = customCategoriesList.find(c => c.key === cat) || productTypes.find(t => t.key === cat);
+                    return (
+                      <span key={cat} className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium bg-primary/10 text-primary">
+                        {catInfo?.label || cat}
+                      </span>
+                    );
+                  });
+                })()}
+              </div>
             </div>
             
             <div className="space-y-6">
@@ -5044,23 +5080,69 @@ export default function Admin() {
                 </select>
               </div>
               
+              {/* Category Action Selection */}
+              <div>
+                <label className="block text-sm font-medium mb-2 text-foreground">
+                  Ação de Categoria
+                </label>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setBulkEditCategoryAction('add')}
+                    className={`flex-1 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+                      bulkEditCategoryAction === 'add' 
+                        ? 'bg-primary text-primary-foreground' 
+                        : 'bg-secondary text-foreground hover:bg-secondary/80'
+                    }`}
+                  >
+                    Adicionar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setBulkEditCategoryAction('replace')}
+                    className={`flex-1 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+                      bulkEditCategoryAction === 'replace' 
+                        ? 'bg-primary text-primary-foreground' 
+                        : 'bg-secondary text-foreground hover:bg-secondary/80'
+                    }`}
+                  >
+                    Substituir
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setBulkEditCategoryAction('remove')}
+                    className={`flex-1 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+                      bulkEditCategoryAction === 'remove' 
+                        ? 'bg-destructive text-destructive-foreground' 
+                        : 'bg-secondary text-foreground hover:bg-secondary/80'
+                    }`}
+                  >
+                    Remover
+                  </button>
+                </div>
+              </div>
+              
               {/* Bulk Category Selection */}
               <div>
                 <label className="block text-sm font-medium mb-2 text-foreground">
-                  Adicionar à Categoria
+                  {bulkEditCategoryAction === 'add' && 'Adicionar à Categoria'}
+                  {bulkEditCategoryAction === 'replace' && 'Substituir por Categoria'}
+                  {bulkEditCategoryAction === 'remove' && 'Remover da Categoria'}
                 </label>
                 <select
                   value={bulkEditCategory}
                   onChange={(e) => setBulkEditCategory(e.target.value)}
                   className="w-full rounded-lg border border-border bg-background px-4 py-3 text-foreground focus:border-primary focus:outline-none"
                 >
-                  <option value="">Não adicionar categoria</option>
-                  {productTypes.map((type) => (
-                    <option key={type.key} value={type.key}>{type.label}</option>
+                  <option value="">Selecione uma categoria</option>
+                  {customCategoriesList.map((cat) => (
+                    <option key={cat.key} value={cat.key}>{cat.label}</option>
                   ))}
                 </select>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  A categoria será adicionada às categorias existentes dos produtos
+                  {bulkEditCategoryAction === 'add' && 'A categoria será adicionada às categorias existentes'}
+                  {bulkEditCategoryAction === 'replace' && 'Todas as categorias serão substituídas pela selecionada'}
+                  {bulkEditCategoryAction === 'remove' && 'A categoria selecionada será removida dos produtos'}
                 </p>
               </div>
               
@@ -5077,6 +5159,7 @@ export default function Admin() {
                     setShowBulkEditModal(false);
                     setBulkEditType("");
                     setBulkEditCategory("");
+                    setBulkEditCategoryAction('add');
                   }}
                   className="flex-1 rounded-lg border border-border py-3 font-semibold text-foreground transition-colors hover:bg-secondary"
                 >
