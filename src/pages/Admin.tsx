@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { RedWhiteHeader } from "@/components/RedWhiteHeader";
 import { RedWhiteFooter } from "@/components/RedWhiteFooter";
-import { api, type Product, type HardwareItem, type MediaItem, type ProductComponents, type CompanyData, type ProductCategory, type HardwareCategory, type HardwareCategoryDef, getCustomCategories, addCustomCategory, removeCustomCategory, updateCustomCategory, getHardwareCategories, addHardwareCategory, removeHardwareCategory, updateHardwareCategory, getCategories, type Category } from "@/lib/api";
+import { api, type Product, type HardwareItem, type MediaItem, type ProductComponents, type CompanyData, type ProductCategory, type HardwareCategory, type HardwareCategoryDef, getCustomCategories, addCustomCategory, removeCustomCategory, updateCustomCategory, getHardwareCategories, addHardwareCategory, removeHardwareCategory, updateHardwareCategory, getCategories, updateCategory, type Category } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Pencil, Trash2, Save, X, Upload, Play, Image, Cpu, CircuitBoard, MemoryStick, HardDrive, Monitor, Zap, Box, Package, Download, Droplets, Building2, Laptop, Bot, Code, Wrench, Key, Tv, Armchair, Tag, LucideIcon, Search, Sparkles, LayoutDashboard, Images, Users, UserPlus, Shield, Mail, Settings, Eye, EyeOff, Volume2, GripVertical } from "lucide-react";
 import * as XLSX from "xlsx";
@@ -2133,79 +2133,86 @@ export default function Admin() {
             </button>
           </div>
 
-          {/* Categories display - click to filter, double-click to edit */}
-          <div className="mb-6 flex flex-wrap gap-2">
-            <span className="text-sm self-center mr-2" style={{ color: '#6B7280' }}>Categorias:</span>
-            {/* "Todos" button to show all products */}
-            <button
-              onClick={() => setSelectedCategoryFilter(null)}
-              className="inline-flex items-center gap-2 rounded-lg px-4 py-2 font-medium transition-colors text-sm"
-              style={selectedCategoryFilter === null 
-                ? { backgroundColor: '#DC2626', color: 'white' } 
-                : { backgroundColor: 'white', color: '#374151', border: '1px solid #E5E7EB' }}
-            >
-              Todos
-            </button>
-            {customCategoriesList.map((cat) => {
-              const Icon = getIconFromKey(cat.icon || 'tag');
-              const isSelected = selectedCategoryFilter === cat.key;
-              return (
+          {/* Categories display with drag-and-drop reordering */}
+          <div className="mb-6">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-sm font-medium" style={{ color: '#6B7280' }}>Categorias (arraste para reordenar):</span>
+              <div className="flex gap-2">
                 <button
-                  key={cat.key}
-                  onClick={() => {
-                    // Single click filters by category
-                    setSelectedCategoryFilter(isSelected ? null : cat.key);
-                  }}
-                  onDoubleClick={() => {
-                    // Double click opens edit modal
-                    setEditingCategory(cat);
-                    setEditCategoryLabel(cat.label);
-                    setEditCategoryIcon(cat.icon || 'tag');
-                    setShowEditCategoryModal(true);
-                  }}
-                  className="inline-flex items-center gap-2 rounded-lg px-4 py-2 font-medium transition-colors group relative text-sm cursor-pointer"
-                  style={isSelected 
+                  onClick={() => setSelectedCategoryFilter(null)}
+                  className="text-xs px-3 py-1 rounded-lg"
+                  style={selectedCategoryFilter === null 
                     ? { backgroundColor: '#DC2626', color: 'white' } 
-                    : { backgroundColor: 'white', color: '#374151', border: '1px solid #E5E7EB' }}
-                  title="Clique para filtrar, duplo clique para editar"
+                    : { backgroundColor: '#f3f4f6', color: '#6B7280' }}
                 >
-                  <Icon className="h-4 w-4" />
-                  {cat.label}
-                  <span
-                    onClick={async (e) => {
-                      e.stopPropagation();
-                      if (confirm(`Excluir a categoria "${cat.label}"?`)) {
-                        await removeCustomCategory(cat.key);
-                        const updatedCategories = await getCustomCategories();
-                        setCustomCategoriesList(updatedCategories);
-                        if (selectedCategoryFilter === cat.key) {
-                          setSelectedCategoryFilter(null);
-                        }
-                        toast({ title: "Categoria removida" });
-                      }
-                    }}
-                    className="h-4 w-4 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer ml-1"
-                    style={{ backgroundColor: isSelected ? 'white' : '#DC2626', color: isSelected ? '#DC2626' : 'white' }}
-                  >
-                    <X className="h-3 w-3" />
-                  </span>
+                  Mostrar Todos
                 </button>
-              );
-            })}
-            {/* Add Category Button */}
-            <button
-              onClick={() => {
-                setNewCategoryKey("");
-                setNewCategoryLabel("");
-                setNewCategoryIcon("tag");
-                setShowNewCategoryModal(true);
+                <button
+                  onClick={() => {
+                    setNewCategoryKey("");
+                    setNewCategoryLabel("");
+                    setNewCategoryIcon("tag");
+                    setShowNewCategoryModal(true);
+                  }}
+                  className="text-xs px-3 py-1 rounded-lg bg-primary text-white"
+                >
+                  + Nova Categoria
+                </button>
+              </div>
+            </div>
+            <SortableCategories
+              categories={customCategoriesList.map((cat, index) => ({
+                key: cat.key,
+                label: cat.label,
+                icon: cat.icon || 'tag',
+                sortOrder: index
+              }))}
+              onCategoriesChange={async (newCategories) => {
+                // Update sort order in database
+                for (let i = 0; i < newCategories.length; i++) {
+                  await updateCategory(newCategories[i].key, { sortOrder: i });
+                }
+                const updatedCategories = await getCustomCategories();
+                setCustomCategoriesList(updatedCategories);
               }}
-              className="inline-flex items-center gap-2 rounded-lg px-4 py-2 font-medium transition-colors text-sm border-2 border-dashed"
-              style={{ borderColor: '#E5E7EB', color: '#6B7280' }}
-            >
-              <Plus className="h-4 w-4" />
-              Nova Categoria
-            </button>
+              onEdit={(cat) => {
+                setEditingCategory({ key: cat.key, label: cat.label, icon: cat.icon });
+                setEditCategoryLabel(cat.label);
+                setEditCategoryIcon(cat.icon || 'tag');
+                setShowEditCategoryModal(true);
+              }}
+              onDelete={async (key) => {
+                if (confirm(`Excluir esta categoria?`)) {
+                  await removeCustomCategory(key);
+                  const updatedCategories = await getCustomCategories();
+                  setCustomCategoriesList(updatedCategories);
+                  if (selectedCategoryFilter === key) {
+                    setSelectedCategoryFilter(null);
+                  }
+                  toast({ title: "Categoria removida" });
+                }
+              }}
+            />
+            {/* Category filter buttons */}
+            <div className="mt-4 flex flex-wrap gap-2">
+              {customCategoriesList.map((cat) => {
+                const Icon = getIconFromKey(cat.icon || 'tag');
+                const isSelected = selectedCategoryFilter === cat.key;
+                return (
+                  <button
+                    key={cat.key}
+                    onClick={() => setSelectedCategoryFilter(isSelected ? null : cat.key)}
+                    className="inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors"
+                    style={isSelected 
+                      ? { backgroundColor: '#DC2626', color: 'white' } 
+                      : { backgroundColor: '#f3f4f6', color: '#374151' }}
+                  >
+                    <Icon className="h-3.5 w-3.5" />
+                    {cat.label}
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           {/* Edit Category Modal */}
@@ -2422,6 +2429,14 @@ export default function Admin() {
                 <div className="flex gap-2">
                   {selectedProducts.size > 0 && (
                     <>
+                      <button
+                        onClick={() => setShowAIClassifier(true)}
+                        className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors hover:opacity-90"
+                        style={{ background: 'linear-gradient(135deg, #8B5CF6 0%, #EC4899 100%)' }}
+                      >
+                        <Sparkles className="h-4 w-4" />
+                        Classificar com IA ({selectedProducts.size})
+                      </button>
                       <button
                         onClick={() => setShowBulkEditModal(true)}
                         className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/80"
@@ -5337,6 +5352,32 @@ export default function Admin() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* AI Category Classifier Modal */}
+      {showAIClassifier && (
+        <AICategoryClassifier
+          selectedProducts={products.filter(p => selectedProducts.has(p.id))}
+          onClose={() => setShowAIClassifier(false)}
+          onApply={async (classifications) => {
+            // Apply classifications to products
+            for (const classification of classifications) {
+              const product = products.find(p => p.id === classification.id);
+              if (product) {
+                await api.updateProduct(product.id, {
+                  ...product,
+                  categories: classification.categories,
+                  productType: classification.productType
+                });
+              }
+            }
+            // Refresh products
+            const updatedProducts = await api.getProducts();
+            setProducts(updatedProducts);
+            setSelectedProducts(new Set());
+            toast({ title: "Classificação aplicada com sucesso!" });
+          }}
+        />
       )}
 
       <RedWhiteFooter />

@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { MessageCircle } from 'lucide-react';
 import LorenzoChat from './LorenzoChat';
+import whatsappIcon from '@/assets/whatsapp-icon.png';
 
 interface LorenzoChatWidgetProps {
   customerId?: string;
@@ -17,21 +17,29 @@ const LorenzoChatWidget = ({ customerId }: LorenzoChatWidgetProps) => {
 
   return (
     <>
-      {/* Floating Button */}
+      {/* Floating Button - WhatsApp Style */}
       {!isOpen && (
         <button
           onClick={handleOpen}
-          className="fixed bottom-6 right-6 z-50 w-16 h-16 bg-gradient-to-br from-red-500 to-red-700 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110 flex items-center justify-center group"
+          className="fixed bottom-6 right-6 z-50 w-16 h-16 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110 flex items-center justify-center group overflow-hidden"
+          style={{ backgroundColor: '#25D366' }}
           aria-label="Abrir chat com Lorenzo"
         >
-          <MessageCircle className="w-7 h-7 text-white" />
+          <img 
+            src={whatsappIcon} 
+            alt="WhatsApp" 
+            className="w-10 h-10 object-contain"
+          />
           
           {/* Pulse animation */}
-          <span className="absolute w-full h-full rounded-full bg-red-500 animate-ping opacity-30" />
+          <span 
+            className="absolute w-full h-full rounded-full animate-ping opacity-30"
+            style={{ backgroundColor: '#25D366' }}
+          />
           
           {/* Notification badge */}
           {hasNewMessage && (
-            <span className="absolute -top-1 -right-1 w-5 h-5 bg-green-500 rounded-full flex items-center justify-center text-white text-xs font-bold border-2 border-white">
+            <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-white text-xs font-bold border-2 border-white">
               1
             </span>
           )}
