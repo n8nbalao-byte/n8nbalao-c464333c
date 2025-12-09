@@ -178,10 +178,12 @@ const LandingVendas = () => {
       {/* Header */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-slate-950/80 backdrop-blur-lg border-b border-slate-800">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-10 h-10 bg-gradient-to-br from-violet-500 to-fuchsia-500 rounded-xl flex items-center justify-center">
-              <Zap className="w-6 h-6 text-white" />
-            </div>
+          <div className="flex items-center gap-3">
+            <img 
+              src="https://n8n.io/favicon.ico" 
+              alt="n8n" 
+              className="w-10 h-10 rounded-xl"
+            />
             <span className="text-xl font-bold">LojaIA</span>
           </div>
           <nav className="hidden md:flex items-center gap-8">
@@ -190,7 +192,10 @@ const LandingVendas = () => {
             <a href="#depoimentos" className="text-slate-300 hover:text-white transition">Depoimentos</a>
             <a href="#faq" className="text-slate-300 hover:text-white transition">FAQ</a>
           </nav>
-          <Button className="bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500">
+          <Button 
+            className="bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500"
+            onClick={() => window.open("https://wa.me/5511999999999?text=Olá! Gostaria de agendar uma demonstração do LojaIA", "_blank")}
+          >
             Agendar Demo
           </Button>
         </div>
@@ -216,10 +221,19 @@ const LandingVendas = () => {
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
-            <Button size="lg" className="bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-lg px-8 py-6">
+            <Button 
+              size="lg" 
+              className="bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-lg px-8 py-6"
+              onClick={() => window.open("https://wa.me/5511999999999?text=Olá! Quero começar a usar o LojaIA", "_blank")}
+            >
               Começar Agora <ArrowRight className="ml-2 w-5 h-5" />
             </Button>
-            <Button size="lg" variant="outline" className="border-slate-700 text-white hover:bg-slate-800 text-lg px-8 py-6">
+            <Button 
+              size="lg" 
+              variant="outline" 
+              className="border-slate-500 text-slate-200 hover:bg-slate-800 hover:text-white text-lg px-8 py-6"
+              onClick={() => window.open("https://wa.me/5511999999999?text=Olá! Gostaria de ver uma demonstração do LojaIA", "_blank")}
+            >
               <Play className="mr-2 w-5 h-5" /> Ver Demonstração
             </Button>
           </div>
@@ -401,6 +415,7 @@ const LandingVendas = () => {
                         ? 'bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500' 
                         : 'bg-slate-700 hover:bg-slate-600'
                     }`}
+                    onClick={() => window.open(`https://wa.me/5511999999999?text=Olá! Tenho interesse no plano ${plan.name} do LojaIA`, "_blank")}
                   >
                     {plan.cta}
                   </Button>
@@ -489,10 +504,19 @@ const LandingVendas = () => {
                 Junte-se a centenas de lojistas que já estão vendendo mais com o LojaIA
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Button size="lg" className="bg-white text-violet-600 hover:bg-slate-100 text-lg px-8 py-6">
+                <Button 
+                  size="lg" 
+                  className="bg-white text-violet-600 hover:bg-slate-100 text-lg px-8 py-6"
+                  onClick={() => window.open("https://wa.me/5511999999999?text=Olá! Quero iniciar o teste grátis do LojaIA", "_blank")}
+                >
                   Começar Teste Grátis <ArrowRight className="ml-2 w-5 h-5" />
                 </Button>
-                <Button size="lg" variant="outline" className="border-white/30 text-white hover:bg-white/10 text-lg px-8 py-6">
+                <Button 
+                  size="lg" 
+                  variant="outline" 
+                  className="border-white/30 text-white hover:bg-white/10 text-lg px-8 py-6"
+                  onClick={() => window.open("https://wa.me/5511999999999?text=Olá! Gostaria de agendar uma demonstração do LojaIA", "_blank")}
+                >
                   Agendar Demonstração
                 </Button>
               </div>
@@ -508,10 +532,12 @@ const LandingVendas = () => {
       <footer className="py-12 px-4 border-t border-slate-800">
         <div className="container mx-auto max-w-6xl">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-            <div className="flex items-center gap-2">
-              <div className="w-10 h-10 bg-gradient-to-br from-violet-500 to-fuchsia-500 rounded-xl flex items-center justify-center">
-                <Zap className="w-6 h-6 text-white" />
-              </div>
+            <div className="flex items-center gap-3">
+              <img 
+                src="https://n8n.io/favicon.ico" 
+                alt="n8n" 
+                className="w-10 h-10 rounded-xl"
+              />
               <span className="text-xl font-bold">LojaIA</span>
             </div>
             <p className="text-slate-400 text-sm">
