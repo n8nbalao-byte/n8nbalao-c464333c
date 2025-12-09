@@ -3,6 +3,7 @@ import { Link, useLocation, useSearchParams } from "react-router-dom";
 import { getCategories, Category } from "@/lib/api";
 import { getIconFromKey } from "@/lib/icons";
 import { Package, Cpu, Bot, Home, ChevronRight, ChevronDown, HardDrive, LucideIcon } from "lucide-react";
+import { SidebarBanners } from "./SidebarBanners";
 
 interface CategoryWithIcon extends Category {
   IconComponent: LucideIcon;
@@ -269,6 +270,9 @@ export function CategorySidebar({
             );
           })}
         </nav>
+        
+        {/* Sidebar Promotional Banners */}
+        <SidebarBanners />
       </div>
     </aside>
   );

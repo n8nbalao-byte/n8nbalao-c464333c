@@ -31,6 +31,7 @@ try {
 }
 
 // Create carousels table if it doesn't exist
+// Images are stored as JSON array: [{ "url": "...", "link": "..." }, ...]
 $pdo->exec("CREATE TABLE IF NOT EXISTS carousels (
     id INT AUTO_INCREMENT PRIMARY KEY,
     carousel_key VARCHAR(50) NOT NULL UNIQUE,
