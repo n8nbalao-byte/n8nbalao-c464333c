@@ -4,7 +4,7 @@ import { RedWhiteHeader } from "@/components/RedWhiteHeader";
 import { RedWhiteFooter } from "@/components/RedWhiteFooter";
 import { api, type Product, type HardwareItem, type MediaItem, type ProductComponents, type CompanyData, type ProductCategory, type HardwareCategory, type HardwareCategoryDef, getCustomCategories, addCustomCategory, removeCustomCategory, updateCustomCategory, getHardwareCategories, addHardwareCategory, removeHardwareCategory, updateHardwareCategory } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Pencil, Trash2, Save, X, Upload, Play, Image, Cpu, CircuitBoard, MemoryStick, HardDrive, Monitor, Zap, Box, Package, Download, Droplets, Building2, Laptop, Bot, Code, Wrench, Key, Tv, Armchair, Tag, LucideIcon, Search, Sparkles, LayoutDashboard, Images, Users, UserPlus, Shield, Mail, Settings, Eye, EyeOff } from "lucide-react";
+import { Plus, Pencil, Trash2, Save, X, Upload, Play, Image, Cpu, CircuitBoard, MemoryStick, HardDrive, Monitor, Zap, Box, Package, Download, Droplets, Building2, Laptop, Bot, Code, Wrench, Key, Tv, Armchair, Tag, LucideIcon, Search, Sparkles, LayoutDashboard, Images, Users, UserPlus, Shield, Mail, Settings, Eye, EyeOff, Volume2 } from "lucide-react";
 import * as XLSX from "xlsx";
 import { availableIcons, getIconFromKey } from "@/lib/icons";
 import { HardwareCard } from "@/components/HardwareCard";
@@ -272,6 +272,25 @@ export default function Admin() {
   const [lorenzoModel, setLorenzoModel] = useState("gpt-4o-mini");
   const [bulkGenModel, setBulkGenModel] = useState("gpt-4o-mini");
   const [singleGenModel, setSingleGenModel] = useState("gpt-4o-mini");
+  
+  // ElevenLabs Voice settings
+  const [elevenlabsApiKey, setElevenlabsApiKey] = useState("");
+  const [elevenlabsVoiceId, setElevenlabsVoiceId] = useState("");
+  const [elevenlabsEnabled, setElevenlabsEnabled] = useState(false);
+  const [showElevenlabsKey, setShowElevenlabsKey] = useState(false);
+  
+  // Available ElevenLabs voices
+  const availableVoices = [
+    { value: 'B93iDjT4HFRCZ3Ju8oaV', label: 'Voz Personalizada (Padrão)' },
+    { value: '9BWtsMINqrJLrRacOk9x', label: 'Aria' },
+    { value: 'CwhRBWXzGAHq8TQ4Fs17', label: 'Roger' },
+    { value: 'EXAVITQu4vr4xnSDxMaL', label: 'Sarah' },
+    { value: 'FGY2WhTYpPnrIDTdsKH5', label: 'Laura' },
+    { value: 'IKne3meq5aSn9XLyUdCD', label: 'Charlie' },
+    { value: 'JBFqnCBsd6RMkjVDRZzb', label: 'George' },
+    { value: 'onwK4e9ZLuTAKqWW03F9', label: 'Daniel' },
+    { value: 'pFZP5JQG7iQjIQuC4Bku', label: 'Lily' },
+  ];
   
   // Available OpenAI models
   const availableModels = [
@@ -615,6 +634,9 @@ export default function Admin() {
           if (setting.key === 'lorenzo_model') setLorenzoModel(setting.value || 'gpt-4o-mini');
           if (setting.key === 'bulk_gen_model') setBulkGenModel(setting.value || 'gpt-4o-mini');
           if (setting.key === 'single_gen_model') setSingleGenModel(setting.value || 'gpt-4o-mini');
+          if (setting.key === 'elevenlabs_api_key') setElevenlabsApiKey(setting.value || '');
+          if (setting.key === 'elevenlabs_voice_id') setElevenlabsVoiceId(setting.value || 'B93iDjT4HFRCZ3Ju8oaV');
+          if (setting.key === 'elevenlabs_enabled') setElevenlabsEnabled(setting.value === 'true');
         });
       }
     } catch (error) {
@@ -632,6 +654,9 @@ export default function Admin() {
         { key: 'lorenzo_model', value: lorenzoModel },
         { key: 'bulk_gen_model', value: bulkGenModel },
         { key: 'single_gen_model', value: singleGenModel },
+        { key: 'elevenlabs_api_key', value: elevenlabsApiKey },
+        { key: 'elevenlabs_voice_id', value: elevenlabsVoiceId },
+        { key: 'elevenlabs_enabled', value: elevenlabsEnabled ? 'true' : 'false' },
       ];
       
       let allSuccess = true;
@@ -3012,6 +3037,127 @@ export default function Admin() {
                             ? `✅ Configurado com ${lorenzoModel}` 
                             : '⚠️ Configure a chave OpenAI para ativar'}
                         </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* ElevenLabs Voice Configuration */}
+                  <div className="rounded-lg border p-6" style={{ borderColor: '#E5E7EB', backgroundColor: '#F9FAFB' }}>
+                    <div className="flex items-start gap-4">
+                      <div className="h-12 w-12 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#EC4899' }}>
+                        <Volume2 className="h-6 w-6 text-white" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h3 className="text-lg font-semibold" style={{ color: '#111827' }}>ElevenLabs Voice</h3>
+                            <p className="text-sm mt-1" style={{ color: '#6B7280' }}>
+                              Configure a voz do {lorenzoName} para respostas por áudio.
+                            </p>
+                          </div>
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <span className="text-sm" style={{ color: '#374151' }}>
+                              {elevenlabsEnabled ? 'Ativado' : 'Desativado'}
+                            </span>
+                            <div className="relative">
+                              <input
+                                type="checkbox"
+                                checked={elevenlabsEnabled}
+                                onChange={(e) => setElevenlabsEnabled(e.target.checked)}
+                                className="sr-only"
+                              />
+                              <div 
+                                className="w-11 h-6 rounded-full transition-colors cursor-pointer"
+                                style={{ backgroundColor: elevenlabsEnabled ? '#10B981' : '#D1D5DB' }}
+                                onClick={() => setElevenlabsEnabled(!elevenlabsEnabled)}
+                              >
+                                <div 
+                                  className="absolute w-5 h-5 bg-white rounded-full shadow transition-transform top-0.5"
+                                  style={{ 
+                                    transform: elevenlabsEnabled ? 'translateX(22px)' : 'translateX(2px)'
+                                  }}
+                                />
+                              </div>
+                            </div>
+                          </label>
+                        </div>
+                        
+                        <div className="mt-4 space-y-4">
+                          <div>
+                            <label className="block text-sm font-medium mb-2" style={{ color: '#374151' }}>
+                              Chave da API ElevenLabs
+                            </label>
+                            <div className="flex gap-2">
+                              <div className="relative flex-1">
+                                <input
+                                  type={showElevenlabsKey ? "text" : "password"}
+                                  value={elevenlabsApiKey}
+                                  onChange={(e) => setElevenlabsApiKey(e.target.value)}
+                                  className="w-full rounded-lg border-2 px-4 py-2 pr-12 focus:outline-none"
+                                  style={{ borderColor: '#E5E7EB', color: '#111827' }}
+                                  placeholder="sk_..."
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => setShowElevenlabsKey(!showElevenlabsKey)}
+                                  className="absolute right-3 top-1/2 -translate-y-1/2"
+                                  style={{ color: '#6B7280' }}
+                                >
+                                  {showElevenlabsKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                </button>
+                              </div>
+                            </div>
+                            <p className="mt-2 text-xs" style={{ color: '#6B7280' }}>
+                              Obtenha sua chave em{' '}
+                              <a 
+                                href="https://elevenlabs.io/app/settings/api-keys" 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="underline"
+                                style={{ color: '#EC4899' }}
+                              >
+                                elevenlabs.io
+                              </a>
+                            </p>
+                          </div>
+                          
+                          <div>
+                            <label className="block text-sm font-medium mb-2" style={{ color: '#374151' }}>
+                              Voz do {lorenzoName}
+                            </label>
+                            <select
+                              value={elevenlabsVoiceId}
+                              onChange={(e) => setElevenlabsVoiceId(e.target.value)}
+                              className="w-full rounded-lg border-2 px-4 py-2 focus:outline-none"
+                              style={{ borderColor: '#E5E7EB', color: '#111827', backgroundColor: 'white' }}
+                            >
+                              {availableVoices.map(v => (
+                                <option key={v.value} value={v.value}>{v.label}</option>
+                              ))}
+                            </select>
+                            <div className="mt-2">
+                              <label className="block text-xs mb-1" style={{ color: '#6B7280' }}>
+                                Ou insira um Voice ID personalizado:
+                              </label>
+                              <input
+                                type="text"
+                                value={elevenlabsVoiceId}
+                                onChange={(e) => setElevenlabsVoiceId(e.target.value)}
+                                className="w-full rounded-lg border-2 px-3 py-1.5 text-sm focus:outline-none"
+                                style={{ borderColor: '#E5E7EB', color: '#111827' }}
+                                placeholder="Voice ID personalizado"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                        
+                        {elevenlabsEnabled && elevenlabsApiKey && (
+                          <div className="mt-4 p-3 rounded-lg" style={{ backgroundColor: '#D1FAE5' }}>
+                            <p className="text-sm" style={{ color: '#059669' }}>
+                              ✅ Voz ativada! O {lorenzoName} responderá com áudio.
+                            </p>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
