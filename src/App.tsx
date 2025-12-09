@@ -19,6 +19,7 @@ import ClienteAuth from "./pages/ClienteAuth";
 import MeusPedidos from "./pages/MeusPedidos";
 import Hardware from "./pages/Hardware";
 import EmailMarketing from "./pages/EmailMarketing";
+import LandingVendas from "./pages/LandingVendas";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -46,6 +47,7 @@ const App = () => (
               <Route path="/cliente" element={<ClienteAuth />} />
               <Route path="/meus-pedidos" element={<MeusPedidos />} />
               <Route path="/email-marketing" element={<EmailMarketing />} />
+              <Route path="/vender" element={<LandingVendas />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
