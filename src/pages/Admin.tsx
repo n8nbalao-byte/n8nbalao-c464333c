@@ -1102,11 +1102,35 @@ export default function Admin() {
     });
   }
 
+  // Get filtered products based on search term
+  const getFilteredProducts = () => {
+    if (!productSearchTerm) return products;
+    const search = productSearchTerm.toLowerCase();
+    return products.filter(p => 
+      p.title.toLowerCase().includes(search) ||
+      (p.subtitle || '').toLowerCase().includes(search) ||
+      (p.productType || '').toLowerCase().includes(search)
+    );
+  };
+
   function toggleAllProducts() {
-    if (selectedProducts.size === products.length) {
-      setSelectedProducts(new Set());
+    const filtered = getFilteredProducts();
+    const allFilteredSelected = filtered.length > 0 && filtered.every(p => selectedProducts.has(p.id));
+    
+    if (allFilteredSelected) {
+      // Deselect only the filtered products
+      setSelectedProducts(prev => {
+        const newSet = new Set(prev);
+        filtered.forEach(p => newSet.delete(p.id));
+        return newSet;
+      });
     } else {
-      setSelectedProducts(new Set(products.map(p => p.id)));
+      // Select all filtered products (add to existing selection)
+      setSelectedProducts(prev => {
+        const newSet = new Set(prev);
+        filtered.forEach(p => newSet.add(p.id));
+        return newSet;
+      });
     }
   }
 
@@ -2372,7 +2396,10 @@ export default function Admin() {
                         <th className="px-4 py-4 text-left">
                           <input
                             type="checkbox"
-                            checked={products.length > 0 && selectedProducts.size === products.length}
+                            checked={(() => {
+                              const filtered = getFilteredProducts();
+                              return filtered.length > 0 && filtered.every(p => selectedProducts.has(p.id));
+                            })()}
                             onChange={toggleAllProducts}
                             className="h-4 w-4 rounded border-border text-primary focus:ring-primary"
                           />
