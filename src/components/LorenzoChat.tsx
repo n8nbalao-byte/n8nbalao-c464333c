@@ -53,6 +53,7 @@ const LorenzoChat = ({ isOpen, onClose, customerId }: LorenzoChatProps) => {
 
   const playAudio = async (text: string): Promise<string | null> => {
     try {
+      console.log('🔊 Requesting TTS for:', text.substring(0, 50) + '...');
       const response = await fetch(`${API_BASE}/text-to-speech.php`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -60,6 +61,7 @@ const LorenzoChat = ({ isOpen, onClose, customerId }: LorenzoChatProps) => {
       });
 
       const data = await response.json();
+      console.log('🔊 TTS response:', data.success ? 'Audio received' : data.error);
 
       if (data.success && data.audio) {
         const audioBlob = base64ToBlob(data.audio, data.contentType || 'audio/mpeg');
@@ -76,9 +78,11 @@ const LorenzoChat = ({ isOpen, onClose, customerId }: LorenzoChatProps) => {
         await audioRef.current.play();
         
         return audioUrl;
+      } else {
+        console.warn('🔊 TTS failed:', data.error || 'Unknown error');
       }
     } catch (error) {
-      console.error('Error playing audio:', error);
+      console.error('🔊 TTS error:', error);
     }
     return null;
   };
