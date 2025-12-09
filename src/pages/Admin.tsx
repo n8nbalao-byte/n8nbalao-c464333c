@@ -12,8 +12,87 @@ import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/comp
 import { AdminDashboard } from "@/components/AdminDashboard";
 import { CarouselManager } from "@/components/CarouselManager";
 import { AICategoryClassifier } from "@/components/AICategoryClassifier";
-import { SortableCategories } from "@/components/SortableCategories";
 import balaoLogoFull from "@/assets/balao-logo-full.png";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  horizontalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+
+// Sortable Category Button Component
+interface SortableCategoryButtonProps {
+  category: { key: string; label: string; icon?: string };
+  isSelected: boolean;
+  onClick: () => void;
+  onDoubleClick: () => void;
+  onDelete: () => void;
+}
+
+function SortableCategoryButton({ category, isSelected, onClick, onDoubleClick, onDelete }: SortableCategoryButtonProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: category.key });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    backgroundColor: isSelected ? '#DC2626' : '#f3f4f6',
+    color: isSelected ? 'white' : '#374151',
+  };
+
+  const Icon = getIconFromKey(category.icon || 'tag');
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`group relative inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
+        isDragging ? 'ring-2 ring-primary z-50' : ''
+      }`}
+      {...attributes}
+    >
+      <button
+        {...listeners}
+        className="cursor-grab active:cursor-grabbing p-0.5 hover:bg-black/10 rounded opacity-0 group-hover:opacity-100 transition-opacity"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <GripVertical className="h-3 w-3" />
+      </button>
+      <button
+        onClick={onClick}
+        onDoubleClick={onDoubleClick}
+        className="inline-flex items-center gap-1.5"
+      >
+        <Icon className="h-3.5 w-3.5" />
+        {category.label}
+      </button>
+      <button
+        onClick={(e) => { e.stopPropagation(); onDelete(); }}
+        className="opacity-0 group-hover:opacity-100 p-0.5 hover:bg-red-100 rounded text-current hover:text-red-500 transition-all"
+      >
+        <X className="h-3 w-3" />
+      </button>
+    </div>
+  );
+}
 
 // Admin API URL
 const ADMIN_API_URL = 'https://www.n8nbalao.com/api/admins.php';
@@ -305,6 +384,34 @@ export default function Admin() {
     { value: 'gpt-4-turbo', label: 'GPT-4 Turbo', inputCost: 10.00, outputCost: 30.00 },
     { value: 'gpt-3.5-turbo', label: 'GPT-3.5 Turbo (Mais barato)', inputCost: 0.50, outputCost: 1.50 },
   ];
+
+  // DnD sensors for category reordering
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  // Handle category drag end
+  const handleCategoryDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (over && active.id !== over.id) {
+      const oldIndex = customCategoriesList.findIndex((item) => item.key === active.id);
+      const newIndex = customCategoriesList.findIndex((item) => item.key === over.id);
+
+      const newItems = arrayMove(customCategoriesList, oldIndex, newIndex);
+      setCustomCategoriesList(newItems);
+
+      // Update sort order in database
+      for (let i = 0; i < newItems.length; i++) {
+        await updateCategory(newItems[i].key, { sortOrder: i });
+      }
+
+      toast({ title: 'Ordem atualizada', description: 'A ordem das categorias foi salva.' });
+    }
+  };
 
   // Admin login function - uses same credentials as customer auth
   async function handleLogin(e: React.FormEvent) {
@@ -2160,59 +2267,42 @@ export default function Admin() {
                 </button>
               </div>
             </div>
-            <SortableCategories
-              categories={customCategoriesList.map((cat, index) => ({
-                key: cat.key,
-                label: cat.label,
-                icon: cat.icon || 'tag',
-                sortOrder: index
-              }))}
-              onCategoriesChange={async (newCategories) => {
-                // Update sort order in database
-                for (let i = 0; i < newCategories.length; i++) {
-                  await updateCategory(newCategories[i].key, { sortOrder: i });
-                }
-                const updatedCategories = await getCustomCategories();
-                setCustomCategoriesList(updatedCategories);
-              }}
-              onEdit={(cat) => {
-                setEditingCategory({ key: cat.key, label: cat.label, icon: cat.icon });
-                setEditCategoryLabel(cat.label);
-                setEditCategoryIcon(cat.icon || 'tag');
-                setShowEditCategoryModal(true);
-              }}
-              onDelete={async (key) => {
-                if (confirm(`Excluir esta categoria?`)) {
-                  await removeCustomCategory(key);
-                  const updatedCategories = await getCustomCategories();
-                  setCustomCategoriesList(updatedCategories);
-                  if (selectedCategoryFilter === key) {
-                    setSelectedCategoryFilter(null);
-                  }
-                  toast({ title: "Categoria removida" });
-                }
-              }}
-            />
-            {/* Category filter buttons */}
-            <div className="mt-4 flex flex-wrap gap-2">
-              {customCategoriesList.map((cat) => {
-                const Icon = getIconFromKey(cat.icon || 'tag');
-                const isSelected = selectedCategoryFilter === cat.key;
-                return (
-                  <button
-                    key={cat.key}
-                    onClick={() => setSelectedCategoryFilter(isSelected ? null : cat.key)}
-                    className="inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors"
-                    style={isSelected 
-                      ? { backgroundColor: '#DC2626', color: 'white' } 
-                      : { backgroundColor: '#f3f4f6', color: '#374151' }}
-                  >
-                    <Icon className="h-3.5 w-3.5" />
-                    {cat.label}
-                  </button>
-                );
-              })}
-            </div>
+            {/* Category filter buttons - draggable */}
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleCategoryDragEnd}
+            >
+              <SortableContext items={customCategoriesList.map(c => c.key)} strategy={horizontalListSortingStrategy}>
+                <div className="flex flex-wrap gap-2">
+                  {customCategoriesList.map((cat) => (
+                    <SortableCategoryButton
+                      key={cat.key}
+                      category={cat}
+                      isSelected={selectedCategoryFilter === cat.key}
+                      onClick={() => setSelectedCategoryFilter(selectedCategoryFilter === cat.key ? null : cat.key)}
+                      onDoubleClick={() => {
+                        setEditingCategory({ key: cat.key, label: cat.label, icon: cat.icon });
+                        setEditCategoryLabel(cat.label);
+                        setEditCategoryIcon(cat.icon || 'tag');
+                        setShowEditCategoryModal(true);
+                      }}
+                      onDelete={async () => {
+                        if (confirm(`Excluir categoria "${cat.label}"?`)) {
+                          await removeCustomCategory(cat.key);
+                          const updatedCategories = await getCustomCategories();
+                          setCustomCategoriesList(updatedCategories);
+                          if (selectedCategoryFilter === cat.key) {
+                            setSelectedCategoryFilter(null);
+                          }
+                          toast({ title: "Categoria removida" });
+                        }
+                      }}
+                    />
+                  ))}
+                </div>
+              </SortableContext>
+            </DndContext>
           </div>
 
           {/* Edit Category Modal */}
