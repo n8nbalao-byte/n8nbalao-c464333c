@@ -202,6 +202,7 @@ export default function Admin() {
   const [showBulkEditModal, setShowBulkEditModal] = useState(false);
   const [bulkEditType, setBulkEditType] = useState<ProductCategory | "">("");
   const [bulkEditCategory, setBulkEditCategory] = useState<string>("");
+  const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string | null>(null);
 
   // Hardware state
   const [activeHardwareCategory, setActiveHardwareCategory] = useState<HardwareCategory>('processor');
@@ -1102,15 +1103,26 @@ export default function Admin() {
     });
   }
 
-  // Get filtered products based on search term
+  // Get filtered products based on search term and category filter
   const getFilteredProducts = () => {
-    if (!productSearchTerm) return products;
-    const search = productSearchTerm.toLowerCase();
-    return products.filter(p => 
-      p.title.toLowerCase().includes(search) ||
-      (p.subtitle || '').toLowerCase().includes(search) ||
-      (p.productType || '').toLowerCase().includes(search)
-    );
+    let filtered = products;
+    
+    // Filter by category if selected
+    if (selectedCategoryFilter) {
+      filtered = filtered.filter(p => p.productType === selectedCategoryFilter);
+    }
+    
+    // Filter by search term
+    if (productSearchTerm) {
+      const search = productSearchTerm.toLowerCase();
+      filtered = filtered.filter(p => 
+        p.title.toLowerCase().includes(search) ||
+        (p.subtitle || '').toLowerCase().includes(search) ||
+        (p.productType || '').toLowerCase().includes(search)
+      );
+    }
+    
+    return filtered;
   };
 
   function toggleAllProducts() {
@@ -2082,23 +2094,41 @@ export default function Admin() {
             </button>
           </div>
 
-          {/* Categories display with edit on click */}
+          {/* Categories display - click to filter, double-click to edit */}
           <div className="mb-6 flex flex-wrap gap-2">
             <span className="text-sm self-center mr-2" style={{ color: '#6B7280' }}>Categorias:</span>
+            {/* "Todos" button to show all products */}
+            <button
+              onClick={() => setSelectedCategoryFilter(null)}
+              className="inline-flex items-center gap-2 rounded-lg px-4 py-2 font-medium transition-colors text-sm"
+              style={selectedCategoryFilter === null 
+                ? { backgroundColor: '#DC2626', color: 'white' } 
+                : { backgroundColor: 'white', color: '#374151', border: '1px solid #E5E7EB' }}
+            >
+              Todos
+            </button>
             {customCategoriesList.map((cat) => {
               const Icon = getIconFromKey(cat.icon || 'tag');
+              const isSelected = selectedCategoryFilter === cat.key;
               return (
                 <button
                   key={cat.key}
                   onClick={() => {
+                    // Single click filters by category
+                    setSelectedCategoryFilter(isSelected ? null : cat.key);
+                  }}
+                  onDoubleClick={() => {
+                    // Double click opens edit modal
                     setEditingCategory(cat);
                     setEditCategoryLabel(cat.label);
                     setEditCategoryIcon(cat.icon || 'tag');
                     setShowEditCategoryModal(true);
                   }}
                   className="inline-flex items-center gap-2 rounded-lg px-4 py-2 font-medium transition-colors group relative text-sm cursor-pointer"
-                  style={{ backgroundColor: 'white', color: '#374151', border: '1px solid #E5E7EB' }}
-                  title="Clique para editar"
+                  style={isSelected 
+                    ? { backgroundColor: '#DC2626', color: 'white' } 
+                    : { backgroundColor: 'white', color: '#374151', border: '1px solid #E5E7EB' }}
+                  title="Clique para filtrar, duplo clique para editar"
                 >
                   <Icon className="h-4 w-4" />
                   {cat.label}
@@ -2109,11 +2139,14 @@ export default function Admin() {
                         await removeCustomCategory(cat.key);
                         const updatedCategories = await getCustomCategories();
                         setCustomCategoriesList(updatedCategories);
+                        if (selectedCategoryFilter === cat.key) {
+                          setSelectedCategoryFilter(null);
+                        }
                         toast({ title: "Categoria removida" });
                       }
                     }}
                     className="h-4 w-4 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer ml-1"
-                    style={{ backgroundColor: '#DC2626', color: 'white' }}
+                    style={{ backgroundColor: isSelected ? 'white' : '#DC2626', color: isSelected ? '#DC2626' : 'white' }}
                   >
                     <X className="h-3 w-3" />
                   </span>
@@ -2128,11 +2161,11 @@ export default function Admin() {
                 setNewCategoryIcon("tag");
                 setShowNewCategoryModal(true);
               }}
-              className="inline-flex items-center gap-2 rounded-lg px-4 py-2 font-medium transition-colors text-sm text-white hover:opacity-90"
-              style={{ backgroundColor: '#DC2626' }}
+              className="inline-flex items-center gap-2 rounded-lg px-4 py-2 font-medium transition-colors text-sm border-2 border-dashed"
+              style={{ borderColor: '#E5E7EB', color: '#6B7280' }}
             >
               <Plus className="h-4 w-4" />
-              Adicionar Categoria
+              Nova Categoria
             </button>
           </div>
 
@@ -2448,16 +2481,7 @@ export default function Admin() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border">
-                      {[...products]
-                        .filter((p) => {
-                          if (!productSearchTerm) return true;
-                          const search = productSearchTerm.toLowerCase();
-                          return (
-                            p.title.toLowerCase().includes(search) ||
-                            (p.subtitle || '').toLowerCase().includes(search) ||
-                            (p.productType || '').toLowerCase().includes(search)
-                          );
-                        })
+                      {getFilteredProducts()
                         .sort((a, b) => {
                           const direction = productSortDirection === 'asc' ? 1 : -1;
                           if (productSortColumn === 'title') {
@@ -3176,7 +3200,13 @@ export default function Admin() {
                         <th className="px-4 py-4 text-left">
                           <input
                             type="checkbox"
-                            checked={products.length > 0 && selectedProducts.size === products.length}
+                            checked={(() => {
+                              const filtered = getFilteredProducts().filter(p => {
+                                const type = p.productType || '';
+                                return type !== 'pc' && type !== 'kit';
+                              });
+                              return filtered.length > 0 && filtered.every(p => selectedProducts.has(p.id));
+                            })()}
                             onChange={toggleAllProducts}
                             className="h-4 w-4 rounded border-border text-primary focus:ring-primary"
                           />
@@ -3225,18 +3255,11 @@ export default function Admin() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border">
-                      {[...products]
+                      {getFilteredProducts()
                         .filter((p) => {
                           // Only show products that are NOT pc or kit (those go to "Montar Configurações")
                           const type = p.productType || '';
-                          if (type === 'pc' || type === 'kit') return false;
-                          if (!productSearchTerm) return true;
-                          const search = productSearchTerm.toLowerCase();
-                          return (
-                            p.title.toLowerCase().includes(search) ||
-                            (p.subtitle || '').toLowerCase().includes(search) ||
-                            (p.productType || '').toLowerCase().includes(search)
-                          );
+                          return type !== 'pc' && type !== 'kit';
                         })
                         .sort((a, b) => {
                           const direction = productSortDirection === 'asc' ? 1 : -1;
