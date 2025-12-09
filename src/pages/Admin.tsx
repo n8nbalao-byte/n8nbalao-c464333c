@@ -3410,6 +3410,24 @@ export default function Admin() {
                   />
                 </div>
                 <div className="flex gap-2">
+                  <button
+                    onClick={() => {
+                      if (selectedProducts.size === 0) {
+                        const allIds = new Set(getFilteredProducts().filter(p => {
+                          const type = p.productType || '';
+                          return type !== 'pc' && type !== 'kit';
+                        }).map(p => p.id));
+                        setSelectedProducts(allIds);
+                        toast({ title: "Produtos selecionados", description: `${allIds.size} produtos selecionados` });
+                      }
+                      setShowAIClassifier(true);
+                    }}
+                    className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors hover:opacity-90"
+                    style={{ background: 'linear-gradient(135deg, #8B5CF6 0%, #EC4899 100%)' }}
+                  >
+                    <Sparkles className="h-4 w-4" />
+                    Classificar com IA {selectedProducts.size > 0 && `(${selectedProducts.size})`}
+                  </button>
                   {selectedProducts.size > 0 && (
                     <>
                       <button
@@ -3432,7 +3450,7 @@ export default function Admin() {
                     onClick={() => {
                       setProductFormData({
                         ...defaultProductFormData,
-                        productType: 'acessorio', // Default to simple accessory
+                        productType: 'acessorio',
                       });
                       setEditingProductId(null);
                       setIsEditingProduct(true);
@@ -3444,18 +3462,6 @@ export default function Admin() {
                     Novo Produto
                   </button>
                 </div>
-              </div>
-
-              {/* Info about simple products */}
-              <div className="mb-4 p-4 rounded-lg bg-blue-50 border border-blue-200 text-blue-800">
-                <div className="flex items-center gap-2">
-                  <Package className="h-5 w-5" />
-                  <span className="font-medium">Produtos Simples</span>
-                </div>
-                <p className="text-sm mt-1 text-blue-600">
-                  Cadastre produtos individuais como acessórios, monitores, cadeiras, softwares e licenças. 
-                  Estes produtos não precisam de componentes de hardware obrigatórios.
-                </p>
               </div>
 
               {loading ? (
