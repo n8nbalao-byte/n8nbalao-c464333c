@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { api, type Product, type HardwareItem, getCustomCategories } from "@/lib/api";
+import { api, type Product, type HardwareItem, getCategories, type Category } from "@/lib/api";
 import { getIconFromKey } from "@/lib/icons";
-import { ShoppingCart, ChevronRight, Cpu, HardDrive, Monitor, Package, Laptop, Bot, Code, Wrench, Key, Tv, Armchair, ChevronLeft, Search, Menu } from "lucide-react";
+import { ChevronRight, Cpu, Package, Search } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
 import { useViewMode } from "@/contexts/ViewModeContext";
 import { ViewModeSelector } from "@/components/ViewModeSelector";
@@ -12,24 +12,17 @@ import { CategorySidebar } from "@/components/CategorySidebar";
 import LorenzoChatWidget from "@/components/LorenzoChatWidget";
 import balaoLogo from "@/assets/balao-logo.png";
 
-const baseCategoryConfig = [
-  { key: 'pc', label: 'PCs Montados', icon: Monitor },
-  { key: 'kit', label: 'Kits', icon: Package },
-  { key: 'notebook', label: 'Notebooks', icon: Laptop },
-  { key: 'hardware', label: 'Hardware', icon: Cpu },
-  { key: 'automacao', label: 'Automações', icon: Bot },
-  { key: 'software', label: 'Softwares', icon: Code },
-  { key: 'acessorio', label: 'Acessórios', icon: Wrench },
-  { key: 'licenca', label: 'Licenças', icon: Key },
-  { key: 'monitor', label: 'Monitores', icon: Tv },
-  { key: 'cadeira_gamer', label: 'Cadeiras Gamer', icon: Armchair },
-];
+interface CategoryConfig {
+  key: string;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+}
 
 export default function Home() {
   const [products, setProducts] = useState<Product[]>([]);
   const [hardware, setHardware] = useState<HardwareItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [categoryConfig, setCategoryConfig] = useState(baseCategoryConfig);
+  const [categoryConfig, setCategoryConfig] = useState<CategoryConfig[]>([]);
   const [currentPromoSlide, setCurrentPromoSlide] = useState(0);
   const { addToCart } = useCart();
   const { viewMode } = useViewMode();
@@ -39,18 +32,22 @@ export default function Home() {
 
   useEffect(() => {
     async function fetchData() {
-      const [productsData, hardwareData, customCategories] = await Promise.all([
+      const [productsData, hardwareData, dbCategories] = await Promise.all([
         api.getProducts(),
         api.getHardware(),
-        getCustomCategories()
+        getCategories({ parent: null }) // Get only top-level categories from database
       ]);
       setProducts(productsData.sort((a, b) => (a.totalPrice || 0) - (b.totalPrice || 0)));
       setHardware(hardwareData);
       
-      setCategoryConfig([
-        ...baseCategoryConfig,
-        ...customCategories.map(c => ({ key: c.key, label: c.label, icon: getIconFromKey(c.icon) }))
-      ]);
+      // Use only categories from database - no more hardcoded baseCategoryConfig
+      const validCategories: CategoryConfig[] = dbCategories.map((c: Category) => ({
+        key: c.key,
+        label: c.label,
+        icon: getIconFromKey(c.icon || 'Package')
+      }));
+      
+      setCategoryConfig(validCategories);
       
       setLoading(false);
     }
