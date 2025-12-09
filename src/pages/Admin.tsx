@@ -3055,31 +3055,26 @@ export default function Admin() {
                               Configure a voz do {lorenzoName} para respostas por áudio.
                             </p>
                           </div>
-                          <label className="flex items-center gap-2 cursor-pointer">
+                          <button
+                            type="button"
+                            onClick={() => setElevenlabsEnabled(!elevenlabsEnabled)}
+                            className="flex items-center gap-2 cursor-pointer"
+                          >
                             <span className="text-sm" style={{ color: '#374151' }}>
                               {elevenlabsEnabled ? 'Ativado' : 'Desativado'}
                             </span>
-                            <div className="relative">
-                              <input
-                                type="checkbox"
-                                checked={elevenlabsEnabled}
-                                onChange={(e) => setElevenlabsEnabled(e.target.checked)}
-                                className="sr-only"
-                              />
+                            <div 
+                              className="relative w-11 h-6 rounded-full transition-colors"
+                              style={{ backgroundColor: elevenlabsEnabled ? '#10B981' : '#D1D5DB' }}
+                            >
                               <div 
-                                className="w-11 h-6 rounded-full transition-colors cursor-pointer"
-                                style={{ backgroundColor: elevenlabsEnabled ? '#10B981' : '#D1D5DB' }}
-                                onClick={() => setElevenlabsEnabled(!elevenlabsEnabled)}
-                              >
-                                <div 
-                                  className="absolute w-5 h-5 bg-white rounded-full shadow transition-transform top-0.5"
-                                  style={{ 
-                                    transform: elevenlabsEnabled ? 'translateX(22px)' : 'translateX(2px)'
-                                  }}
-                                />
-                              </div>
+                                className="absolute w-5 h-5 bg-white rounded-full shadow transition-all top-0.5"
+                                style={{ 
+                                  left: elevenlabsEnabled ? '22px' : '2px'
+                                }}
+                              />
                             </div>
-                          </label>
+                          </button>
                         </div>
                         
                         <div className="mt-4 space-y-4">
