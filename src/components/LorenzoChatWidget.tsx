@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { MessageCircle } from 'lucide-react';
+import { Bot } from 'lucide-react';
 import LorenzoChat from './LorenzoChat';
 
 interface LorenzoChatWidgetProps {
@@ -25,7 +25,7 @@ const LorenzoChatWidget = ({ customerId }: LorenzoChatWidgetProps) => {
           style={{ backgroundColor: '#25D366' }}
           aria-label="Abrir chat com Lorenzo"
         >
-          <MessageCircle className="w-8 h-8 text-white" />
+          <Bot className="w-8 h-8 text-white" />
           
           {/* Pulse animation */}
           <span 
