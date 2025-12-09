@@ -92,8 +92,8 @@ $customerId = $input['customerId'] ?? null;
 $contextData = [];
 
 try {
-    // Get products
-    $stmt = $pdo->query("SELECT id, title, subtitle, productType, totalPrice, description FROM products ORDER BY totalPrice ASC LIMIT 50");
+    // Get ALL products (increased limit for full catalog visibility)
+    $stmt = $pdo->query("SELECT id, title, subtitle, productType, categories, totalPrice, description FROM products ORDER BY title ASC LIMIT 500");
     $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
     $contextData['products'] = $products;
 
