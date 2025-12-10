@@ -1,8 +1,8 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import logo from "@/assets/logo-white.svg";
-import { ShoppingCart, User } from "lucide-react";
+import { ShoppingCart, User, Building2 } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
+import { useCompany } from "@/contexts/CompanyContext";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
 
@@ -18,6 +18,7 @@ export function Header() {
   const location = useLocation();
   const navigate = useNavigate();
   const { totalItems, setIsOpen } = useCart();
+  const { company } = useCompany();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
@@ -48,7 +49,14 @@ export function Header() {
     <header className="sticky top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-md">
       <div className="container flex h-16 items-center justify-between">
         <Link to="/" className="flex items-center gap-2">
-          <img src={logo} alt="n8nBalão" className="h-8" />
+          {company?.logo ? (
+            <img src={company.logo} alt={company.name || 'Logo'} className="h-8 object-contain" />
+          ) : (
+            <div className="flex items-center gap-2">
+              <Building2 className="h-8 w-8 text-primary" />
+              <span className="font-bold text-foreground">{company?.name || 'Sua Empresa'}</span>
+            </div>
+          )}
         </Link>
 
         <nav className="hidden md:flex items-center gap-6">

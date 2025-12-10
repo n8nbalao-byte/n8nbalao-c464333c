@@ -4,7 +4,8 @@ import { RedWhiteHeader } from "@/components/RedWhiteHeader";
 import { RedWhiteFooter } from "@/components/RedWhiteFooter";
 import { api, type Product, type HardwareItem, type MediaItem, type ProductComponents, type CompanyData, type ProductCategory, type HardwareCategory, type HardwareCategoryDef, getCustomCategories, addCustomCategory, removeCustomCategory, updateCustomCategory, getHardwareCategories, addHardwareCategory, removeHardwareCategory, updateHardwareCategory, getCategories, updateCategory, type Category } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Pencil, Trash2, Save, X, Upload, Play, Image, Cpu, CircuitBoard, MemoryStick, HardDrive, Monitor, Zap, Box, Package, Download, Droplets, Building2, Laptop, Bot, Code, Wrench, Key, Tv, Armchair, Tag, LucideIcon, Search, Sparkles, LayoutDashboard, Images, Users, UserPlus, Shield, Mail, Settings, Eye, EyeOff, Volume2, GripVertical, MessageSquare } from "lucide-react";
+import { useCompany } from "@/contexts/CompanyContext";
+import { Plus, Pencil, Trash2, Save, X, Upload, Play, Image, Cpu, CircuitBoard, MemoryStick, HardDrive, Monitor, Zap, Box, Package, Download, Droplets, Building2, Laptop, Bot, Code, Wrench, Key, Tv, Armchair, Tag, LucideIcon, Search, Sparkles, LayoutDashboard, Images, Users, UserPlus, Shield, Mail, Settings, Eye, EyeOff, Volume2, GripVertical, Palette } from "lucide-react";
 import * as XLSX from "xlsx";
 import { availableIcons, getIconFromKey } from "@/lib/icons";
 import { HardwareCard } from "@/components/HardwareCard";
@@ -319,7 +320,10 @@ export default function Admin() {
     email: '',
     cnpj: '',
     seller: '',
-    logo: ''
+    logo: '',
+    primaryColor: '#E31C23',
+    secondaryColor: '#FFFFFF',
+    accentColor: '#DC2626'
   });
   const [savingCompany, setSavingCompany] = useState(false);
 
@@ -804,11 +808,15 @@ export default function Admin() {
     setSavingSettings(false);
   }
 
+  const { refreshCompany } = useCompany();
+
   async function handleCompanySave() {
     setSavingCompany(true);
     const success = await api.saveCompany(companyData);
     if (success) {
       toast({ title: "Sucesso", description: "Dados da empresa salvos!" });
+      // Refresh company context to apply new colors globally
+      await refreshCompany();
     } else {
       toast({ title: "Erro", description: "Falha ao salvar dados", variant: "destructive" });
     }
@@ -2847,6 +2855,105 @@ export default function Admin() {
                         className="w-full rounded-lg border border-border bg-background px-4 py-3 text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                         placeholder="Nome do vendedor padrão"
                       />
+                    </div>
+
+                    {/* Color Customization Section */}
+                    <div className="border-t border-border pt-6 mt-6">
+                      <h3 className="text-lg font-semibold text-foreground mb-4">Personalização de Cores</h3>
+                      <p className="text-sm text-muted-foreground mb-4">
+                        Defina as cores do site. A cor primária será aplicada em todo o site.
+                      </p>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        {/* Primary Color */}
+                        <div>
+                          <label className="block text-sm font-medium text-foreground mb-2">Cor Primária</label>
+                          <div className="flex items-center gap-3">
+                            <input
+                              type="color"
+                              value={companyData.primaryColor || '#E31C23'}
+                              onChange={(e) => setCompanyData(prev => ({ ...prev, primaryColor: e.target.value }))}
+                              className="h-10 w-16 rounded cursor-pointer border border-border"
+                            />
+                            <input
+                              type="text"
+                              value={companyData.primaryColor || '#E31C23'}
+                              onChange={(e) => setCompanyData(prev => ({ ...prev, primaryColor: e.target.value }))}
+                              className="flex-1 rounded-lg border border-border bg-background px-3 py-2 text-foreground text-sm"
+                              placeholder="#E31C23"
+                            />
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-1">Botões, links, destaques</p>
+                        </div>
+
+                        {/* Secondary Color */}
+                        <div>
+                          <label className="block text-sm font-medium text-foreground mb-2">Cor Secundária</label>
+                          <div className="flex items-center gap-3">
+                            <input
+                              type="color"
+                              value={companyData.secondaryColor || '#FFFFFF'}
+                              onChange={(e) => setCompanyData(prev => ({ ...prev, secondaryColor: e.target.value }))}
+                              className="h-10 w-16 rounded cursor-pointer border border-border"
+                            />
+                            <input
+                              type="text"
+                              value={companyData.secondaryColor || '#FFFFFF'}
+                              onChange={(e) => setCompanyData(prev => ({ ...prev, secondaryColor: e.target.value }))}
+                              className="flex-1 rounded-lg border border-border bg-background px-3 py-2 text-foreground text-sm"
+                              placeholder="#FFFFFF"
+                            />
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-1">Fundos, cards</p>
+                        </div>
+
+                        {/* Accent Color */}
+                        <div>
+                          <label className="block text-sm font-medium text-foreground mb-2">Cor de Destaque</label>
+                          <div className="flex items-center gap-3">
+                            <input
+                              type="color"
+                              value={companyData.accentColor || '#DC2626'}
+                              onChange={(e) => setCompanyData(prev => ({ ...prev, accentColor: e.target.value }))}
+                              className="h-10 w-16 rounded cursor-pointer border border-border"
+                            />
+                            <input
+                              type="text"
+                              value={companyData.accentColor || '#DC2626'}
+                              onChange={(e) => setCompanyData(prev => ({ ...prev, accentColor: e.target.value }))}
+                              className="flex-1 rounded-lg border border-border bg-background px-3 py-2 text-foreground text-sm"
+                              placeholder="#DC2626"
+                            />
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-1">Elementos especiais</p>
+                        </div>
+                      </div>
+
+                      {/* Color Preview */}
+                      <div className="mt-4 p-4 rounded-lg border border-border">
+                        <p className="text-sm font-medium text-foreground mb-3">Pré-visualização:</p>
+                        <div className="flex items-center gap-4">
+                          <div 
+                            className="px-4 py-2 rounded-lg text-white font-medium"
+                            style={{ backgroundColor: companyData.primaryColor || '#E31C23' }}
+                          >
+                            Botão Primário
+                          </div>
+                          <div 
+                            className="px-4 py-2 rounded-lg border-2 font-medium"
+                            style={{ 
+                              borderColor: companyData.primaryColor || '#E31C23',
+                              color: companyData.primaryColor || '#E31C23'
+                            }}
+                          >
+                            Botão Outline
+                          </div>
+                          <div 
+                            className="h-8 w-8 rounded-full"
+                            style={{ backgroundColor: companyData.accentColor || '#DC2626' }}
+                          />
+                        </div>
+                      </div>
                     </div>
 
                     <button

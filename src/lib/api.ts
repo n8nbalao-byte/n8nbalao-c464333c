@@ -250,6 +250,10 @@ export interface CompanyData {
   cnpj: string;
   seller: string;
   logo: string;
+  // Theme colors
+  primaryColor?: string;
+  secondaryColor?: string;
+  accentColor?: string;
 }
 
 export interface Customer {

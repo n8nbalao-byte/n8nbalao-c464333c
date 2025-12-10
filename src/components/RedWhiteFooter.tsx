@@ -1,7 +1,8 @@
 import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
-import balaoLogo from "@/assets/balao-logo.png";
-import { api, getCustomCategories, type CompanyData, type CustomCategory } from "@/lib/api";
+import { Building2 } from "lucide-react";
+import { getCustomCategories, type CustomCategory } from "@/lib/api";
+import { useCompany } from "@/contexts/CompanyContext";
 
 interface RedWhiteFooterProps {
   hideFooter?: boolean;
@@ -9,7 +10,7 @@ interface RedWhiteFooterProps {
 
 export function RedWhiteFooter({ hideFooter }: RedWhiteFooterProps) {
   const [categories, setCategories] = useState<CustomCategory[]>([]);
-  const [company, setCompany] = useState<CompanyData | null>(null);
+  const { company } = useCompany();
 
   useEffect(() => {
     // Load categories from database
@@ -17,13 +18,6 @@ export function RedWhiteFooter({ hideFooter }: RedWhiteFooterProps) {
       // Filter out hardware category and take first 6
       const filtered = cats.filter(c => c.key !== 'hardware').slice(0, 6);
       setCategories(filtered);
-    });
-
-    // Load company data
-    api.getCompany().then(data => {
-      if (data) {
-        setCompany(data);
-      }
     });
   }, []);
 
@@ -36,9 +30,16 @@ export function RedWhiteFooter({ hideFooter }: RedWhiteFooterProps) {
       <div className="container">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div>
-            <img src={balaoLogo} alt="Balão da Informática" className="h-12 mb-4" />
+            {company?.logo ? (
+              <img src={company.logo} alt={company.name || 'Logo'} className="h-12 mb-4 object-contain" />
+            ) : (
+              <div className="flex items-center gap-2 mb-4">
+                <Building2 className="h-8 w-8 text-primary" />
+                <span className="font-bold text-gray-800">{company?.name || 'Sua Empresa'}</span>
+              </div>
+            )}
             <p className="text-gray-600 text-sm">
-              Sua loja de informática completa. Computadores, notebooks, hardware e muito mais.
+              {company?.name || 'Sua loja'} - Computadores, notebooks, hardware e muito mais.
             </p>
           </div>
           
@@ -79,14 +80,14 @@ export function RedWhiteFooter({ hideFooter }: RedWhiteFooterProps) {
                 <li>Email: {company.email}</li>
               )}
               {!company?.phone && !company?.email && (
-                <li className="text-gray-400 italic">Carregando...</li>
+                <li className="text-gray-400 italic">Configure os dados da empresa</li>
               )}
             </ul>
           </div>
         </div>
         
         <div className="border-t border-gray-200 mt-8 pt-8 text-center text-gray-500 text-sm">
-          © {new Date().getFullYear()} {company?.name || 'Balão da Informática'}. Todos os direitos reservados.
+          © {new Date().getFullYear()} {company?.name || 'Sua Empresa'}. Todos os direitos reservados.
         </div>
       </div>
     </footer>

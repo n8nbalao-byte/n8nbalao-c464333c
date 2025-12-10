@@ -24,7 +24,7 @@ try {
     exit();
 }
 
-// Create company table if it doesn't exist
+// Create company table if it doesn't exist (with color fields)
 $pdo->exec("
     CREATE TABLE IF NOT EXISTS company (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -36,9 +36,29 @@ $pdo->exec("
         cnpj VARCHAR(30),
         seller VARCHAR(255),
         logo LONGTEXT,
+        primaryColor VARCHAR(20) DEFAULT '#E31C23',
+        secondaryColor VARCHAR(20) DEFAULT '#FFFFFF',
+        accentColor VARCHAR(20) DEFAULT '#DC2626',
         updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
     )
 ");
+
+// Add color columns if they don't exist (migration for existing tables)
+try {
+    $pdo->exec("ALTER TABLE company ADD COLUMN primaryColor VARCHAR(20) DEFAULT '#E31C23'");
+} catch (PDOException $e) {
+    // Column already exists, ignore
+}
+try {
+    $pdo->exec("ALTER TABLE company ADD COLUMN secondaryColor VARCHAR(20) DEFAULT '#FFFFFF'");
+} catch (PDOException $e) {
+    // Column already exists, ignore
+}
+try {
+    $pdo->exec("ALTER TABLE company ADD COLUMN accentColor VARCHAR(20) DEFAULT '#DC2626'");
+} catch (PDOException $e) {
+    // Column already exists, ignore
+}
 
 $method = $_SERVER['REQUEST_METHOD'];
 
@@ -61,7 +81,10 @@ switch ($method) {
                 'email' => '',
                 'cnpj' => '',
                 'seller' => '',
-                'logo' => ''
+                'logo' => '',
+                'primaryColor' => '#E31C23',
+                'secondaryColor' => '#FFFFFF',
+                'accentColor' => '#DC2626'
             ]);
         }
         break;
@@ -91,7 +114,10 @@ switch ($method) {
                     email = ?,
                     cnpj = ?,
                     seller = ?,
-                    logo = ?
+                    logo = ?,
+                    primaryColor = ?,
+                    secondaryColor = ?,
+                    accentColor = ?
                 WHERE id = ?
             ");
             $stmt->execute([
@@ -103,13 +129,16 @@ switch ($method) {
                 $data['cnpj'] ?? '',
                 $data['seller'] ?? '',
                 $data['logo'] ?? '',
+                $data['primaryColor'] ?? '#E31C23',
+                $data['secondaryColor'] ?? '#FFFFFF',
+                $data['accentColor'] ?? '#DC2626',
                 $existing['id']
             ]);
         } else {
             // Insert new record
             $stmt = $pdo->prepare("
-                INSERT INTO company (name, address, city, phone, email, cnpj, seller, logo)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO company (name, address, city, phone, email, cnpj, seller, logo, primaryColor, secondaryColor, accentColor)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ");
             $stmt->execute([
                 $data['name'] ?? '',
@@ -119,7 +148,10 @@ switch ($method) {
                 $data['email'] ?? '',
                 $data['cnpj'] ?? '',
                 $data['seller'] ?? '',
-                $data['logo'] ?? ''
+                $data['logo'] ?? '',
+                $data['primaryColor'] ?? '#E31C23',
+                $data['secondaryColor'] ?? '#FFFFFF',
+                $data['accentColor'] ?? '#DC2626'
             ]);
         }
 
