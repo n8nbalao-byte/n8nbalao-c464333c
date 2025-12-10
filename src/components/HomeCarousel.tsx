@@ -9,7 +9,7 @@ interface CarouselImage {
 
 interface HomeCarouselProps {
   carouselKey: string;
-  fallbackImage: string;
+  fallbackImage?: string;
   className?: string;
   alt?: string;
 }
