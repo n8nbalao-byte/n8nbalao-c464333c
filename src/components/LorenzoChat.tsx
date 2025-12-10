@@ -120,8 +120,11 @@ const LorenzoChat = ({ isOpen, onClose, customerId }: LorenzoChatProps) => {
 
   // Check if message contains music generation command
   const checkForMusicGeneration = async (text: string): Promise<Message | null> => {
-    const musicMatch = text.match(/\[GERAR_MUSICA\]\s*tema:\s*([^|]+)\s*\|\s*estilo:\s*([^|]+)\s*\|\s*titulo:\s*(.+)/i);
+    // More flexible pattern matching for the music command
+    const musicMatch = text.match(/\[GERAR_MUSICA\]\s*tema:\s*([^|]+)\s*\|\s*estilo:\s*([^|]+)\s*\|\s*titulo:\s*([^\n\*]+)/i);
     
+    console.log('🎵 Checking for music command in:', text.substring(0, 200));
+    console.log('🎵 Match result:', musicMatch);
     if (musicMatch) {
       const [, tema, estilo, titulo] = musicMatch;
       setGeneratingMusic(true);
