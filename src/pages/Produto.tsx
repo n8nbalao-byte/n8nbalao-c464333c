@@ -119,7 +119,7 @@ export default function Produto() {
   }
 
   const hasComponents = Object.keys(hardwareDetails).length > 0;
-  const isAutomacao = product.productType === 'automacao';
+  const isDownloadProduct = product.productType === 'automacao' || product.productType === 'fluxos_n8n';
 
   return (
     <div className="min-h-screen bg-background">
@@ -178,7 +178,7 @@ export default function Produto() {
                 </div>
               )}
 
-              {!isAutomacao && (
+              {!isDownloadProduct && (
                 <div className="flex items-baseline gap-3">
                   <span className="text-4xl font-bold text-primary">
                     {formatPrice(product.totalPrice)}
@@ -209,7 +209,7 @@ export default function Produto() {
 
               {/* CTA Buttons */}
               <div className="flex flex-col gap-3 pt-4">
-                {isAutomacao && product.downloadUrl ? (
+                {isDownloadProduct && product.downloadUrl ? (
                   <a
                     href={product.downloadUrl}
                     target="_blank"
@@ -230,7 +230,7 @@ export default function Produto() {
                   </Button>
                 )}
                 
-                {!isAutomacao && (
+                {!isDownloadProduct && (
                   <a
                     href={`https://wa.me/5519981470446?text=Olá! Tenho interesse no produto: ${product.title}`}
                     target="_blank"

@@ -4221,8 +4221,8 @@ export default function Admin() {
                     />
                   </div>
                   
-                  {/* Download URL for automações */}
-                  {productFormData.productType === 'automacao' && (
+                  {/* Download URL for automações and fluxos_n8n */}
+                  {(productFormData.productType === 'automacao' || productFormData.productType === 'fluxos_n8n') && (
                     <div>
                       <label className="mb-2 block text-sm font-medium text-foreground">Link de Download *</label>
                       <input

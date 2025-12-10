@@ -20,7 +20,7 @@ export function ProductCard({ product }: ProductCardProps) {
     }).format(price);
   };
 
-  const isAutomacao = product.productType === 'automacao';
+  const isDownloadProduct = product.productType === 'automacao' || product.productType === 'fluxos_n8n';
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -55,7 +55,7 @@ export function ProductCard({ product }: ProductCardProps) {
             )}
           </div>
           <div className="flex items-center justify-between gap-2">
-            {isAutomacao ? (
+            {isDownloadProduct ? (
               <span className="inline-flex items-center gap-2 font-bold" style={{ color: '#DC2626' }}>
                 <Download className="h-4 w-4" />
                 Download Grátis
@@ -104,14 +104,14 @@ export function ProductCard({ product }: ProductCardProps) {
             {product.title}
           </h3>
           <div className="mt-1 flex items-center justify-between">
-            {isAutomacao ? (
+            {isDownloadProduct ? (
               <span className="text-xs font-bold" style={{ color: '#DC2626' }}>Grátis</span>
             ) : (
               <span className="text-sm font-bold" style={{ color: '#DC2626' }}>
                 {formatPrice(product.totalPrice)}
               </span>
             )}
-            {!isAutomacao && (
+            {!isDownloadProduct && (
               <button
                 className="rounded p-1 text-white"
                 style={{ backgroundColor: '#DC2626' }}
@@ -157,7 +157,7 @@ export function ProductCard({ product }: ProductCardProps) {
           </p>
         )}
         <div className="mt-auto pt-4 flex items-center justify-between gap-2">
-          {isAutomacao ? (
+          {isDownloadProduct ? (
             <span className="inline-flex items-center gap-2 text-lg font-bold" style={{ color: '#DC2626' }}>
               <Download className="h-5 w-5" />
               Download Grátis
