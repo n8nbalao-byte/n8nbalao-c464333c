@@ -68,10 +68,10 @@ $elevenLabsKey = getSetting($pdo, 'elevenlabs_api_key', '');
 $elevenLabsVoice = getSetting($pdo, 'elevenlabs_voice_id', 'B93iDjT4HFRCZ3Ju8oaV');
 $voiceEnabled = getSetting($pdo, 'elevenlabs_enabled', 'false') === 'true';
 
-// Evolution API settings (from webhook data)
-$evolutionBaseUrl = '';
-$evolutionApiKey = '';
-$instanceName = 'balao';
+// Evolution API settings (from database or webhook)
+$evolutionBaseUrl = getSetting($pdo, 'evolution_api_url', '');
+$evolutionApiKey = getSetting($pdo, 'evolution_api_key', '');
+$instanceName = getSetting($pdo, 'evolution_instance', 'balao');
 
 // Default system prompt if not configured
 if (empty($systemPrompt)) {
