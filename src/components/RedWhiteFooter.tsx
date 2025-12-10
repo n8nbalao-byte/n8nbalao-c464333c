@@ -87,7 +87,7 @@ export function RedWhiteFooter({ hideFooter }: RedWhiteFooterProps) {
         </div>
         
         <div className="border-t border-gray-200 mt-8 pt-8 text-center text-gray-500 text-sm">
-          © {new Date().getFullYear()} {company?.name || 'Sua Empresa'}. Todos os direitos reservados.
+          © {new Date().getFullYear()} {company?.name || 'Sua Empresa'}. Todos os direitos reservados. Desenvolvido por Hector Herera.
         </div>
       </div>
     </footer>
