@@ -25,11 +25,11 @@ if (empty($prompt)) {
     exit;
 }
 
-// Suno API key from user's request
+// Suno API key
 $sunoApiKey = '01a3961c1f06d4b58a9a39eb54136475';
 
-// Create music generation request
-$ch = curl_init('https://apibox.erweima.ai/api/v1/generate');
+// Create music generation request using correct Suno API endpoint
+$ch = curl_init('https://api.sunoapi.org/api/v1/generate');
 curl_setopt_array($ch, [
     CURLOPT_RETURNTRANSFER => true,
     CURLOPT_POST => true,
@@ -38,13 +38,12 @@ curl_setopt_array($ch, [
         'Authorization: Bearer ' . $sunoApiKey
     ],
     CURLOPT_POSTFIELDS => json_encode([
+        'customMode' => true,
+        'instrumental' => false,
+        'model' => 'V4_5',
         'prompt' => $prompt,
         'style' => $style,
-        'title' => $title,
-        'customMode' => false,
-        'instrumental' => false,
-        'model' => 'V3_5',
-        'callBackUrl' => ''
+        'title' => $title
     ]),
     CURLOPT_TIMEOUT => 120
 ]);
@@ -54,6 +53,9 @@ $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 $error = curl_error($ch);
 curl_close($ch);
 
+error_log("Suno API Response: " . $response);
+error_log("Suno API HTTP Code: " . $httpCode);
+
 if ($error) {
     echo json_encode(['success' => false, 'error' => 'Erro de conexão: ' . $error]);
     exit;
@@ -61,19 +63,23 @@ if ($error) {
 
 $data = json_decode($response, true);
 
-if ($httpCode !== 200 || !$data) {
-    echo json_encode(['success' => false, 'error' => 'Erro na API Suno', 'details' => $response]);
+if (!$data) {
+    echo json_encode(['success' => false, 'error' => 'Resposta inválida da API', 'raw' => $response]);
     exit;
 }
 
-// Return task ID for polling
-if (isset($data['data']['taskId'])) {
+// Check for success response
+if (isset($data['code']) && $data['code'] === 200 && isset($data['data']['taskId'])) {
     echo json_encode([
         'success' => true,
         'taskId' => $data['data']['taskId'],
         'message' => 'Música sendo gerada... Aguarde!'
     ]);
 } else {
-    echo json_encode(['success' => false, 'error' => 'Resposta inesperada da API', 'data' => $data]);
+    echo json_encode([
+        'success' => false, 
+        'error' => $data['msg'] ?? 'Erro na API Suno', 
+        'details' => $data
+    ]);
 }
 ?>
