@@ -67,6 +67,10 @@ export function AICategoryClassifier({
   const [showCategoryConfirm, setShowCategoryConfirm] = useState(false);
   const [confirmedCategories, setConfirmedCategories] = useState<Set<string>>(new Set());
   
+  // Manual category suggestion
+  const [showSuggestionModal, setShowSuggestionModal] = useState(false);
+  const [manualCategorySuggestion, setManualCategorySuggestion] = useState('');
+  
   // Products to classify (auto-selected or provided)
   const [productsToClassify, setProductsToClassify] = useState<Product[]>(selectedProducts);
 
@@ -238,7 +242,77 @@ export function AICategoryClassifier({
     });
   };
 
+  const handleSuggestCategories = async () => {
+    if (!manualCategorySuggestion.trim()) {
+      toast({ title: 'Aviso', description: 'Digite sua sugestão de categoria', variant: 'destructive' });
+      return;
+    }
+    
+    // Parse user suggestion into new categories
+    const suggestions = manualCategorySuggestion.split(',').map(s => s.trim()).filter(Boolean);
+    const newCats: NewCategory[] = [];
+    
+    for (const suggestion of suggestions) {
+      // Check if it's a subcategory (format: parent/subcategory)
+      if (suggestion.includes('/')) {
+        const [parent, sub] = suggestion.split('/').map(s => s.trim());
+        const parentKey = parent.toLowerCase().replace(/\s+/g, '_');
+        const subKey = sub.toLowerCase().replace(/\s+/g, '_');
+        
+        // Add parent if not exists
+        const parentExists = pendingCategories.find(c => c.key === parentKey) || 
+          await getCategories({ parent: null }).then(cats => cats.find(c => c.key === parentKey));
+        
+        if (!parentExists) {
+          newCats.push({
+            key: parentKey,
+            label: parent,
+            parentKey: null,
+            icon: 'Package'
+          });
+        }
+        
+        newCats.push({
+          key: subKey,
+          label: sub,
+          parentKey: parentKey,
+          icon: 'Tag'
+        });
+      } else {
+        const key = suggestion.toLowerCase().replace(/\s+/g, '_');
+        newCats.push({
+          key,
+          label: suggestion,
+          parentKey: null,
+          icon: 'Package'
+        });
+      }
+    }
+    
+    // Add to pending categories
+    const existingKeys = new Set(pendingCategories.map(c => c.key));
+    const uniqueNew = newCats.filter(c => !existingKeys.has(c.key));
+    
+    if (uniqueNew.length > 0) {
+      setPendingCategories(prev => [...prev, ...uniqueNew]);
+      // Auto-select new ones
+      uniqueNew.forEach(c => confirmedCategories.add(c.key));
+      setConfirmedCategories(new Set(confirmedCategories));
+      toast({ title: 'Categorias adicionadas', description: `${uniqueNew.length} categoria(s) sugerida(s)` });
+    }
+    
+    setManualCategorySuggestion('');
+    setShowSuggestionModal(false);
+    setShowCategoryConfirm(true);
+  };
+
   const handleApply = async () => {
+    // Before applying, check if user wants to suggest categories
+    if (!showCategoryConfirm && pendingCategories.length > 0) {
+      setShowCategoryConfirm(true);
+      return;
+    }
+    
     const updates = classifications
       .filter(c => selectedClassifications.has(c.productId))
       .map(c => ({
@@ -293,6 +367,62 @@ export function AICategoryClassifier({
     }
   };
 
+  // Manual suggestion modal
+  if (showSuggestionModal) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+        <div className="w-full max-w-lg bg-white rounded-xl shadow-2xl overflow-hidden">
+          <div className="p-6 border-b border-gray-200">
+            <div className="flex items-center gap-3">
+              <Plus className="h-6 w-6 text-primary" />
+              <h2 className="text-xl font-bold text-gray-800">Sugerir Categorias</h2>
+            </div>
+            <p className="text-gray-600 mt-2">
+              Digite as categorias que deseja criar. Separe por vírgula. Para subcategorias use o formato: categoria/subcategoria
+            </p>
+          </div>
+          
+          <div className="p-6 space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Suas sugestões</label>
+              <textarea
+                value={manualCategorySuggestion}
+                onChange={(e) => setManualCategorySuggestion(e.target.value)}
+                placeholder="Ex: Jogos/PC, Jogos/Xbox, Casa Inteligente/Iluminação, Smartphones/Apple"
+                className="w-full p-3 border border-gray-300 rounded-lg resize-none h-32 focus:ring-2 focus:ring-primary focus:border-primary"
+              />
+            </div>
+            
+            <div className="text-xs text-gray-500 space-y-1">
+              <p>💡 <strong>Exemplos:</strong></p>
+              <p>• <code>Jogos/PC</code> - Cria categoria "Jogos" com subcategoria "PC"</p>
+              <p>• <code>Casa Inteligente</code> - Cria categoria principal</p>
+              <p>• <code>Smartphones/Apple, Smartphones/Samsung</code> - Cria várias subcategorias</p>
+            </div>
+          </div>
+          
+          <div className="p-6 border-t border-gray-200 bg-gray-50 flex gap-3">
+            <button
+              onClick={() => setShowSuggestionModal(false)}
+              className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100"
+            >
+              Cancelar
+            </button>
+            <div className="flex-1" />
+            <button
+              onClick={handleSuggestCategories}
+              disabled={!manualCategorySuggestion.trim()}
+              className="flex items-center gap-2 px-6 py-2 bg-primary text-white rounded-lg font-medium hover:bg-primary/90 disabled:opacity-50"
+            >
+              <Plus className="h-4 w-4" />
+              Adicionar Sugestões
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // Category confirmation modal
   if (showCategoryConfirm && pendingCategories.length > 0) {
     return (
@@ -301,14 +431,14 @@ export function AICategoryClassifier({
           <div className="p-6 border-b border-gray-200">
             <div className="flex items-center gap-3">
               <AlertTriangle className="h-6 w-6 text-yellow-500" />
-              <h2 className="text-xl font-bold text-gray-800">Novas Categorias Detectadas</h2>
+              <h2 className="text-xl font-bold text-gray-800">Novas Categorias</h2>
             </div>
             <p className="text-gray-600 mt-2">
-              A IA sugeriu criar as seguintes categorias/subcategorias. Selecione as que deseja criar:
+              Selecione as categorias que deseja criar antes de aplicar a classificação:
             </p>
           </div>
           
-          <div className="p-6 space-y-3 max-h-[50vh] overflow-y-auto">
+          <div className="p-6 space-y-3 max-h-[40vh] overflow-y-auto">
             {pendingCategories.map((cat) => (
               <label 
                 key={cat.key}
@@ -340,20 +470,30 @@ export function AICategoryClassifier({
             ))}
           </div>
           
+          {/* Add manual suggestion */}
+          <div className="px-6 pb-4">
+            <button
+              onClick={() => setShowSuggestionModal(true)}
+              className="w-full flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-primary hover:text-primary transition-colors"
+            >
+              <Plus className="h-4 w-4" />
+              Sugerir outras categorias
+            </button>
+          </div>
+          
           <div className="p-6 border-t border-gray-200 bg-gray-50 flex gap-3">
             <button
               onClick={() => {
                 setShowCategoryConfirm(false);
-                setPendingCategories([]);
+                // Proceed to apply without creating categories
               }}
               className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100"
             >
-              Pular (não criar)
+              Pular
             </button>
             <div className="flex-1" />
             <button
               onClick={() => {
-                // Select all
                 setConfirmedCategories(new Set(pendingCategories.map(c => c.key)));
               }}
               className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100"
@@ -534,7 +674,7 @@ export function AICategoryClassifier({
         {/* Footer */}
         {classifications.length > 0 && (
           <div className="p-6 border-t border-gray-200 bg-gray-50">
-            <div className="flex gap-3">
+            <div className="flex gap-3 flex-wrap">
               <button
                 onClick={runClassification}
                 disabled={loading}
@@ -542,6 +682,13 @@ export function AICategoryClassifier({
               >
                 <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
                 Reclassificar
+              </button>
+              <button
+                onClick={() => setShowSuggestionModal(true)}
+                className="flex items-center gap-2 px-4 py-2 border border-primary text-primary rounded-lg hover:bg-primary/5"
+              >
+                <Plus className="h-4 w-4" />
+                Sugerir Categorias
               </button>
               <div className="flex-1" />
               <button
@@ -551,7 +698,14 @@ export function AICategoryClassifier({
                 Cancelar
               </button>
               <button
-                onClick={handleApply}
+                onClick={() => {
+                  // If there are pending categories, show confirmation first
+                  if (pendingCategories.length > 0) {
+                    setShowCategoryConfirm(true);
+                  } else {
+                    handleApply();
+                  }
+                }}
                 disabled={applying || selectedClassifications.size === 0}
                 className="flex items-center gap-2 px-6 py-2 bg-primary text-white rounded-lg font-medium hover:bg-primary/90 disabled:opacity-50"
               >
@@ -560,7 +714,10 @@ export function AICategoryClassifier({
                 ) : (
                   <Check className="h-4 w-4" />
                 )}
-                Aplicar Selecionados ({selectedClassifications.size})
+                {pendingCategories.length > 0 
+                  ? `Revisar Categorias (${pendingCategories.length})` 
+                  : `Aplicar (${selectedClassifications.size})`
+                }
               </button>
             </div>
           </div>
