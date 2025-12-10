@@ -211,28 +211,28 @@ export default function Automacao() {
           <div className="grid gap-12 lg:grid-cols-2 lg:items-center">
             <div className="space-y-6">
               <h2 className="text-3xl font-bold text-white lg:text-4xl">
-                Interface <span style={{ color: accentColor }}>No-Code</span> quando você precisa, Código quando quiser
+                <span style={{ color: accentColor }}>Nós criamos</span> toda a automação para você
               </h2>
               <p className="text-gray-400">
-                Configure seu bot de WhatsApp sem escrever uma linha de código. Nossa interface visual 
-                intuitiva permite criar automações poderosas em minutos.
+                Não se preocupe com a parte técnica. Nossa equipe configura todo o sistema de 
+                atendimento automatizado para você. Foque no que realmente importa: seu negócio.
               </p>
               <ul className="space-y-4 text-gray-300">
                 <li className="flex items-start gap-3">
                   <span className="font-bold" style={{ color: accentColor }}>•</span>
-                  <span><strong className="text-white">Interface 100% No-Code</strong> - Crie fluxos de conversação arrastando e soltando</span>
+                  <span><strong className="text-white">Configuração Completa</strong> - Criamos todos os fluxos de conversação do zero</span>
                 </li>
                 <li className="flex items-start gap-3">
                   <span className="font-bold" style={{ color: accentColor }}>•</span>
-                  <span><strong className="text-white">Personalização Avançada</strong> - Adapte o bot à identidade da sua marca</span>
+                  <span><strong className="text-white">Sua Identidade</strong> - Personalizamos o bot com a cara da sua marca</span>
                 </li>
                 <li className="flex items-start gap-3">
                   <span className="font-bold" style={{ color: accentColor }}>•</span>
-                  <span><strong className="text-white">Integrações Nativas</strong> - Conecte com CRM, planilhas e sistemas externos</span>
+                  <span><strong className="text-white">Tudo Integrado</strong> - Conectamos com seu CRM, planilhas e sistemas</span>
                 </li>
                 <li className="flex items-start gap-3">
                   <span className="font-bold" style={{ color: accentColor }}>•</span>
-                  <span><strong className="text-white">Respostas Inteligentes</strong> - IA que aprende com suas interações</span>
+                  <span><strong className="text-white">Suporte Contínuo</strong> - Acompanhamos e otimizamos sua automação</span>
                 </li>
               </ul>
             </div>
@@ -252,10 +252,11 @@ export default function Automacao() {
       <section className="py-20" style={{ backgroundColor: "rgba(30, 30, 50, 0.3)" }}>
         <div className="container text-center">
           <h2 className="text-3xl font-bold text-white lg:text-4xl mb-4">
-            Automatize processos complexos com facilidade
+            Deixe a complexidade com a gente
           </h2>
           <p className="text-gray-400 mb-12 max-w-2xl mx-auto">
-            Crie workflows poderosos que conectam diferentes ferramentas e serviços, tudo de forma visual e intuitiva.
+            Enquanto você foca em vender e atender seus clientes, nós cuidamos de toda a tecnologia 
+            por trás da sua automação. Sem dor de cabeça, sem complicação.
           </p>
           <div className="max-w-5xl mx-auto">
             <HomeCarousel
