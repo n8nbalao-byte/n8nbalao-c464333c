@@ -337,28 +337,49 @@ export default function Home() {
 
         {/* Main Content */}
         <div className="flex-1 px-4 md:px-6 lg:px-8">
-          {/* Hero Banner Carousel */}
-          <section className="py-4">
-            <HomeCarousel
-              carouselKey="home_hero_banner"
-              fallbackImage="https://img.terabyteshop.com.br/banner/3732.jpg"
-              alt="Banner Principal"
-              className="w-full aspect-[3/1] md:aspect-[4/1] object-cover rounded-xl"
-            />
-          </section>
+          {/* Hero Banner Carousel - Hidden when empty */}
+          <HomeCarousel
+            carouselKey="home_hero_banner"
+            fallbackImage=""
+            alt="Banner Principal"
+            className="w-full max-h-[200px] object-cover rounded-xl my-4"
+          />
 
-          {/* Promo Banners */}
+          {/* Promoção Category - Appears right after hero banner */}
+          {!loading && categoryConfig.find(c => c.key === 'promocao') && getProductsByCategory('promocao').length > 0 && (
+            <section className="py-6 border-t border-gray-100">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3">
+                  {(() => {
+                    const promoCategory = categoryConfig.find(c => c.key === 'promocao');
+                    const Icon = promoCategory?.icon || Package;
+                    return <Icon className="h-6 w-6 text-primary" />;
+                  })()}
+                  <h2 className="text-xl md:text-2xl font-bold text-gray-800">Promoção</h2>
+                </div>
+                <Link to="/loja?category=promocao" className="flex items-center gap-1 text-primary hover:underline font-medium text-sm">
+                  Ver mais
+                  <ChevronRight className="h-4 w-4" />
+                </Link>
+              </div>
+              <div className={getGridClasses()}>
+                {getProductsByCategory('promocao').map((product: any) => renderProductCard(product, false))}
+              </div>
+            </section>
+          )}
+
+          {/* Promo Banners - Hidden when empty */}
           <section className="pb-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <HomeCarousel
                 carouselKey="home_promo_left"
-                fallbackImage="https://img.terabyteshop.com.br/banner/2390.jpg"
+                fallbackImage=""
                 alt="Promoção"
                 className="w-full aspect-[2/1] rounded-xl object-cover"
               />
               <HomeCarousel
                 carouselKey="home_promo_right"
-                fallbackImage="https://img.terabyteshop.com.br/banner/3773.jpg"
+                fallbackImage=""
                 alt="Promoção"
                 className="w-full aspect-[2/1] rounded-xl object-cover"
               />
@@ -381,7 +402,9 @@ export default function Home() {
             </section>
           ) : (
             <>
-              {categoryConfig.map((category) => {
+              {categoryConfig
+                .filter(category => category.key !== 'promocao') // Promoção already rendered above
+                .map((category) => {
                 const categoryProducts = getProductsByCategory(category.key);
                 if (categoryProducts.length === 0) return null;
                 
