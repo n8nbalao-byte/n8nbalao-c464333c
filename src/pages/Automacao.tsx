@@ -240,7 +240,6 @@ export default function Automacao() {
             <div className="relative">
               <HomeCarousel
                 carouselKey="nocode_section"
-                fallbackImage="https://meuwhatsappbot.com.br/images/code.webp"
                 alt="Interface No-Code"
                 className="rounded-xl shadow-card"
               />
@@ -261,7 +260,6 @@ export default function Automacao() {
           <div className="max-w-5xl mx-auto">
             <HomeCarousel
               carouselKey="workflow_section"
-              fallbackImage="https://meuwhatsappbot.com.br/images/workflow.png"
               alt="Exemplo de workflow"
               className="rounded-xl shadow-card w-full"
             />
