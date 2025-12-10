@@ -79,6 +79,16 @@ if (!$checkHardware->fetch()) {
 // Update hardware to be system category if not already
 $pdo->exec("UPDATE categories SET is_system = TRUE WHERE category_key = 'hardware'");
 
+// Ensure 'fluxos_n8n' system category exists (for n8n workflow downloads)
+$checkFluxos = $pdo->prepare("SELECT id FROM categories WHERE category_key = 'fluxos_n8n'");
+$checkFluxos->execute();
+if (!$checkFluxos->fetch()) {
+    $pdo->exec("INSERT INTO categories (category_key, label, icon, is_system, sort_order) VALUES ('fluxos_n8n', 'Fluxos n8n', 'workflow', TRUE, 1)");
+}
+
+// Update fluxos_n8n to be system category if not already
+$pdo->exec("UPDATE categories SET is_system = TRUE WHERE category_key = 'fluxos_n8n'");
+
 $method = $_SERVER['REQUEST_METHOD'];
 
 switch ($method) {

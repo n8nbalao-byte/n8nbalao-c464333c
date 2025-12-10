@@ -127,10 +127,10 @@ export function CategorySidebar({
             <span className="font-medium">Monte seu PC</span>
           </Link>
           <Link
-            to="/automacao"
+            to="/loja?category=fluxos_n8n"
             className="flex items-center gap-3 px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors"
           >
-            <Bot className="h-5 w-5" />
+            <Bot className="h-5 w-5 animate-vibrate" />
             <span className="font-medium">Automação</span>
           </Link>
         </div>
