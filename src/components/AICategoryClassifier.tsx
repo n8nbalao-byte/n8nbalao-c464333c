@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { Sparkles, RefreshCw, Check, X, ArrowRight } from 'lucide-react';
-import { Category, getCategories } from '@/lib/api';
+import { Sparkles, RefreshCw, Check, X, ArrowRight, Plus, AlertTriangle } from 'lucide-react';
+import { Category, getCategories, addCategory } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 
 interface Product {
@@ -10,34 +10,80 @@ interface Product {
   productType?: string;
 }
 
+interface NewCategory {
+  key: string;
+  label: string;
+  parentKey?: string | null;
+  icon?: string;
+}
+
+interface NewCompatibility {
+  productId: string;
+  socket?: string;
+  memoryType?: string;
+  formFactor?: string;
+  tdp?: number;
+}
+
 interface Classification {
   productId: string;
   productTitle: string;
   currentCategory: string;
   suggestedCategory: string;
   suggestedSubcategory?: string | null;
-  newSubcategory?: { key: string; label: string; parentKey: string } | null;
+  newCategory?: NewCategory | null;
+  newSubcategory?: NewCategory | null;
+  compatibility?: NewCompatibility | null;
   confidence: 'high' | 'medium' | 'low';
   reason: string;
 }
 
 interface AICategoryClassifierProps {
-  selectedProducts: Product[];
+  selectedProducts?: Product[];
+  allProducts?: Product[];
   onClose: () => void;
-  onApply: (updates: { id: string; categories: string[]; productType?: string }[]) => Promise<void>;
+  onApply: (updates: { id: string; categories: string[]; productType?: string; compatibility?: NewCompatibility }[]) => Promise<void>;
+  onAutoSelect?: (count: number) => Product[];
 }
 
-export function AICategoryClassifier({ selectedProducts, onClose, onApply }: AICategoryClassifierProps) {
+export function AICategoryClassifier({ 
+  selectedProducts = [], 
+  allProducts = [],
+  onClose, 
+  onApply,
+  onAutoSelect 
+}: AICategoryClassifierProps) {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [classifications, setClassifications] = useState<Classification[]>([]);
   const [applying, setApplying] = useState(false);
   const [selectedClassifications, setSelectedClassifications] = useState<Set<string>>(new Set());
   const [usage, setUsage] = useState<{ model: string; totalTokens: number; costBrl: number } | null>(null);
+  
+  // New categories pending confirmation
+  const [pendingCategories, setPendingCategories] = useState<NewCategory[]>([]);
+  const [showCategoryConfirm, setShowCategoryConfirm] = useState(false);
+  const [confirmedCategories, setConfirmedCategories] = useState<Set<string>>(new Set());
+  
+  // Products to classify (auto-selected or provided)
+  const [productsToClassify, setProductsToClassify] = useState<Product[]>(selectedProducts);
 
   const runClassification = async () => {
+    // If no products selected and onAutoSelect is available, auto-select next 10
+    let products = productsToClassify;
+    if (products.length === 0 && onAutoSelect) {
+      products = onAutoSelect(10);
+      setProductsToClassify(products);
+    }
+    
+    if (products.length === 0) {
+      toast({ title: 'Aviso', description: 'Nenhum produto para classificar', variant: 'destructive' });
+      return;
+    }
+    
     setLoading(true);
     setClassifications([]);
+    setPendingCategories([]);
     
     try {
       // Get all categories with subcategories
@@ -56,13 +102,15 @@ export function AICategoryClassifier({ selectedProducts, onClose, onApply }: AIC
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          products: selectedProducts.map(p => ({
+          products: products.map(p => ({
             id: p.id,
             title: p.title,
             categories: p.categories,
             productType: p.productType
           })),
-          categories: categoriesWithSubs
+          categories: categoriesWithSubs,
+          allowNewCategories: true,
+          detectCompatibility: true
         })
       });
       
@@ -85,6 +133,27 @@ export function AICategoryClassifier({ selectedProducts, onClose, onApply }: AIC
         setUsage(data.usage);
         // Select all by default
         setSelectedClassifications(new Set(data.classifications?.map((c: Classification) => c.productId) || []));
+        
+        // Collect new categories/subcategories that need confirmation
+        const newCats: NewCategory[] = [];
+        for (const c of data.classifications || []) {
+          if (c.newCategory) {
+            newCats.push(c.newCategory);
+          }
+          if (c.newSubcategory) {
+            newCats.push(c.newSubcategory);
+          }
+        }
+        
+        // Remove duplicates
+        const uniqueCats = newCats.filter((cat, index, self) => 
+          index === self.findIndex(c => c.key === cat.key)
+        );
+        
+        if (uniqueCats.length > 0) {
+          setPendingCategories(uniqueCats);
+          setShowCategoryConfirm(true);
+        }
       } else {
         toast({ 
           title: 'Erro', 
@@ -101,13 +170,38 @@ export function AICategoryClassifier({ selectedProducts, onClose, onApply }: AIC
     setLoading(false);
   };
 
+  const handleConfirmCategories = async () => {
+    // Create confirmed categories in database
+    for (const cat of pendingCategories) {
+      if (confirmedCategories.has(cat.key)) {
+        try {
+          await addCategory({
+            key: cat.key,
+            label: cat.label,
+            icon: cat.icon || 'Package',
+            parentKey: cat.parentKey || null
+          });
+        } catch (error) {
+          console.error('Error creating category:', cat.key, error);
+        }
+      }
+    }
+    
+    setShowCategoryConfirm(false);
+    toast({ 
+      title: 'Categorias criadas', 
+      description: `${confirmedCategories.size} categoria(s) criada(s) com sucesso` 
+    });
+  };
+
   const handleApply = async () => {
     const updates = classifications
       .filter(c => selectedClassifications.has(c.productId))
       .map(c => ({
         id: c.productId,
         categories: [c.suggestedCategory, c.suggestedSubcategory].filter(Boolean) as string[],
-        productType: c.suggestedCategory
+        productType: c.suggestedCategory,
+        compatibility: c.compatibility || undefined
       }));
     
     if (updates.length === 0) {
@@ -133,6 +227,18 @@ export function AICategoryClassifier({ selectedProducts, onClose, onApply }: AIC
     });
   };
 
+  const toggleCategoryConfirm = (key: string) => {
+    setConfirmedCategories(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
+      return next;
+    });
+  };
+
   const getConfidenceColor = (confidence: string) => {
     switch (confidence) {
       case 'high': return 'text-green-600 bg-green-100';
@@ -141,6 +247,87 @@ export function AICategoryClassifier({ selectedProducts, onClose, onApply }: AIC
       default: return 'text-gray-600 bg-gray-100';
     }
   };
+
+  // Category confirmation modal
+  if (showCategoryConfirm && pendingCategories.length > 0) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+        <div className="w-full max-w-lg bg-white rounded-xl shadow-2xl overflow-hidden">
+          <div className="p-6 border-b border-gray-200">
+            <div className="flex items-center gap-3">
+              <AlertTriangle className="h-6 w-6 text-yellow-500" />
+              <h2 className="text-xl font-bold text-gray-800">Novas Categorias Detectadas</h2>
+            </div>
+            <p className="text-gray-600 mt-2">
+              A IA sugeriu criar as seguintes categorias/subcategorias. Selecione as que deseja criar:
+            </p>
+          </div>
+          
+          <div className="p-6 space-y-3 max-h-[50vh] overflow-y-auto">
+            {pendingCategories.map((cat) => (
+              <label 
+                key={cat.key}
+                className={`flex items-center gap-3 p-4 rounded-lg border cursor-pointer transition-colors ${
+                  confirmedCategories.has(cat.key) 
+                    ? 'border-primary bg-primary/5' 
+                    : 'border-gray-200 hover:bg-gray-50'
+                }`}
+              >
+                <input
+                  type="checkbox"
+                  checked={confirmedCategories.has(cat.key)}
+                  onChange={() => toggleCategoryConfirm(cat.key)}
+                  className="rounded text-primary"
+                />
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <Plus className="h-4 w-4 text-green-500" />
+                    <span className="font-medium text-gray-800">{cat.label}</span>
+                    <span className="text-xs text-gray-500">({cat.key})</span>
+                  </div>
+                  {cat.parentKey && (
+                    <p className="text-sm text-gray-500 mt-1">
+                      Subcategoria de: <span className="font-medium">{cat.parentKey}</span>
+                    </p>
+                  )}
+                </div>
+              </label>
+            ))}
+          </div>
+          
+          <div className="p-6 border-t border-gray-200 bg-gray-50 flex gap-3">
+            <button
+              onClick={() => {
+                setShowCategoryConfirm(false);
+                setPendingCategories([]);
+              }}
+              className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100"
+            >
+              Pular (não criar)
+            </button>
+            <div className="flex-1" />
+            <button
+              onClick={() => {
+                // Select all
+                setConfirmedCategories(new Set(pendingCategories.map(c => c.key)));
+              }}
+              className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100"
+            >
+              Selecionar Todos
+            </button>
+            <button
+              onClick={handleConfirmCategories}
+              disabled={confirmedCategories.size === 0}
+              className="flex items-center gap-2 px-6 py-2 bg-primary text-white rounded-lg font-medium hover:bg-primary/90 disabled:opacity-50"
+            >
+              <Check className="h-4 w-4" />
+              Criar Selecionados ({confirmedCategories.size})
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
@@ -157,7 +344,10 @@ export function AICategoryClassifier({ selectedProducts, onClose, onApply }: AIC
             </button>
           </div>
           <p className="text-gray-600 mt-2">
-            {selectedProducts.length} produto(s) selecionado(s) para classificação automática
+            {productsToClassify.length > 0 
+              ? `${productsToClassify.length} produto(s) para classificação`
+              : 'Clique para classificar automaticamente os próximos 10 produtos'
+            }
           </p>
         </div>
         
@@ -170,7 +360,7 @@ export function AICategoryClassifier({ selectedProducts, onClose, onApply }: AIC
                 Pronto para classificar
               </h3>
               <p className="text-gray-500 mb-6">
-                A IA analisará os títulos dos produtos e sugerirá as melhores categorias.
+                A IA analisará os títulos dos produtos, sugerirá categorias, poderá criar novas categorias/subcategorias e detectar campos de compatibilidade para hardware.
               </p>
               <button
                 onClick={runClassification}
@@ -185,7 +375,7 @@ export function AICategoryClassifier({ selectedProducts, onClose, onApply }: AIC
                 ) : (
                   <>
                     <Sparkles className="h-5 w-5" />
-                    Iniciar Classificação
+                    Classificar Próximos 10
                   </>
                 )}
               </button>
@@ -246,7 +436,7 @@ export function AICategoryClassifier({ selectedProducts, onClose, onApply }: AIC
                         {c.productTitle}
                       </h4>
                       
-                      <div className="flex items-center gap-2 mt-2 text-sm">
+                      <div className="flex items-center gap-2 mt-2 text-sm flex-wrap">
                         <span className="px-2 py-1 rounded bg-gray-100 text-gray-600">
                           {c.currentCategory || 'Sem categoria'}
                         </span>
@@ -264,9 +454,24 @@ export function AICategoryClassifier({ selectedProducts, onClose, onApply }: AIC
                         <p className="text-xs text-gray-500 mt-2">{c.reason}</p>
                       )}
                       
-                      {c.newSubcategory && (
-                        <div className="mt-2 p-2 bg-yellow-50 rounded text-xs text-yellow-800">
-                          Nova subcategoria sugerida: <strong>{c.newSubcategory.label}</strong> em {c.newSubcategory.parentKey}
+                      {(c.newCategory || c.newSubcategory) && (
+                        <div className="mt-2 p-2 bg-green-50 rounded text-xs text-green-800 flex items-center gap-2">
+                          <Plus className="h-3 w-3" />
+                          <span>
+                            {c.newCategory && `Nova categoria: ${c.newCategory.label}`}
+                            {c.newCategory && c.newSubcategory && ' | '}
+                            {c.newSubcategory && `Nova subcategoria: ${c.newSubcategory.label}`}
+                          </span>
+                        </div>
+                      )}
+                      
+                      {c.compatibility && (
+                        <div className="mt-2 p-2 bg-blue-50 rounded text-xs text-blue-800 flex items-center gap-2 flex-wrap">
+                          <span className="font-medium">Compatibilidade:</span>
+                          {c.compatibility.socket && <span>Socket: {c.compatibility.socket}</span>}
+                          {c.compatibility.memoryType && <span>Memória: {c.compatibility.memoryType}</span>}
+                          {c.compatibility.formFactor && <span>Form Factor: {c.compatibility.formFactor}</span>}
+                          {c.compatibility.tdp && <span>TDP: {c.compatibility.tdp}W</span>}
                         </div>
                       )}
                     </div>

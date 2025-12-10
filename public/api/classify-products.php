@@ -1,5 +1,5 @@
 <?php
-// AI Product Classification Endpoint
+// AI Product Classification Endpoint with Category/Subcategory Creation
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: POST, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type, Authorization');
@@ -31,6 +31,8 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 $input = json_decode(file_get_contents('php://input'), true);
 $products = $input['products'] ?? [];
 $categories = $input['categories'] ?? [];
+$allowNewCategories = $input['allowNewCategories'] ?? false;
+$detectCompatibility = $input['detectCompatibility'] ?? false;
 
 if (empty($products) || empty($categories)) {
     echo json_encode(['success' => false, 'error' => 'Products and categories are required']);
@@ -66,19 +68,24 @@ foreach ($categories as $cat) {
 }
 
 // Build prompt
-$systemPrompt = "Você é um especialista em classificação de produtos de informática e eletrônicos.
+$systemPrompt = "Você é um especialista em classificação de produtos de informática, eletrônicos e tecnologia.
 
 Sua tarefa é classificar produtos nas categorias disponíveis com base no título do produto.
 
 CATEGORIAS DISPONÍVEIS:
 " . json_encode($categoryList, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) . "
 
-REGRAS:
-1. Analise o título de cada produto
+REGRAS IMPORTANTES:
+1. Analise o título de cada produto cuidadosamente
 2. Escolha a categoria mais adequada das disponíveis
-3. Se o produto for hardware (processador, placa-mãe, memória, etc), classifique como 'hardware' e escolha a subcategoria adequada
-4. Você PODE sugerir NOVAS subcategorias se necessário (ex: marcas de celular, tipos de memória)
-5. Retorne um JSON válido com a classificação de cada produto
+3. Se o produto for hardware (processador, placa-mãe, memória RAM, SSD, HD, placa de vídeo, fonte, cooler, gabinete), classifique como 'hardware' e escolha a subcategoria adequada
+4. Você PODE e DEVE sugerir NOVAS categorias se necessário (ex: 'smartphone', 'tablet', 'camera')
+5. Você PODE sugerir NOVAS subcategorias se necessário (ex: marcas de celular como 'apple', 'samsung', 'xiaomi' ou tipos de memória 'ddr4', 'ddr5')
+6. Para produtos de HARDWARE, detecte campos de compatibilidade quando possível:
+   - socket: para processadores e placas-mãe (ex: 'LGA1700', 'AM5', 'LGA1200')
+   - memoryType: para memórias e placas-mãe (ex: 'DDR4', 'DDR5')
+   - formFactor: para coolers, gabinetes, fontes (ex: 'ATX', 'mATX', 'ITX', 'Tower')
+   - tdp: potência em watts para GPUs e fontes
 
 FORMATO DE RESPOSTA (JSON):
 {
@@ -89,12 +96,25 @@ FORMATO DE RESPOSTA (JSON):
       \"currentCategory\": \"categoria_atual\",
       \"suggestedCategory\": \"categoria_sugerida\",
       \"suggestedSubcategory\": \"subcategoria_sugerida_ou_null\",
+      \"newCategory\": { \"key\": \"nova_cat\", \"label\": \"Nova Categoria\", \"parentKey\": null, \"icon\": \"Smartphone\" } ou null,
       \"newSubcategory\": { \"key\": \"nova_sub\", \"label\": \"Nova Sub\", \"parentKey\": \"parent\" } ou null,
+      \"compatibility\": { \"socket\": \"LGA1700\", \"memoryType\": \"DDR5\", \"formFactor\": \"ATX\", \"tdp\": 125 } ou null,
       \"confidence\": \"high|medium|low\",
       \"reason\": \"breve explicação\"
     }
   ]
-}";
+}
+
+ÍCONES DISPONÍVEIS PARA NOVAS CATEGORIAS:
+Smartphone, Tablet, Camera, Headphones, Monitor, Keyboard, Mouse, Printer, Speaker, Watch, Tv, Gamepad, Cpu, HardDrive, MemoryStick, Fan, Zap, Box, Package, Settings, Tool, Wrench, Globe, Cloud, Server, Database, Wifi, Bluetooth, Cable, Usb, Battery, Power, Shield, Lock
+
+DICAS:
+- Para smartphones: use ícone 'Smartphone', crie subcategorias por marca
+- Para tablets: use ícone 'Tablet'
+- Para câmeras/webcams: use ícone 'Camera'
+- Para monitores/TVs: use ícone 'Monitor' ou 'Tv'
+- Para periféricos: Keyboard, Mouse, Headphones, Speaker
+- Sempre use snake_case para keys (ex: 'placa_mae', 'placa_video')";
 
 // Build products list for prompt
 $productsList = [];
@@ -106,7 +126,7 @@ foreach ($products as $p) {
     ];
 }
 
-$userPrompt = "Classifique os seguintes produtos:\n\n" . json_encode($productsList, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+$userPrompt = "Classifique os seguintes produtos. Crie novas categorias/subcategorias quando necessário e detecte campos de compatibilidade para hardware:\n\n" . json_encode($productsList, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
 
 // Call OpenAI API
 $ch = curl_init('https://api.openai.com/v1/chat/completions');
@@ -164,6 +184,22 @@ $modelCosts = [
 $costs = $modelCosts[$model] ?? $modelCosts['gpt-4o-mini'];
 $costUsd = ($inputTokens / 1000000 * $costs['input']) + ($outputTokens / 1000000 * $costs['output']);
 $costBrl = $costUsd * 5.5;
+
+// Log AI usage
+try {
+    $stmt = $pdo->prepare("INSERT INTO ai_usage (operation, model, input_tokens, output_tokens, cost_usd, cost_brl, details, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, NOW())");
+    $stmt->execute([
+        'classify_products',
+        $model,
+        $inputTokens,
+        $outputTokens,
+        $costUsd,
+        $costBrl,
+        json_encode(['products_count' => count($products)])
+    ]);
+} catch (Exception $e) {
+    // Ignore logging errors
+}
 
 echo json_encode([
     'success' => true,
