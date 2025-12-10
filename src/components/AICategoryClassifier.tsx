@@ -1,7 +1,13 @@
-import { useState, useEffect } from 'react';
-import { Sparkles, RefreshCw, Check, X, ArrowRight, Plus, AlertTriangle, Image } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Sparkles, RefreshCw, Check, X, ArrowRight, Plus, AlertTriangle, Image, Send, MessageCircle } from 'lucide-react';
 import { Category, getCategories, addCategory } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
+
+interface ChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
+  categories?: NewCategory[];
+}
 
 interface Product {
   id: string;
@@ -67,12 +73,20 @@ export function AICategoryClassifier({
   const [showCategoryConfirm, setShowCategoryConfirm] = useState(false);
   const [confirmedCategories, setConfirmedCategories] = useState<Set<string>>(new Set());
   
-  // Manual category suggestion
-  const [showSuggestionModal, setShowSuggestionModal] = useState(false);
-  const [manualCategorySuggestion, setManualCategorySuggestion] = useState('');
+  // Chat-based category suggestion
+  const [showSuggestionChat, setShowSuggestionChat] = useState(false);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [chatInput, setChatInput] = useState('');
+  const [chatLoading, setChatLoading] = useState(false);
+  const chatEndRef = useRef<HTMLDivElement>(null);
   
   // Products to classify (auto-selected or provided)
   const [productsToClassify, setProductsToClassify] = useState<Product[]>(selectedProducts);
+
+  // Scroll chat to bottom
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [chatMessages]);
 
   // Function to search images for a product
   const searchProductImages = async (productTitle: string, productId: string): Promise<string[]> => {
@@ -242,68 +256,100 @@ export function AICategoryClassifier({
     });
   };
 
-  const handleSuggestCategories = async () => {
-    if (!manualCategorySuggestion.trim()) {
-      toast({ title: 'Aviso', description: 'Digite sua sugestão de categoria', variant: 'destructive' });
-      return;
-    }
+  const handleChatSend = async () => {
+    if (!chatInput.trim() || chatLoading) return;
     
-    // Parse user suggestion into new categories
-    const suggestions = manualCategorySuggestion.split(',').map(s => s.trim()).filter(Boolean);
-    const newCats: NewCategory[] = [];
+    const userMessage = chatInput.trim();
+    setChatInput('');
+    setChatMessages(prev => [...prev, { role: 'user', content: userMessage }]);
+    setChatLoading(true);
     
-    for (const suggestion of suggestions) {
-      // Check if it's a subcategory (format: parent/subcategory)
-      if (suggestion.includes('/')) {
-        const [parent, sub] = suggestion.split('/').map(s => s.trim());
-        const parentKey = parent.toLowerCase().replace(/\s+/g, '_');
-        const subKey = sub.toLowerCase().replace(/\s+/g, '_');
+    try {
+      // Get existing categories for context
+      const existingCats = await getCategories({ all: true });
+      const existingCatList = existingCats.map(c => `${c.label} (${c.key})`).join(', ');
+      
+      // Call AI to interpret user request
+      const response = await fetch('https://www.n8nbalao.com/api/chat-ai.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: `Você é um assistente especializado em organização de categorias de produtos para e-commerce.
+
+CATEGORIAS EXISTENTES: ${existingCatList || 'Nenhuma ainda'}
+
+CATEGORIAS PENDENTES (já sugeridas): ${pendingCategories.map(c => c.label).join(', ') || 'Nenhuma'}
+
+PRODUTOS SENDO CLASSIFICADOS:
+${productsToClassify.map(p => `- ${p.title}`).join('\n')}
+
+O usuário quer sugerir categorias. Analise o pedido dele e:
+1. Entenda quais categorias ele quer criar
+2. Sugira as categorias no formato JSON
+3. Confirme de forma conversacional o que você vai criar
+
+PEDIDO DO USUÁRIO: "${userMessage}"
+
+Responda de forma amigável e conversacional. Ao final da resposta, inclua um bloco JSON com as categorias sugeridas:
+\`\`\`json
+{"categories": [{"key": "chave_unica", "label": "Nome Exibição", "parentKey": null ou "chave_pai", "icon": "NomeIcone"}]}
+\`\`\`
+
+Ícones disponíveis: Package, Tag, Monitor, Laptop, Gamepad2, Smartphone, Home, Lightbulb, Shield, Music, Gift, Car, Wrench, Settings, Cpu, HardDrive, Tv, Headphones, Camera, Watch`
+        })
+      });
+      
+      const data = await response.json();
+      if (data.response) {
+        let aiResponse = data.response;
+        let extractedCategories: NewCategory[] = [];
         
-        // Add parent if not exists
-        const parentExists = pendingCategories.find(c => c.key === parentKey) || 
-          await getCategories({ parent: null }).then(cats => cats.find(c => c.key === parentKey));
-        
-        if (!parentExists) {
-          newCats.push({
-            key: parentKey,
-            label: parent,
-            parentKey: null,
-            icon: 'Package'
-          });
+        // Extract JSON from response
+        const jsonMatch = aiResponse.match(/```json\n?([\s\S]*?)\n?```/);
+        if (jsonMatch) {
+          try {
+            const parsed = JSON.parse(jsonMatch[1]);
+            extractedCategories = parsed.categories || [];
+            // Remove JSON from display message
+            aiResponse = aiResponse.replace(/```json\n?[\s\S]*?\n?```/g, '').trim();
+          } catch (e) {
+            console.error('Error parsing categories JSON:', e);
+          }
         }
         
-        newCats.push({
-          key: subKey,
-          label: sub,
-          parentKey: parentKey,
-          icon: 'Tag'
-        });
-      } else {
-        const key = suggestion.toLowerCase().replace(/\s+/g, '_');
-        newCats.push({
-          key,
-          label: suggestion,
-          parentKey: null,
-          icon: 'Package'
-        });
+        setChatMessages(prev => [...prev, { 
+          role: 'assistant', 
+          content: aiResponse,
+          categories: extractedCategories
+        }]);
+        
+        // Add extracted categories to pending
+        if (extractedCategories.length > 0) {
+          const existingKeys = new Set(pendingCategories.map(c => c.key));
+          const uniqueNew = extractedCategories.filter(c => !existingKeys.has(c.key));
+          if (uniqueNew.length > 0) {
+            setPendingCategories(prev => [...prev, ...uniqueNew]);
+            uniqueNew.forEach(c => confirmedCategories.add(c.key));
+            setConfirmedCategories(new Set(confirmedCategories));
+          }
+        }
       }
+    } catch (error) {
+      console.error('Chat error:', error);
+      setChatMessages(prev => [...prev, { 
+        role: 'assistant', 
+        content: 'Desculpe, ocorreu um erro. Tente novamente.' 
+      }]);
     }
     
-    // Add to pending categories
-    const existingKeys = new Set(pendingCategories.map(c => c.key));
-    const uniqueNew = newCats.filter(c => !existingKeys.has(c.key));
-    
-    if (uniqueNew.length > 0) {
-      setPendingCategories(prev => [...prev, ...uniqueNew]);
-      // Auto-select new ones
-      uniqueNew.forEach(c => confirmedCategories.add(c.key));
-      setConfirmedCategories(new Set(confirmedCategories));
-      toast({ title: 'Categorias adicionadas', description: `${uniqueNew.length} categoria(s) sugerida(s)` });
+    setChatLoading(false);
+  };
+
+  const handleApplyChatCategories = () => {
+    setShowSuggestionChat(false);
+    if (pendingCategories.length > 0) {
+      setShowCategoryConfirm(true);
     }
-    
-    setManualCategorySuggestion('');
-    setShowSuggestionModal(false);
-    setShowCategoryConfirm(true);
   };
 
   const handleApply = async () => {
@@ -367,55 +413,115 @@ export function AICategoryClassifier({
     }
   };
 
-  // Manual suggestion modal
-  if (showSuggestionModal) {
+  // Chat-based suggestion modal
+  if (showSuggestionChat) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-        <div className="w-full max-w-lg bg-white rounded-xl shadow-2xl overflow-hidden">
-          <div className="p-6 border-b border-gray-200">
+        <div className="w-full max-w-lg bg-white rounded-xl shadow-2xl overflow-hidden flex flex-col max-h-[80vh]">
+          <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-primary to-primary/80">
             <div className="flex items-center gap-3">
-              <Plus className="h-6 w-6 text-primary" />
-              <h2 className="text-xl font-bold text-gray-800">Sugerir Categorias</h2>
+              <MessageCircle className="h-6 w-6 text-white" />
+              <h2 className="text-xl font-bold text-white">Sugerir Categorias</h2>
             </div>
-            <p className="text-gray-600 mt-2">
-              Digite as categorias que deseja criar. Separe por vírgula. Para subcategorias use o formato: categoria/subcategoria
+            <p className="text-white/80 text-sm mt-1">
+              Descreva as categorias que deseja criar. A IA vai entender e organizar para você.
             </p>
           </div>
           
-          <div className="p-6 space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Suas sugestões</label>
-              <textarea
-                value={manualCategorySuggestion}
-                onChange={(e) => setManualCategorySuggestion(e.target.value)}
-                placeholder="Ex: Jogos/PC, Jogos/Xbox, Casa Inteligente/Iluminação, Smartphones/Apple"
-                className="w-full p-3 border border-gray-300 rounded-lg resize-none h-32 focus:ring-2 focus:ring-primary focus:border-primary"
-              />
-            </div>
+          {/* Chat Messages */}
+          <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-[200px] max-h-[400px] bg-gray-50">
+            {chatMessages.length === 0 && (
+              <div className="text-center text-gray-500 py-8">
+                <MessageCircle className="h-12 w-12 mx-auto mb-3 text-gray-300" />
+                <p className="font-medium">Olá! Como posso ajudar?</p>
+                <p className="text-sm mt-2">Descreva as categorias que precisa criar.</p>
+                <p className="text-xs mt-4 text-gray-400">
+                  Exemplo: "Preciso criar categorias para jogos separadas por plataforma como PC, Xbox e PlayStation"
+                </p>
+              </div>
+            )}
             
-            <div className="text-xs text-gray-500 space-y-1">
-              <p>💡 <strong>Exemplos:</strong></p>
-              <p>• <code>Jogos/PC</code> - Cria categoria "Jogos" com subcategoria "PC"</p>
-              <p>• <code>Casa Inteligente</code> - Cria categoria principal</p>
-              <p>• <code>Smartphones/Apple, Smartphones/Samsung</code> - Cria várias subcategorias</p>
+            {chatMessages.map((msg, i) => (
+              <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                <div className={`max-w-[85%] rounded-2xl px-4 py-3 ${
+                  msg.role === 'user' 
+                    ? 'bg-primary text-white rounded-br-md' 
+                    : 'bg-white text-gray-800 shadow-sm border rounded-bl-md'
+                }`}>
+                  <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                  
+                  {/* Show extracted categories */}
+                  {msg.categories && msg.categories.length > 0 && (
+                    <div className="mt-3 pt-3 border-t border-gray-200 space-y-2">
+                      <p className="text-xs font-medium text-gray-500">Categorias sugeridas:</p>
+                      {msg.categories.map((cat, ci) => (
+                        <div key={ci} className="flex items-center gap-2 text-xs bg-green-50 text-green-700 px-2 py-1 rounded">
+                          <Plus className="h-3 w-3" />
+                          <span>{cat.label}</span>
+                          {cat.parentKey && <span className="text-green-500">→ {cat.parentKey}</span>}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+            
+            {chatLoading && (
+              <div className="flex justify-start">
+                <div className="bg-white text-gray-800 shadow-sm border rounded-2xl rounded-bl-md px-4 py-3">
+                  <div className="flex items-center gap-2">
+                    <RefreshCw className="h-4 w-4 animate-spin text-primary" />
+                    <span className="text-sm text-gray-500">Pensando...</span>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            <div ref={chatEndRef} />
+          </div>
+          
+          {/* Chat Input */}
+          <div className="p-4 border-t border-gray-200 bg-white">
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={chatInput}
+                onChange={(e) => setChatInput(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleChatSend()}
+                placeholder="Descreva as categorias que precisa..."
+                className="flex-1 px-4 py-2 border border-gray-300 rounded-full focus:ring-2 focus:ring-primary focus:border-primary text-sm"
+                disabled={chatLoading}
+              />
+              <button
+                onClick={handleChatSend}
+                disabled={chatLoading || !chatInput.trim()}
+                className="p-2 bg-primary text-white rounded-full hover:bg-primary/90 disabled:opacity-50"
+              >
+                <Send className="h-5 w-5" />
+              </button>
             </div>
           </div>
           
-          <div className="p-6 border-t border-gray-200 bg-gray-50 flex gap-3">
+          {/* Footer Actions */}
+          <div className="p-4 border-t border-gray-200 bg-gray-50 flex gap-3">
             <button
-              onClick={() => setShowSuggestionModal(false)}
+              onClick={() => {
+                setShowSuggestionChat(false);
+                setChatMessages([]);
+              }}
               className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100"
             >
               Cancelar
             </button>
             <div className="flex-1" />
             <button
-              onClick={handleSuggestCategories}
-              disabled={!manualCategorySuggestion.trim()}
+              onClick={handleApplyChatCategories}
+              disabled={pendingCategories.length === 0}
               className="flex items-center gap-2 px-6 py-2 bg-primary text-white rounded-lg font-medium hover:bg-primary/90 disabled:opacity-50"
             >
-              <Plus className="h-4 w-4" />
-              Adicionar Sugestões
+              <Check className="h-4 w-4" />
+              Confirmar ({pendingCategories.length} categorias)
             </button>
           </div>
         </div>
@@ -473,7 +579,7 @@ export function AICategoryClassifier({
           {/* Add manual suggestion */}
           <div className="px-6 pb-4">
             <button
-              onClick={() => setShowSuggestionModal(true)}
+              onClick={() => setShowSuggestionChat(true)}
               className="w-full flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-primary hover:text-primary transition-colors"
             >
               <Plus className="h-4 w-4" />
@@ -684,7 +790,7 @@ export function AICategoryClassifier({
                 Reclassificar
               </button>
               <button
-                onClick={() => setShowSuggestionModal(true)}
+                onClick={() => setShowSuggestionChat(true)}
                 className="flex items-center gap-2 px-4 py-2 border border-primary text-primary rounded-lg hover:bg-primary/5"
               >
                 <Plus className="h-4 w-4" />
