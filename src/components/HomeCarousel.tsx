@@ -113,11 +113,17 @@ export function HomeCarousel({ carouselKey, fallbackImage, className = "", alt =
 
   return (
     <div className="relative overflow-hidden">
-      <div 
-        className="flex transition-transform duration-700 ease-in-out"
-        style={{ transform: `translateX(-${currentIndex * 100}%)` }}
-      >
-        {images.map((image, index) => renderImage(image, index))}
+      <div className="relative w-full">
+        {images.map((image, index) => (
+          <div
+            key={index}
+            className={`w-full transition-opacity duration-1000 ease-in-out ${
+              index === currentIndex ? "opacity-100" : "opacity-0 absolute inset-0"
+            }`}
+          >
+            {renderImage(image, index)}
+          </div>
+        ))}
       </div>
       
       {/* Dots indicator */}
@@ -127,7 +133,7 @@ export function HomeCarousel({ carouselKey, fallbackImage, className = "", alt =
             <button
               key={index}
               onClick={() => setCurrentIndex(index)}
-              className={`w-2 h-2 rounded-full transition-all ${
+              className={`w-2 h-2 rounded-full transition-all duration-500 ${
                 index === currentIndex 
                   ? "bg-primary w-6" 
                   : "bg-primary/40 hover:bg-primary/60"
