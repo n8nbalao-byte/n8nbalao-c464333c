@@ -12,7 +12,7 @@ const ViewModeContext = createContext<ViewModeContextType | undefined>(undefined
 export function ViewModeProvider({ children }: { children: ReactNode }) {
   const [viewMode, setViewModeState] = useState<ViewMode>(() => {
     const saved = localStorage.getItem('viewMode');
-    return (saved as ViewMode) || 'standard';
+    return (saved as ViewMode) || 'list';
   });
 
   const setViewMode = (mode: ViewMode) => {
