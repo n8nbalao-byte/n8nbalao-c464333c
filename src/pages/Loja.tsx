@@ -3,6 +3,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import { ProductCard } from "@/components/ProductCard";
 import { HardwareCard } from "@/components/HardwareCard";
 import { CategorySidebar } from "@/components/CategorySidebar";
+import { HomeCarousel } from "@/components/HomeCarousel";
 import { api, type Product, type HardwareItem, getCategories, type Category } from "@/lib/api";
 import { getIconFromKey } from "@/lib/icons";
 import { Search, ArrowUpDown, Package, Cpu, ShoppingCart, Building2 } from "lucide-react";
@@ -245,6 +246,17 @@ export default function Loja() {
 
         {/* Main Content */}
         <main className="flex-1 py-8 px-6 bg-gray-50">
+          {/* Category Banner - shows when a category is selected */}
+          {selectedType !== 'all' && (
+            <div className="mb-6">
+              <HomeCarousel
+                carouselKey={`category_${selectedType}_banner`}
+                alt={`Banner ${selectedType}`}
+                className="rounded-xl w-full h-auto max-h-[200px] object-cover"
+              />
+            </div>
+          )}
+
           {/* Page Header */}
           <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
             <div>
