@@ -188,32 +188,33 @@ const createEmailTemplates = (logoBase64: string, companyName: string) => [
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
-<body style="margin: 0; padding: 0; font-family: 'Segoe UI', Arial, sans-serif; background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);">
+<body style="margin: 0; padding: 0; font-family: 'Segoe UI', Arial, sans-serif; background: #f8fafc;">
   <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
-    <div style="background: rgba(255,255,255,0.05); border-radius: 24px; border: 1px solid rgba(255,255,255,0.1);">
-      <div style="padding: 40px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.1);">
-        ${logoBase64 ? `<img src="${logoBase64}" alt="${companyName}" style="height: 60px;">` : `<h2 style="color: white;">${companyName}</h2>`}
+    <div style="background: white; border-radius: 24px; overflow: hidden; box-shadow: 0 10px 40px rgba(0,0,0,0.1); border: 1px solid #e2e8f0;">
+      <div style="background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%); padding: 40px; text-align: center;">
+        ${logoBase64 ? `<img src="${logoBase64}" alt="${companyName}" style="height: 60px; margin-bottom: 15px;">` : `<h2 style="color: white; margin: 0 0 15px 0;">${companyName}</h2>`}
+        <div style="font-size: 50px; margin-bottom: 15px;">🖥️</div>
+        <h1 style="color: white; margin: 0; font-size: 28px;">Monte seu PC ideal!</h1>
       </div>
-      <div style="padding: 40px; text-align: center;">
-        <div style="font-size: 60px; margin-bottom: 20px;">🖥️</div>
-        <h1 style="color: white; margin: 0 0 15px 0; font-size: 32px;">{{primeiro_nome}}, monte seu PC ideal!</h1>
-        <p style="color: #a5b4fc; font-size: 18px; margin: 0 0 30px 0;">Personalize cada componente do seu computador</p>
+      <div style="padding: 40px;">
+        <h2 style="color: #1e293b; text-align: center; margin: 0 0 20px 0;">Olá, {{primeiro_nome}}!</h2>
+        <p style="color: #475569; text-align: center; font-size: 16px; line-height: 1.6; margin: 0 0 30px 0;">Personalize cada componente do seu computador e tenha a máquina perfeita para suas necessidades.</p>
         
-        <div style="display: inline-block; text-align: left; background: rgba(255,255,255,0.05); border-radius: 16px; padding: 25px; margin: 20px 0;">
-          <div style="color: white; margin-bottom: 15px;">✅ Processadores Intel e AMD</div>
-          <div style="color: white; margin-bottom: 15px;">✅ Placas de Vídeo NVIDIA e AMD</div>
-          <div style="color: white; margin-bottom: 15px;">✅ Memórias DDR4 e DDR5</div>
-          <div style="color: white;">✅ SSDs NVMe de alta velocidade</div>
+        <div style="background: #f1f5f9; border-radius: 16px; padding: 25px; margin: 20px 0;">
+          <div style="color: #334155; margin-bottom: 12px; font-size: 15px;">✅ Processadores Intel e AMD</div>
+          <div style="color: #334155; margin-bottom: 12px; font-size: 15px;">✅ Placas de Vídeo NVIDIA e AMD</div>
+          <div style="color: #334155; margin-bottom: 12px; font-size: 15px;">✅ Memórias DDR4 e DDR5</div>
+          <div style="color: #334155; font-size: 15px;">✅ SSDs NVMe de alta velocidade</div>
         </div>
         
         <!-- PRODUCTS_PLACEHOLDER -->
         
-        <div style="margin-top: 30px;">
-          <a href="https://www.n8nbalao.com/monte-voce-mesmo" style="display: inline-block; background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%); color: white; padding: 18px 50px; text-decoration: none; border-radius: 50px; font-weight: bold; font-size: 18px; box-shadow: 0 10px 30px rgba(220, 38, 38, 0.4);">MONTAR MEU PC</a>
+        <div style="text-align: center; margin-top: 30px;">
+          <a href="https://www.n8nbalao.com/monte-voce-mesmo" style="display: inline-block; background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%); color: white; padding: 16px 45px; text-decoration: none; border-radius: 50px; font-weight: bold; font-size: 16px; box-shadow: 0 6px 20px rgba(220, 38, 38, 0.35);">MONTAR MEU PC</a>
         </div>
       </div>
-      <div style="padding: 20px; text-align: center; border-top: 1px solid rgba(255,255,255,0.1);">
-        <p style="color: #6b7280; margin: 0; font-size: 12px;">${companyName} - O melhor em tecnologia</p>
+      <div style="padding: 20px; text-align: center; background: #f8fafc; border-top: 1px solid #e2e8f0;">
+        <p style="color: #64748b; margin: 0; font-size: 12px;">${companyName} - O melhor em tecnologia</p>
       </div>
     </div>
   </div>
@@ -373,7 +374,22 @@ const EmailMarketing = () => {
   const fetchProducts = async () => {
     try {
       const data = await api.getProducts();
-      setProducts(data.slice(0, 100)); // Limit to 100 products for performance
+      // Get ALL products and hardware
+      const hardwareData = await api.getHardware();
+      // Convert hardware to product-like format for search
+      const hardwareAsProducts = hardwareData.map(h => ({
+        id: h.id,
+        title: `${h.brand || ''} ${h.model || ''} ${h.name || ''}`.trim(),
+        subtitle: h.category,
+        totalPrice: h.price || 0,
+        media: h.image ? [{ url: h.image, type: 'image' as const }] : [],
+        categories: [h.category],
+        productType: 'hardware',
+        specs: {} as Record<string, string>,
+        components: null,
+        createdAt: ''
+      })) as Product[];
+      setProducts([...data, ...hardwareAsProducts]);
     } catch (error) {
       console.error('Error fetching products:', error);
     }
@@ -541,7 +557,7 @@ Retorne APENAS o código HTML do email, sem explicações.`,
 
     const fromAddress = useTestMode 
       ? `${companyName} <onboarding@resend.dev>`
-      : `${companyName} <marketing@n8nbalao.com.br>`;
+      : `${companyName} <promocao@n8nbalao.com>`;
 
     // Get all contacts (customers + uploaded)
     const allContacts = [
@@ -837,17 +853,37 @@ Retorne APENAS o código HTML do email, sem explicações.`,
                   </Button>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
 
-              <div>
-                <label className="block text-sm font-medium mb-2">Conteúdo HTML</label>
-                <Textarea
-                  placeholder="Cole aqui o HTML do seu email..."
-                  value={htmlContent}
-                  onChange={(e) => setHtmlContent(e.target.value)}
-                  rows={6}
-                  className="font-mono text-xs"
-                />
-              </div>
+        {/* Bottom Row: Preview and Send */}
+        <div className="bg-card rounded-lg border border-border p-6">
+          <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+            <FileText className="w-5 h-5" />
+            Pré-visualização do Email
+          </h2>
+          
+          {htmlContent ? (
+            <>
+              {selectedEmails.length > 0 && (
+                <div className="mb-4">
+                  <label className="text-xs text-muted-foreground">Visualizando como:</label>
+                  <p className="text-sm font-medium">
+                    {allContacts.find(c => c.email === selectedEmails[0])?.name || 'Cliente'}
+                  </p>
+                </div>
+              )}
+              
+              <div 
+                className="bg-white rounded-lg overflow-hidden max-h-[500px] overflow-y-auto border mb-6"
+                dangerouslySetInnerHTML={{ 
+                  __html: personalizeHtml(
+                    htmlContent, 
+                    allContacts.find(c => c.email === selectedEmails[0])?.name || 'Cliente'
+                  ) 
+                }}
+              />
 
               <Button 
                 onClick={sendEmails} 
@@ -863,43 +899,14 @@ Retorne APENAS o código HTML do email, sem explicações.`,
                 ) : (
                   <>
                     <Send className="w-5 h-5 mr-2" />
-                    Enviar ({selectedEmails.length})
+                    Enviar para {selectedEmails.length} contato(s)
                   </>
                 )}
               </Button>
-            </div>
-          </div>
-        </div>
-
-        {/* Bottom Row: Preview */}
-        <div className="bg-card rounded-lg border border-border p-6">
-          <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-            <FileText className="w-5 h-5" />
-            Pré-visualização do Email
-          </h2>
-          
-          {selectedEmails.length > 0 && (
-            <div className="mb-4">
-              <label className="text-xs text-muted-foreground">Visualizando como:</label>
-              <p className="text-sm font-medium">
-                {allContacts.find(c => c.email === selectedEmails[0])?.name || 'Cliente'}
-              </p>
-            </div>
-          )}
-          
-          {htmlContent ? (
-            <div 
-              className="bg-white rounded-lg overflow-hidden max-h-[500px] overflow-y-auto border"
-              dangerouslySetInnerHTML={{ 
-                __html: personalizeHtml(
-                  htmlContent, 
-                  allContacts.find(c => c.email === selectedEmails[0])?.name || 'Cliente'
-                ) 
-              }}
-            />
+            </>
           ) : (
             <div className="flex items-center justify-center h-64 text-muted-foreground text-center">
-              <p>Selecione um template ou digite o HTML para visualizar</p>
+              <p>Selecione um template ou gere com IA para visualizar o email</p>
             </div>
           )}
         </div>
