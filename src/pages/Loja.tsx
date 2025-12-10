@@ -5,12 +5,12 @@ import { HardwareCard } from "@/components/HardwareCard";
 import { CategorySidebar } from "@/components/CategorySidebar";
 import { api, type Product, type HardwareItem, getCategories, type Category } from "@/lib/api";
 import { getIconFromKey } from "@/lib/icons";
-import { Search, ArrowUpDown, Package, Cpu, ShoppingCart } from "lucide-react";
+import { Search, ArrowUpDown, Package, Cpu, ShoppingCart, Building2 } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
 import { useViewMode } from "@/contexts/ViewModeContext";
+import { useCompany } from "@/contexts/CompanyContext";
 import { ViewModeSelector } from "@/components/ViewModeSelector";
 import LorenzoChatWidget from "@/components/LorenzoChatWidget";
-import balaoLogo from "@/assets/balao-logo.png";
 
 type ProductType = 'all' | 'hardware' | string;
 
@@ -26,6 +26,7 @@ export default function Loja() {
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [hardwareSubcategories, setHardwareSubcategories] = useState<Category[]>([]);
   const { totalItems, setIsOpen } = useCart();
+  const { company } = useCompany();
 
   useEffect(() => {
     async function fetchData() {
@@ -188,7 +189,14 @@ export default function Loja() {
           <div className="flex items-center justify-between gap-4">
             {/* Logo */}
             <Link to="/" className="shrink-0">
-              <img src={balaoLogo} alt="Balão da Informática" className="h-12 md:h-16" />
+              {company?.logo ? (
+                <img src={company.logo} alt={company.name || 'Logo'} className="h-12 md:h-16 object-contain" />
+              ) : (
+                <div className="flex items-center gap-2">
+                  <Building2 className="h-12 w-12 text-primary" />
+                  <span className="font-bold text-xl text-gray-800">{company?.name || 'Sua Empresa'}</span>
+                </div>
+              )}
             </Link>
 
             {/* Search Bar */}
@@ -372,9 +380,16 @@ export default function Loja() {
         <div className="container">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div>
-              <img src={balaoLogo} alt="Balão da Informática" className="h-12 mb-4 brightness-0 invert" />
+              {company?.logo ? (
+                <img src={company.logo} alt={company.name || 'Logo'} className="h-12 mb-4 brightness-0 invert object-contain" />
+              ) : (
+                <div className="flex items-center gap-2 mb-4">
+                  <Building2 className="h-8 w-8 text-white" />
+                  <span className="font-bold text-white">{company?.name || 'Sua Empresa'}</span>
+                </div>
+              )}
               <p className="text-gray-400 text-sm">
-                Sua loja de informática completa. Computadores, notebooks, hardware e muito mais.
+                {company?.name || 'Sua loja'} - Computadores, notebooks, hardware e muito mais.
               </p>
             </div>
             

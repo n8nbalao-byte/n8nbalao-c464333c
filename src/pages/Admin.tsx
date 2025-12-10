@@ -13,7 +13,6 @@ import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/comp
 import { AdminDashboard } from "@/components/AdminDashboard";
 import { CarouselManager } from "@/components/CarouselManager";
 import { AICategoryClassifier } from "@/components/AICategoryClassifier";
-import balaoLogoFull from "@/assets/balao-logo-full.png";
 import {
   DndContext,
   closestCenter,
@@ -808,7 +807,7 @@ export default function Admin() {
     setSavingSettings(false);
   }
 
-  const { refreshCompany } = useCompany();
+  const { company, refreshCompany } = useCompany();
 
   async function handleCompanySave() {
     setSavingCompany(true);
@@ -2027,7 +2026,14 @@ export default function Admin() {
       <div className="flex min-h-screen items-center justify-center p-4" style={{ backgroundColor: '#DC2626' }}>
         <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-xl">
           <div className="mb-8 text-center">
-            <img src={balaoLogoFull} alt="Balão da Informática" className="mx-auto h-20 mb-4" />
+            {company?.logo ? (
+              <img src={company.logo} alt={company.name || 'Logo'} className="mx-auto h-20 mb-4 object-contain" />
+            ) : (
+              <div className="flex items-center justify-center gap-2 mb-4">
+                <Building2 className="h-16 w-16 text-primary" />
+                <span className="font-bold text-2xl text-gray-800">{company?.name || 'Sua Empresa'}</span>
+              </div>
+            )}
             <p className="mt-2 text-gray-600">Acesso restrito</p>
           </div>
 
