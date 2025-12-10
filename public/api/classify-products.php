@@ -68,7 +68,7 @@ foreach ($categories as $cat) {
 }
 
 // Build prompt
-$systemPrompt = "Você é um especialista em classificação de produtos de informática, eletrônicos e tecnologia.
+$systemPrompt = "Você é um especialista em classificação de produtos de tecnologia, informática, eletrônicos E TAMBÉM produtos de casa inteligente.
 
 Sua tarefa é classificar produtos nas categorias disponíveis com base no título do produto.
 
@@ -80,10 +80,16 @@ REGRAS IMPORTANTES:
 2. Escolha a categoria mais adequada das disponíveis
 3. Se o produto for hardware (processador, placa-mãe, memória RAM, SSD, HD, placa de vídeo, fonte, cooler, gabinete), classifique como 'hardware' e escolha a subcategoria adequada
 4. Você PODE e DEVE sugerir NOVAS categorias quando a confiança for MÉDIA ou BAIXA
-5. **JOGOS NÃO SÃO SOFTWARES!** Jogos (games, videogames) devem ser classificados como 'jogos', não 'software'. Se a categoria 'jogos' não existir, CRIE-A.
+5. **JOGOS NÃO SÃO SOFTWARES!** Jogos devem ter categoria própria com SUBCATEGORIAS por plataforma:
+   - jogos/pc (jogos de PC/Steam)
+   - jogos/xbox (jogos de Xbox)
+   - jogos/playstation ou jogos/ps5 (jogos de PlayStation)
+   - jogos/nintendo ou jogos/switch (jogos de Nintendo)
+   - jogos/mobile (jogos mobile)
 6. Softwares são programas utilitários, produtividade, segurança, etc. NÃO inclua jogos nesta categoria.
-7. Você PODE sugerir NOVAS subcategorias se necessário (ex: marcas de celular como 'apple', 'samsung', 'xiaomi' ou tipos de memória 'ddr4', 'ddr5')
-8. Para produtos de HARDWARE, detecte campos de compatibilidade quando possível:
+7. **CASA INTELIGENTE:** Produtos como aspiradores robô, lâmpadas inteligentes, tomadas inteligentes, Alexa, Google Home, fechaduras inteligentes, câmeras de segurança, sensores, termostatos devem ser classificados em 'casa_inteligente' com subcategorias adequadas (iluminacao, seguranca, aspiradores, assistentes, etc.)
+8. Você PODE sugerir NOVAS subcategorias se necessário (ex: marcas de celular, tipos de memória, plataformas de jogos)
+9. Para produtos de HARDWARE, detecte campos de compatibilidade quando possível:
    - socket: para processadores e placas-mãe (ex: 'LGA1700', 'AM5', 'LGA1200')
    - memoryType: para memórias e placas-mãe (ex: 'DDR4', 'DDR5')
    - formFactor: para coolers, gabinetes, fontes (ex: 'ATX', 'mATX', 'ITX', 'Tower')
@@ -112,13 +118,21 @@ FORMATO DE RESPOSTA (JSON):
 }
 
 ÍCONES DISPONÍVEIS PARA NOVAS CATEGORIAS:
-Smartphone, Tablet, Camera, Headphones, Monitor, Keyboard, Mouse, Printer, Speaker, Watch, Tv, Gamepad, Cpu, HardDrive, MemoryStick, Fan, Zap, Box, Package, Settings, Tool, Wrench, Globe, Cloud, Server, Database, Wifi, Bluetooth, Cable, Usb, Battery, Power, Shield, Lock, Joystick, Trophy, Star
+Smartphone, Tablet, Camera, Headphones, Monitor, Keyboard, Mouse, Printer, Speaker, Watch, Tv, Gamepad, Cpu, HardDrive, MemoryStick, Fan, Zap, Box, Package, Settings, Tool, Wrench, Globe, Cloud, Server, Database, Wifi, Bluetooth, Cable, Usb, Battery, Power, Shield, Lock, Joystick, Trophy, Star, Home, Lightbulb, Thermometer, DoorOpen, Vacuum
 
-EXEMPLOS:
-- 'Call of Duty' -> categoria: jogos, icon: Gamepad
-- 'FIFA 24' -> categoria: jogos, icon: Trophy
-- 'Windows 11' -> categoria: software, icon: Settings
-- 'Antivírus' -> categoria: software, icon: Shield
+EXEMPLOS DE JOGOS (CRIE SUBCATEGORIAS POR PLATAFORMA):
+- 'Call of Duty PC' -> categoria: jogos, subcategoria: pc, icon: Gamepad
+- 'FIFA 24 PS5' -> categoria: jogos, subcategoria: playstation, icon: Gamepad
+- 'Zelda Switch' -> categoria: jogos, subcategoria: nintendo, icon: Gamepad
+- 'Forza Xbox' -> categoria: jogos, subcategoria: xbox, icon: Gamepad
+
+EXEMPLOS DE CASA INTELIGENTE:
+- 'Aspirador Robô Xiaomi' -> categoria: casa_inteligente, subcategoria: aspiradores, icon: Vacuum
+- 'Lâmpada Inteligente Philips Hue' -> categoria: casa_inteligente, subcategoria: iluminacao, icon: Lightbulb
+- 'Echo Dot Alexa' -> categoria: casa_inteligente, subcategoria: assistentes, icon: Speaker
+- 'Fechadura Digital Yale' -> categoria: casa_inteligente, subcategoria: seguranca, icon: Lock
+- 'Câmera de Segurança Wi-Fi' -> categoria: casa_inteligente, subcategoria: seguranca, icon: Camera
+- 'Termostato Inteligente Nest' -> categoria: casa_inteligente, subcategoria: climatizacao, icon: Thermometer
 
 DICAS:
 - Para smartphones: use ícone 'Smartphone', crie subcategorias por marca
@@ -126,8 +140,9 @@ DICAS:
 - Para câmeras/webcams: use ícone 'Camera'
 - Para monitores/TVs: use ícone 'Monitor' ou 'Tv'
 - Para periféricos: Keyboard, Mouse, Headphones, Speaker
-- Para jogos: Gamepad, Joystick, Trophy
-- Sempre use snake_case para keys (ex: 'placa_mae', 'placa_video')";
+- Para jogos: Gamepad (SEMPRE criar subcategoria por plataforma)
+- Para casa inteligente: Home, Lightbulb, Vacuum, Lock, Thermometer
+- Sempre use snake_case para keys (ex: 'placa_mae', 'casa_inteligente')";
 
 // Build products list for prompt
 $productsList = [];
