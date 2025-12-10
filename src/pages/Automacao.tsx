@@ -193,7 +193,7 @@ export default function Automacao() {
                 <PhoneCarousel
                   carouselKey="automacao_phone_carousel"
                   fallbackImage="https://meuwhatsappbot.com.br/images/celular.png"
-                  className="relative z-10 w-[320px] lg:w-[380px] rounded-3xl drop-shadow-2xl"
+                  className="relative z-10 w-[320px] lg:w-[380px]"
                   alt="WhatsApp Bot Demo"
                 />
               </div>
