@@ -90,7 +90,7 @@ export default function Automacao() {
       {/* Custom Header for Automacao with n8n logo */}
       <header className="sticky top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-md">
         <div className="container flex h-16 items-center justify-between">
-          <Link to="/automacao" className="flex items-center gap-2">
+          <Link to="/" className="flex items-center gap-2">
             <img src={n8nLogo} alt="n8n Balão" className="h-8 object-contain" />
           </Link>
 
