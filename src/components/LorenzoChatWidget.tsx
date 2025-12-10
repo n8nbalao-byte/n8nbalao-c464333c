@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import LorenzoChat from './LorenzoChat';
 
 interface LorenzoChatWidgetProps {
@@ -8,10 +8,47 @@ interface LorenzoChatWidgetProps {
 const LorenzoChatWidget = ({ customerId }: LorenzoChatWidgetProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [hasNewMessage, setHasNewMessage] = useState(true);
+  const [isShaking, setIsShaking] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const hasPlayedNotification = useRef(false);
+
+  // Play notification sound and shake after 5 seconds
+  useEffect(() => {
+    if (hasPlayedNotification.current || isOpen) return;
+
+    const timer = setTimeout(() => {
+      if (!isOpen && !hasPlayedNotification.current) {
+        hasPlayedNotification.current = true;
+        
+        // Play notification sound
+        const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1xdH+Onm5odXV4gYqXeW1rbnOAl6KEaGBkbnyUnIOGgHxjVmRwgZGVp5l7Wk1hfIqZpZeCc15TZ4CSpJiKhHlhQUp5laSjmoV4aVZQcoqipJWKfnFnSUN3mqqklIZ5a1lVdI2jn5OJfXBmUk2BnqmhjoN4aVxeeJGemI+Gf3VqW1WCnaKdj4l+c2lgbYycoZWRg3duYmB/mZychHt0bmlrdZCckoeAemxyb4SWmJWHfHhzeH2Qk5SEfHlzeYaOkI6FfXh2fYSMjouDfnp2foaKioWBfXt9goSHhYOBfX19goOEgoGAf3+AgYGBgYCAgIGAgYCAgICBgYCBgICAf4CBgICAgH9/gICAgYGAfn6Af4GBgYGBf36AgIGCgX9/gICBgoGAgYCBgYGBf4CBgYGAgICBgICAf4CAgYGAgH+AgIKBgIB/f4CAgYGBf3+AgICBgYB/f4CAgYGBf3+AgICBgYCAf4CAgYGBgH+AgIGBgYGAf4CAgIGBgYB/gICBgYGAgH+AgIGBgYCAf4CAgYGBgIB/gICBgYGAgH+AgIGBgYCAf4CAgYGBgICAf4CAgYGBgIB/gICBgYGAgH+AgIGBgYCAf4CBgYGBgIB/gIGBgYGAgICAgYGBgICAgIGBgYGAgICAg4KCgICAgH+AgYGBgYCAgIGBgYGAgICAgYGBgYCAgICBgYGBgICAgIGBgYGAgICAgYGBgYCAgICBgYGBgICAgIGBgYGAgICAgYGBgYGBgIB/gICBgYGAgICAgYGBgYCAgICBgYGBgICAgIGBgYGAgICAgYGBgYCAgICBgYGBgA==');
+        audio.volume = 0.5;
+        audio.play().catch(() => {
+          // Audio play failed (likely no user interaction yet)
+        });
+        audioRef.current = audio;
+
+        // Shake animation
+        setIsShaking(true);
+        setTimeout(() => setIsShaking(false), 1000);
+
+        // Vibrate if supported
+        if (navigator.vibrate) {
+          navigator.vibrate([200, 100, 200]);
+        }
+      }
+    }, 5000);
+
+    return () => clearTimeout(timer);
+  }, [isOpen]);
 
   const handleOpen = () => {
     setIsOpen(true);
     setHasNewMessage(false);
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current = null;
+    }
   };
 
   return (
@@ -20,7 +57,7 @@ const LorenzoChatWidget = ({ customerId }: LorenzoChatWidgetProps) => {
       {!isOpen && (
         <button
           onClick={handleOpen}
-          className="fixed bottom-6 right-6 z-50 w-16 h-16 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110 flex items-center justify-center group"
+          className={`fixed bottom-6 right-6 z-50 w-16 h-16 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110 flex items-center justify-center group ${isShaking ? 'animate-shake' : ''}`}
           style={{ backgroundColor: '#25D366' }}
           aria-label="Abrir chat com Lorenzo"
         >
@@ -61,6 +98,25 @@ const LorenzoChatWidget = ({ customerId }: LorenzoChatWidgetProps) => {
         onClose={() => setIsOpen(false)}
         customerId={customerId}
       />
+
+      {/* Shake animation style */}
+      <style>{`
+        @keyframes shake {
+          0%, 100% { transform: translateX(0) rotate(0); }
+          10% { transform: translateX(-5px) rotate(-5deg); }
+          20% { transform: translateX(5px) rotate(5deg); }
+          30% { transform: translateX(-5px) rotate(-5deg); }
+          40% { transform: translateX(5px) rotate(5deg); }
+          50% { transform: translateX(-3px) rotate(-3deg); }
+          60% { transform: translateX(3px) rotate(3deg); }
+          70% { transform: translateX(-2px) rotate(-2deg); }
+          80% { transform: translateX(2px) rotate(2deg); }
+          90% { transform: translateX(-1px) rotate(-1deg); }
+        }
+        .animate-shake {
+          animation: shake 0.8s cubic-bezier(.36,.07,.19,.97) both;
+        }
+      `}</style>
     </>
   );
 };
