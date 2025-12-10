@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Sidebar } from "@/components/Sidebar";
 import { StarryBackground } from "@/components/StarryBackground";
 import { HomeCarousel } from "@/components/HomeCarousel";
+import n8nLogo from "@/assets/balao-logo.png";
 
 import { BenefitsCarousel } from "@/components/BenefitsCarousel";
 import { TestimonialsCarousel } from "@/components/TestimonialsCarousel";
@@ -12,7 +12,10 @@ import { IntegrationsCarousel } from "@/components/IntegrationsCarousel";
 import { ProductCard } from "@/components/ProductCard";
 import { api, type Product, getCustomCategories } from "@/lib/api";
 import { getIconFromKey } from "@/lib/icons";
-import { MessageCircle, Download, Monitor, Package, Laptop, Bot, Code, Wrench, Key, Tv, Armchair } from "lucide-react";
+import { MessageCircle, Download, Monitor, Package, Laptop, Bot, Code, Wrench, Key, Tv, Armchair, ShoppingCart, User } from "lucide-react";
+import { useCart } from "@/contexts/CartContext";
+import { Button } from "@/components/ui/button";
+import { useNavigate, useLocation } from "react-router-dom";
 
 const stats = [
   { value: "+1.988", label: "Clientes Ativos" },
@@ -36,6 +39,15 @@ export default function Automacao() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [categoryConfig, setCategoryConfig] = useState(baseCategoryConfig);
+  const { totalItems, setIsOpen } = useCart();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  useEffect(() => {
+    const customer = localStorage.getItem("customer");
+    setIsLoggedIn(!!customer);
+  }, [location.pathname]);
 
   useEffect(() => {
     async function fetchData() {
@@ -74,7 +86,49 @@ export default function Automacao() {
   return (
     <div className="min-h-screen relative dark" style={{ "--accent-automacao": accentColor } as React.CSSProperties}>
       <StarryBackground />
-      <Header />
+      
+      {/* Custom Header for Automacao with n8n logo */}
+      <header className="sticky top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-md">
+        <div className="container flex h-16 items-center justify-between">
+          <Link to="/automacao" className="flex items-center gap-2">
+            <img src={n8nLogo} alt="n8n Balão" className="h-8 object-contain" />
+          </Link>
+
+          <nav className="hidden md:flex items-center gap-6">
+            <Link to="/" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">Início</Link>
+            <a href="#pricing" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">Preços</a>
+            <a href="#benefits" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">Benefícios</a>
+            <a href="#testimonials" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">Depoimentos</a>
+            <Link to="/loja?category=automacao" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">Loja</Link>
+          </nav>
+
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => navigate(isLoggedIn ? "/meus-pedidos" : "/cliente")}
+              title={isLoggedIn ? "Meus Pedidos" : "Entrar"}
+            >
+              <User className="h-5 w-5" />
+            </Button>
+
+            <Button
+              variant="ghost"
+              size="icon"
+              className="relative"
+              onClick={() => setIsOpen(true)}
+            >
+              <ShoppingCart className="h-5 w-5" />
+              {totalItems > 0 && (
+                <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
+                  {totalItems}
+                </span>
+              )}
+            </Button>
+          </div>
+        </div>
+      </header>
+      
       <Sidebar accentColor={accentColor} />
 
       {/* Hero Section */}
