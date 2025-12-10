@@ -19,8 +19,8 @@ if (empty($taskId)) {
 
 $sunoApiKey = '01a3961c1f06d4b58a9a39eb54136475';
 
-// Check task status
-$ch = curl_init('https://apibox.erweima.ai/api/v1/generate/record-info?taskId=' . urlencode($taskId));
+// Check task status using correct Suno API endpoint
+$ch = curl_init('https://api.sunoapi.org/api/v1/generate/record-info?taskId=' . urlencode($taskId));
 curl_setopt_array($ch, [
     CURLOPT_RETURNTRANSFER => true,
     CURLOPT_HTTPHEADER => [
@@ -31,58 +31,79 @@ curl_setopt_array($ch, [
 
 $response = curl_exec($ch);
 $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+$error = curl_error($ch);
 curl_close($ch);
 
-$data = json_decode($response, true);
+error_log("Suno Status Response: " . $response);
 
-if ($httpCode !== 200 || !$data) {
-    echo json_encode(['success' => false, 'error' => 'Erro ao verificar status']);
+if ($error) {
+    echo json_encode(['success' => false, 'error' => 'Erro de conexão: ' . $error]);
     exit;
 }
 
-// Parse response
-if (isset($data['data'])) {
-    $taskData = $data['data'];
-    $status = $taskData['status'] ?? 'PENDING';
+$data = json_decode($response, true);
+
+if (!$data || !isset($data['code'])) {
+    echo json_encode(['success' => false, 'error' => 'Resposta inválida', 'raw' => $response]);
+    exit;
+}
+
+if ($data['code'] !== 200) {
+    echo json_encode(['success' => false, 'error' => $data['msg'] ?? 'Erro na API']);
+    exit;
+}
+
+// Parse response based on Suno API structure
+$taskData = $data['data'] ?? null;
+
+if (!$taskData) {
+    echo json_encode(['success' => false, 'error' => 'Dados não encontrados']);
+    exit;
+}
+
+$status = $taskData['status'] ?? 'PENDING';
+
+if ($status === 'SUCCESS' && isset($taskData['response']['sunoData'])) {
+    $songs = $taskData['response']['sunoData'];
+    $musicList = [];
     
-    if ($status === 'SUCCESS' && isset($taskData['response']['sunoData'])) {
-        $songs = $taskData['response']['sunoData'];
-        $musicList = [];
-        
-        foreach ($songs as $song) {
-            $musicList[] = [
-                'title' => $song['title'] ?? 'Música',
-                'audioUrl' => $song['audioUrl'] ?? '',
-                'imageUrl' => $song['imageUrl'] ?? '',
-                'duration' => $song['duration'] ?? 0
-            ];
-        }
-        
-        echo json_encode([
-            'success' => true,
-            'status' => 'COMPLETED',
-            'music' => $musicList
-        ]);
-    } else if ($status === 'PENDING' || $status === 'PROCESSING') {
-        echo json_encode([
-            'success' => true,
-            'status' => 'PROCESSING',
-            'message' => 'A banda ainda está ensaiando... 🎸'
-        ]);
-    } else if ($status === 'FAILED') {
-        echo json_encode([
-            'success' => false,
-            'status' => 'FAILED',
-            'error' => 'Falha na geração da música'
-        ]);
-    } else {
-        echo json_encode([
-            'success' => true,
-            'status' => $status,
-            'data' => $taskData
-        ]);
+    foreach ($songs as $song) {
+        $musicList[] = [
+            'id' => $song['id'] ?? '',
+            'title' => $song['title'] ?? 'Música',
+            'audioUrl' => $song['audioUrl'] ?? '',
+            'streamAudioUrl' => $song['streamAudioUrl'] ?? '',
+            'imageUrl' => $song['imageUrl'] ?? '',
+            'duration' => $song['duration'] ?? 0,
+            'prompt' => $song['prompt'] ?? '',
+            'tags' => $song['tags'] ?? ''
+        ];
     }
+    
+    echo json_encode([
+        'success' => true,
+        'status' => 'COMPLETED',
+        'music' => $musicList
+    ]);
+} else if ($status === 'PENDING' || $status === 'PROCESSING' || $status === 'QUEUED') {
+    echo json_encode([
+        'success' => true,
+        'status' => 'PROCESSING',
+        'message' => 'A banda ainda está ensaiando... 🎸'
+    ]);
+} else if ($status === 'FAILED' || $status === 'ERROR') {
+    $errorMsg = $taskData['errorMessage'] ?? 'Falha na geração da música';
+    echo json_encode([
+        'success' => false,
+        'status' => 'FAILED',
+        'error' => $errorMsg
+    ]);
 } else {
-    echo json_encode(['success' => false, 'error' => 'Resposta inesperada', 'raw' => $data]);
+    echo json_encode([
+        'success' => true,
+        'status' => $status,
+        'message' => 'Processando...',
+        'data' => $taskData
+    ]);
 }
 ?>

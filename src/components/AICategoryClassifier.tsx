@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Sparkles, RefreshCw, Check, X, ArrowRight, Plus, AlertTriangle } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Sparkles, RefreshCw, Check, X, ArrowRight, Plus, AlertTriangle, Image } from 'lucide-react';
 import { Category, getCategories, addCategory } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 
@@ -36,13 +36,14 @@ interface Classification {
   compatibility?: NewCompatibility | null;
   confidence: 'high' | 'medium' | 'low';
   reason: string;
+  newImages?: string[];
 }
 
 interface AICategoryClassifierProps {
   selectedProducts?: Product[];
   allProducts?: Product[];
   onClose: () => void;
-  onApply: (updates: { id: string; categories: string[]; productType?: string; compatibility?: NewCompatibility }[]) => Promise<void>;
+  onApply: (updates: { id: string; categories: string[]; productType?: string; compatibility?: NewCompatibility; newImages?: string[] }[]) => Promise<void>;
   onAutoSelect?: (count: number) => Product[];
 }
 
@@ -59,6 +60,7 @@ export function AICategoryClassifier({
   const [applying, setApplying] = useState(false);
   const [selectedClassifications, setSelectedClassifications] = useState<Set<string>>(new Set());
   const [usage, setUsage] = useState<{ model: string; totalTokens: number; costBrl: number } | null>(null);
+  const [searchingImages, setSearchingImages] = useState(false);
   
   // New categories pending confirmation
   const [pendingCategories, setPendingCategories] = useState<NewCategory[]>([]);
@@ -68,6 +70,33 @@ export function AICategoryClassifier({
   // Products to classify (auto-selected or provided)
   const [productsToClassify, setProductsToClassify] = useState<Product[]>(selectedProducts);
 
+  // Function to search images for a product
+  const searchProductImages = async (productTitle: string, productId: string): Promise<string[]> => {
+    try {
+      const response = await fetch('https://www.n8nbalao.com/api/search-images.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: productTitle, productId })
+      });
+      
+      if (!response.ok) return [];
+      
+      const data = await response.json();
+      return data.success ? data.images : [];
+    } catch (error) {
+      console.error('Error searching images:', error);
+      return [];
+    }
+  };
+
+  // Auto-start classification when component mounts
+  useEffect(() => {
+    // Only auto-start if no products were pre-selected
+    if (selectedProducts.length === 0 && onAutoSelect) {
+      runClassification();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const runClassification = async () => {
     // If no products selected and onAutoSelect is available, auto-select next 1
     let products = productsToClassify;
@@ -129,14 +158,28 @@ export function AICategoryClassifier({
       const data = await response.json();
       
       if (data.success) {
-        setClassifications(data.classifications || []);
+        let classificationsWithImages = data.classifications || [];
+        
+        // Search images for each classified product
+        setSearchingImages(true);
+        toast({ title: 'Buscando imagens...', description: 'Atualizando fotos dos produtos' });
+        
+        const imagePromises = classificationsWithImages.map(async (c: Classification) => {
+          const images = await searchProductImages(c.productTitle, c.productId);
+          return { ...c, newImages: images };
+        });
+        
+        classificationsWithImages = await Promise.all(imagePromises);
+        setSearchingImages(false);
+        
+        setClassifications(classificationsWithImages);
         setUsage(data.usage);
         // Select all by default
-        setSelectedClassifications(new Set(data.classifications?.map((c: Classification) => c.productId) || []));
+        setSelectedClassifications(new Set(classificationsWithImages.map((c: Classification) => c.productId)));
         
         // Collect new categories/subcategories that need confirmation
         const newCats: NewCategory[] = [];
-        for (const c of data.classifications || []) {
+        for (const c of classificationsWithImages) {
           if (c.newCategory) {
             newCats.push(c.newCategory);
           }
@@ -168,6 +211,7 @@ export function AICategoryClassifier({
     }
     
     setLoading(false);
+    setSearchingImages(false);
   };
 
   const handleConfirmCategories = async () => {
@@ -201,7 +245,8 @@ export function AICategoryClassifier({
         id: c.productId,
         categories: [c.suggestedCategory, c.suggestedSubcategory].filter(Boolean) as string[],
         productType: c.suggestedCategory,
-        compatibility: c.compatibility || undefined
+        compatibility: c.compatibility || undefined,
+        newImages: c.newImages || []
       }));
     
     if (updates.length === 0) {
@@ -353,31 +398,35 @@ export function AICategoryClassifier({
         
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-6">
-          {classifications.length === 0 ? (
+          {loading || searchingImages ? (
+            <div className="text-center py-12">
+              <RefreshCw className="h-16 w-16 text-primary mx-auto mb-4 animate-spin" />
+              <h3 className="text-lg font-medium text-gray-800 mb-2">
+                {searchingImages ? 'Buscando imagens...' : 'Classificando produto...'}
+              </h3>
+              <p className="text-gray-500">
+                {searchingImages 
+                  ? 'Atualizando fotos do produto automaticamente' 
+                  : 'Analisando título e sugerindo categoria'
+                }
+              </p>
+            </div>
+          ) : classifications.length === 0 ? (
             <div className="text-center py-12">
               <Sparkles className="h-16 w-16 text-gray-300 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-800 mb-2">
                 Pronto para classificar
               </h3>
               <p className="text-gray-500 mb-6">
-                A IA analisará os títulos dos produtos, sugerirá categorias, poderá criar novas categorias/subcategorias, atualizar fotos automaticamente e detectar campos de compatibilidade para hardware.
+                A IA analisará o produto, sugerirá categoria e atualizará as fotos automaticamente.
               </p>
               <button
                 onClick={runClassification}
                 disabled={loading}
                 className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-white rounded-lg font-medium hover:bg-primary/90 disabled:opacity-50"
               >
-                {loading ? (
-                  <>
-                    <RefreshCw className="h-5 w-5 animate-spin" />
-                    Classificando...
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="h-5 w-5" />
-                    Classificar
-                  </>
-                )}
+                <Sparkles className="h-5 w-5" />
+                Classificar
               </button>
             </div>
           ) : (
