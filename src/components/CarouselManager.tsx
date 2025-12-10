@@ -19,17 +19,27 @@ const BASE_CAROUSEL_CONFIGS: CarouselConfig[] = [
   {
     key: "home_hero_banner",
     label: "Banner Principal",
-    description: "Banner principal no topo da página inicial (recomendado: 1920x480px)"
+    description: "Banner principal no topo da página inicial (recomendado: 1920x200px)"
   },
   {
-    key: "home_promo_left",
-    label: "Banner Promoção Esquerda",
-    description: "Banner promocional lado esquerdo (recomendado: 800x400px)"
+    key: "home_promo_1",
+    label: "Banner Promocional 1",
+    description: "Primeiro banner promocional (recomendado: 400x200px)"
   },
   {
-    key: "home_promo_right",
-    label: "Banner Promoção Direita",
-    description: "Banner promocional lado direito (recomendado: 800x400px)"
+    key: "home_promo_2",
+    label: "Banner Promocional 2",
+    description: "Segundo banner promocional (recomendado: 400x200px)"
+  },
+  {
+    key: "home_promo_3",
+    label: "Banner Promocional 3",
+    description: "Terceiro banner promocional (recomendado: 400x200px)"
+  },
+  {
+    key: "home_promo_4",
+    label: "Banner Promocional 4",
+    description: "Quarto banner promocional (recomendado: 400x200px)"
   },
   {
     key: "sidebar_promo_banners",
@@ -110,12 +120,15 @@ export function CarouselManager() {
     const files = e.target.files;
     if (!files) return;
 
+    let uploadedCount = 0;
+    const totalFiles = files.length;
+
     Array.from(files).forEach(file => {
       const reader = new FileReader();
       reader.onloadend = () => {
         // Compress image
         const img = new window.Image();
-        img.onload = () => {
+        img.onload = async () => {
           const canvas = document.createElement('canvas');
           const maxWidth = 1200;
           const scale = Math.min(1, maxWidth / img.width);
@@ -127,10 +140,22 @@ export function CarouselManager() {
           
           const compressedImage = canvas.toDataURL('image/jpeg', 0.8);
           
-          setCarousels(prev => ({
-            ...prev,
-            [key]: [...(prev[key] || []), { url: compressedImage, link: '' }]
-          }));
+          setCarousels(prev => {
+            const newCarousels = {
+              ...prev,
+              [key]: [...(prev[key] || []), { url: compressedImage, link: '' }]
+            };
+            
+            // Auto-save after all images uploaded
+            uploadedCount++;
+            if (uploadedCount === totalFiles) {
+              setTimeout(() => {
+                autoSaveCarousel(key, newCarousels[key]);
+              }, 100);
+            }
+            
+            return newCarousels;
+          });
         };
         img.src = reader.result as string;
       };
@@ -141,11 +166,27 @@ export function CarouselManager() {
     e.target.value = '';
   }
 
-  function handleRemoveImage(key: string, index: number) {
+  async function autoSaveCarousel(key: string, images: CarouselImage[]) {
+    setSaving(key);
+    const success = await api.saveCarousel(key, images);
+    
+    if (success) {
+      toast({ title: "Salvo automaticamente", description: "Imagens salvas com sucesso!" });
+    } else {
+      toast({ title: "Erro", description: "Falha ao salvar automaticamente", variant: "destructive" });
+    }
+    setSaving(null);
+  }
+
+  async function handleRemoveImage(key: string, index: number) {
+    const newImages = (carousels[key] || []).filter((_, i) => i !== index);
     setCarousels(prev => ({
       ...prev,
-      [key]: (prev[key] || []).filter((_, i) => i !== index)
+      [key]: newImages
     }));
+    
+    // Auto-save after removal
+    await autoSaveCarousel(key, newImages);
   }
 
   function handleEditLink(key: string, index: number) {
@@ -154,19 +195,24 @@ export function CarouselManager() {
     setEditingLink({ key, index });
   }
 
-  function handleSaveLink() {
+  async function handleSaveLink() {
     if (!editingLink) return;
     
     const { key, index } = editingLink;
+    const newImages = (carousels[key] || []).map((img, i) => 
+      i === index ? { ...img, link: linkValue } : img
+    );
+    
     setCarousels(prev => ({
       ...prev,
-      [key]: (prev[key] || []).map((img, i) => 
-        i === index ? { ...img, link: linkValue } : img
-      )
+      [key]: newImages
     }));
     
     setEditingLink(null);
     setLinkValue('');
+    
+    // Auto-save after link edit
+    await autoSaveCarousel(key, newImages);
   }
 
   if (loading) {
@@ -221,7 +267,7 @@ export function CarouselManager() {
       </div>
       
       <p className="text-gray-600">
-        Adicione imagens aos carrosséis que aparecem na página inicial. As imagens serão exibidas alternando automaticamente.
+        Adicione imagens aos carrosséis. <span className="text-primary font-medium">Salvamento automático!</span> As imagens são salvas automaticamente após o upload.
       </p>
 
       {carouselConfigs.map(config => (
@@ -231,14 +277,9 @@ export function CarouselManager() {
               <h3 className="text-lg font-semibold text-gray-800">{config.label}</h3>
               <p className="text-sm text-gray-500">{config.description}</p>
             </div>
-            <button
-              onClick={() => handleSave(config.key)}
-              disabled={saving === config.key}
-              className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90 disabled:opacity-50 transition-colors"
-            >
-              <Save className="h-4 w-4" />
-              {saving === config.key ? "Salvando..." : "Salvar"}
-            </button>
+            {saving === config.key && (
+              <span className="text-sm text-primary animate-pulse">Salvando...</span>
+            )}
           </div>
 
           {/* Image Grid */}

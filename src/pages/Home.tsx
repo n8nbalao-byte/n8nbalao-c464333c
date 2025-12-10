@@ -392,20 +392,32 @@ export default function Home() {
             </section>
           )}
 
-          {/* Promo Banners - Hidden when empty */}
+          {/* Promo Banners - 4 banners with same height as main banner */}
           <section className="pb-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <HomeCarousel
-                carouselKey="home_promo_left"
+                carouselKey="home_promo_1"
                 fallbackImage=""
-                alt="Promoção"
-                className="w-full aspect-[2/1] rounded-xl object-cover"
+                alt="Promoção 1"
+                className="w-full max-h-[200px] h-[200px] rounded-xl object-cover"
               />
               <HomeCarousel
-                carouselKey="home_promo_right"
+                carouselKey="home_promo_2"
                 fallbackImage=""
-                alt="Promoção"
-                className="w-full aspect-[2/1] rounded-xl object-cover"
+                alt="Promoção 2"
+                className="w-full max-h-[200px] h-[200px] rounded-xl object-cover"
+              />
+              <HomeCarousel
+                carouselKey="home_promo_3"
+                fallbackImage=""
+                alt="Promoção 3"
+                className="w-full max-h-[200px] h-[200px] rounded-xl object-cover"
+              />
+              <HomeCarousel
+                carouselKey="home_promo_4"
+                fallbackImage=""
+                alt="Promoção 4"
+                className="w-full max-h-[200px] h-[200px] rounded-xl object-cover"
               />
             </div>
           </section>
