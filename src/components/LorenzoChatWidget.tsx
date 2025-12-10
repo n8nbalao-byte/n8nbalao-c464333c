@@ -5,42 +5,64 @@ interface LorenzoChatWidgetProps {
   customerId?: string;
 }
 
+// WhatsApp notification sound as base64 (authentic WhatsApp tone)
+const WHATSAPP_SOUND = 'https://cdn.freesound.org/previews/574/574793_12517458-lq.mp3';
+
 const LorenzoChatWidget = ({ customerId }: LorenzoChatWidgetProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [hasNewMessage, setHasNewMessage] = useState(true);
   const [isShaking, setIsShaking] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const hasPlayedNotification = useRef(false);
+  const notificationCount = useRef(0);
+  const sessionStartTime = useRef(Date.now());
 
-  // Play notification sound and shake after 5 seconds
+  const playNotification = () => {
+    if (isOpen) return;
+    
+    // Play WhatsApp notification sound
+    const audio = new Audio(WHATSAPP_SOUND);
+    audio.volume = 0.6;
+    audio.play().catch(() => {
+      // Audio play failed (likely no user interaction yet)
+    });
+    audioRef.current = audio;
+
+    // Shake animation
+    setIsShaking(true);
+    setTimeout(() => setIsShaking(false), 1000);
+
+    // Vibrate if supported
+    if (navigator.vibrate) {
+      navigator.vibrate([200, 100, 200]);
+    }
+
+    notificationCount.current++;
+  };
+
+  // First notification after 5 seconds, then check every 5 minutes
   useEffect(() => {
-    if (hasPlayedNotification.current || isOpen) return;
+    if (isOpen) return;
 
-    const timer = setTimeout(() => {
-      if (!isOpen && !hasPlayedNotification.current) {
-        hasPlayedNotification.current = true;
-        
-        // Play notification sound
-        const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1xdH+Onm5odXV4gYqXeW1rbnOAl6KEaGBkbnyUnIOGgHxjVmRwgZGVp5l7Wk1hfIqZpZeCc15TZ4CSpJiKhHlhQUp5laSjmoV4aVZQcoqipJWKfnFnSUN3mqqklIZ5a1lVdI2jn5OJfXBmUk2BnqmhjoN4aVxeeJGemI+Gf3VqW1WCnaKdj4l+c2lgbYycoZWRg3duYmB/mZychHt0bmlrdZCckoeAemxyb4SWmJWHfHhzeH2Qk5SEfHlzeYaOkI6FfXh2fYSMjouDfnp2foaKioWBfXt9goSHhYOBfX19goOEgoGAf3+AgYGBgYCAgIGAgYCAgICBgYCBgICAf4CBgICAgH9/gICAgYGAfn6Af4GBgYGBf36AgIGCgX9/gICBgoGAgYCBgYGBf4CBgYGAgICBgICAf4CAgYGAgH+AgIKBgIB/f4CAgYGBf3+AgICBgYB/f4CAgYGBf3+AgICBgYCAf4CAgYGBgH+AgIGBgYGAf4CAgIGBgYB/gICBgYGAgH+AgIGBgYCAf4CAgYGBgIB/gICBgYGAgH+AgIGBgYCAf4CAgYGBgICAf4CAgYGBgIB/gICBgYGAgH+AgIGBgYCAf4CBgYGBgIB/gIGBgYGAgICAgYGBgICAgIGBgYGAgICAg4KCgICAgH+AgYGBgYCAgIGBgYGAgICAgYGBgYCAgICBgYGBgICAgIGBgYGAgICAgYGBgYCAgICBgYGBgICAgIGBgYGAgICAgYGBgYGBgIB/gICBgYGAgICAgYGBgYCAgICBgYGBgICAgIGBgYGAgICAgYGBgYCAgICBgYGBgA==');
-        audio.volume = 0.5;
-        audio.play().catch(() => {
-          // Audio play failed (likely no user interaction yet)
-        });
-        audioRef.current = audio;
-
-        // Shake animation
-        setIsShaking(true);
-        setTimeout(() => setIsShaking(false), 1000);
-
-        // Vibrate if supported
-        if (navigator.vibrate) {
-          navigator.vibrate([200, 100, 200]);
+    const timeSinceStart = Date.now() - sessionStartTime.current;
+    
+    // First notification: after 5 seconds if within first 30 seconds
+    if (notificationCount.current === 0) {
+      const firstTimer = setTimeout(() => {
+        if (timeSinceStart < 30000) {
+          playNotification();
         }
-      }
-    }, 5000);
+      }, 5000);
+      
+      return () => clearTimeout(firstTimer);
+    }
 
-    return () => clearTimeout(timer);
-  }, [isOpen]);
+    // Subsequent notifications: every 5 minutes
+    const interval = setInterval(() => {
+      playNotification();
+    }, 5 * 60 * 1000); // 5 minutes
+
+    return () => clearInterval(interval);
+  }, [isOpen, notificationCount.current]);
 
   const handleOpen = () => {
     setIsOpen(true);
