@@ -1,16 +1,19 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Upload, Loader2, Check, Trash2, Package, Percent, Tag, Link as LinkIcon, Globe, FileSpreadsheet, Sparkles, Store, Wrench, ShoppingBag, Layers } from "lucide-react";
+import { ArrowLeft, Upload, Loader2, Check, Trash2, Package, Percent, Tag, Link as LinkIcon, Globe, FileSpreadsheet, Sparkles, Store, Wrench, ShoppingBag, Layers, Lock } from "lucide-react";
 import { Link } from "react-router-dom";
 import { api, getCustomCategories, addCustomCategory, getHardwareCategories, addHardwareCategory, CustomCategory, HardwareCategoryDef } from "@/lib/api";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { AdminLoginModal } from "@/components/AdminLoginModal";
+import { checkAdminAuth } from "@/hooks/useAdminAuth";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import * as XLSX from "xlsx";
@@ -105,7 +108,12 @@ const detectCategory = (title: string): { category: string; isHardware: boolean;
 
 const ExtractProducts = () => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Authentication state
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  const [showLoginModal, setShowLoginModal] = useState(false);
   
   const [rawData, setRawData] = useState('');
   const [parsedProducts, setParsedProducts] = useState<ParsedProduct[]>([]);
@@ -135,9 +143,20 @@ const ExtractProducts = () => {
     costBRL: number;
   } | null>(null);
 
+  // Check authentication on mount
   useEffect(() => {
-    loadCategories();
+    const isAuth = checkAdminAuth() || sessionStorage.getItem('admin_auth') === 'true';
+    setIsAuthenticated(isAuth);
+    if (!isAuth) {
+      setShowLoginModal(true);
+    }
   }, []);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      loadCategories();
+    }
+  }, [isAuthenticated]);
 
   const loadCategories = async () => {
     const cats = await getCustomCategories();
@@ -1065,9 +1084,32 @@ const ExtractProducts = () => {
   const totalCost = parsedProducts.filter(p => p.selected).reduce((sum, p) => sum + p.costPrice, 0);
   const totalSale = parsedProducts.filter(p => p.selected).reduce((sum, p) => sum + calculateFinalPrice(p.costPrice), 0);
 
+  // Handle successful login
+  const handleLoginSuccess = () => {
+    setIsAuthenticated(true);
+    setShowLoginModal(false);
+    loadCategories();
+  };
+
+  // Show loading state while checking auth
+  if (isAuthenticated === null) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-red-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-gray-500">Verificando acesso...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show login modal if not authenticated
+  if (!isAuthenticated) {
+    return <AdminLoginModal onSuccess={handleLoginSuccess} />;
+  }
+
   return (
     <div className="min-h-screen bg-background text-foreground">
-      
       <div className="container py-8 space-y-6">
         {/* Header */}
         <div className="flex items-center gap-4">
