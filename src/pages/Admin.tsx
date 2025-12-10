@@ -2238,14 +2238,6 @@ export default function Admin() {
               <Mail className="h-5 w-5" />
               Email Marketing
             </button>
-            <button
-              onClick={() => navigate('/whatsapp-agent')}
-              className="inline-flex items-center gap-2 rounded-lg px-6 py-3 font-medium transition-colors"
-              style={{ backgroundColor: '#25D366', color: 'white' }}
-            >
-              <MessageSquare className="h-5 w-5" />
-              Agente WhatsApp
-            </button>
           </div>
 
           {/* Categories display with drag-and-drop reordering */}
