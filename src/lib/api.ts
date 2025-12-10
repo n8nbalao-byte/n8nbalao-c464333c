@@ -624,7 +624,7 @@ export const api = {
   },
 
   // Carousels - supports both string[] (legacy) and CarouselImage[] (new format with links)
-  async getCarousel(key: string): Promise<{ key: string; images: (string | { url: string; link?: string })[]; interval?: number }> {
+  async getCarousel(key: string): Promise<{ key: string; images: (string | { url: string; link?: string })[] }> {
     try {
       const response = await fetch(`${API_BASE_URL}/carousels.php?key=${key}`);
       if (!response.ok) return { key, images: [] };
@@ -635,12 +635,12 @@ export const api = {
     }
   },
 
-  async saveCarousel(key: string, images: (string | { url: string; link?: string })[], interval?: number): Promise<boolean> {
+  async saveCarousel(key: string, images: (string | { url: string; link?: string })[]): Promise<boolean> {
     try {
       const response = await fetch(`${API_BASE_URL}/carousels.php`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ key, images, interval }),
+        body: JSON.stringify({ key, images }),
       });
       return response.ok;
     } catch (error) {

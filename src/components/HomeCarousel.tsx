@@ -12,14 +12,12 @@ interface HomeCarouselProps {
   fallbackImage?: string;
   className?: string;
   alt?: string;
-  imageClassName?: string;
 }
 
-export function HomeCarousel({ carouselKey, fallbackImage, className = "", alt = "Carousel image", imageClassName = "" }: HomeCarouselProps) {
+export function HomeCarousel({ carouselKey, fallbackImage, className = "", alt = "Carousel image" }: HomeCarouselProps) {
   const [images, setImages] = useState<CarouselImage[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [interval, setIntervalTime] = useState(4000);
 
   useEffect(() => {
     async function fetchImages() {
@@ -31,10 +29,6 @@ export function HomeCarousel({ carouselKey, fallbackImage, className = "", alt =
             typeof img === 'string' ? { url: img, link: '' } : img
           );
           setImages(normalizedImages);
-        }
-        // Set interval if available from API
-        if (data.interval) {
-          setIntervalTime(data.interval);
         }
       } catch (error) {
         console.error('Error fetching carousel images:', error);
@@ -49,12 +43,12 @@ export function HomeCarousel({ carouselKey, fallbackImage, className = "", alt =
   useEffect(() => {
     if (images.length <= 1) return;
     
-    const timer = setInterval(() => {
+    const interval = setInterval(() => {
       setCurrentIndex((prev) => (prev + 1) % images.length);
-    }, interval);
+    }, 4000); // Change every 4 seconds
 
-    return () => clearInterval(timer);
-  }, [images.length, interval]);
+    return () => clearInterval(interval);
+  }, [images.length]);
 
   if (loading) {
     return (
@@ -81,7 +75,7 @@ export function HomeCarousel({ carouselKey, fallbackImage, className = "", alt =
       <img
         src={image.url}
         alt={`${alt} ${index + 1}`}
-        className={`flex-shrink-0 w-full ${imageClassName || className}`}
+        className={`flex-shrink-0 w-full ${className}`}
       />
     );
 
@@ -113,17 +107,11 @@ export function HomeCarousel({ carouselKey, fallbackImage, className = "", alt =
 
   return (
     <div className="relative overflow-hidden">
-      <div className="relative w-full">
-        {images.map((image, index) => (
-          <div
-            key={index}
-            className={`w-full transition-opacity duration-1000 ease-in-out ${
-              index === currentIndex ? "opacity-100" : "opacity-0 absolute inset-0"
-            }`}
-          >
-            {renderImage(image, index)}
-          </div>
-        ))}
+      <div 
+        className="flex transition-transform duration-700 ease-in-out"
+        style={{ transform: `translateX(-${currentIndex * 100}%)` }}
+      >
+        {images.map((image, index) => renderImage(image, index))}
       </div>
       
       {/* Dots indicator */}
@@ -133,7 +121,7 @@ export function HomeCarousel({ carouselKey, fallbackImage, className = "", alt =
             <button
               key={index}
               onClick={() => setCurrentIndex(index)}
-              className={`w-2 h-2 rounded-full transition-all duration-500 ${
+              className={`w-2 h-2 rounded-full transition-all ${
                 index === currentIndex 
                   ? "bg-primary w-6" 
                   : "bg-primary/40 hover:bg-primary/60"

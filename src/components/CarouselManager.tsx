@@ -1,24 +1,18 @@
 import { useState, useEffect } from "react";
 import { api, getCustomCategories } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2, Upload, Save, Image, Link as LinkIcon, ExternalLink, Clock } from "lucide-react";
+import { Plus, Trash2, Upload, Save, Image, Link as LinkIcon, ExternalLink } from "lucide-react";
 
 interface CarouselConfig {
   key: string;
   label: string;
   description: string;
   aspectRatio?: string; // For display preview
-  hasInterval?: boolean; // Whether to show interval config
 }
 
 interface CarouselImage {
   url: string;
   link?: string;
-}
-
-interface CarouselData {
-  images: CarouselImage[];
-  interval?: number; // Interval in ms
 }
 
 const BASE_CAROUSEL_CONFIGS: CarouselConfig[] = [
@@ -62,20 +56,12 @@ const BASE_CAROUSEL_CONFIGS: CarouselConfig[] = [
     key: "workflow_section",
     label: "Seção Workflow (Automação)",
     description: "Imagens na página de Automação - seção 'Automatize processos'"
-  },
-  {
-    key: "automacao_phone_carousel",
-    label: "Carrossel do Celular (Automação)",
-    description: "Imagens do celular na hero da página de Automação (recomendado: 400x800px)",
-    aspectRatio: "9/16",
-    hasInterval: true
   }
 ];
 
 export function CarouselManager() {
   const { toast } = useToast();
   const [carousels, setCarousels] = useState<Record<string, CarouselImage[]>>({});
-  const [carouselIntervals, setCarouselIntervals] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<string | null>(null);
   const [carouselConfigs, setCarouselConfigs] = useState<CarouselConfig[]>(BASE_CAROUSEL_CONFIGS);
@@ -104,7 +90,6 @@ export function CarouselManager() {
     setCarouselConfigs(allConfigs);
     
     const data: Record<string, CarouselImage[]> = {};
-    const intervals: Record<string, number> = {};
     
     for (const config of allConfigs) {
       const carousel = await api.getCarousel(config.key);
@@ -113,14 +98,9 @@ export function CarouselManager() {
       data[config.key] = images.map((img: string | CarouselImage) => 
         typeof img === 'string' ? { url: img, link: '' } : img
       );
-      // Load interval if available
-      if (carousel.interval) {
-        intervals[config.key] = carousel.interval;
-      }
     }
     
     setCarousels(data);
-    setCarouselIntervals(intervals);
     setLoading(false);
   }
 
@@ -186,9 +166,9 @@ export function CarouselManager() {
     e.target.value = '';
   }
 
-  async function autoSaveCarousel(key: string, images: CarouselImage[], interval?: number) {
+  async function autoSaveCarousel(key: string, images: CarouselImage[]) {
     setSaving(key);
-    const success = await api.saveCarousel(key, images, interval || carouselIntervals[key]);
+    const success = await api.saveCarousel(key, images);
     
     if (success) {
       toast({ title: "Salvo automaticamente", description: "Imagens salvas com sucesso!" });
@@ -196,12 +176,6 @@ export function CarouselManager() {
       toast({ title: "Erro", description: "Falha ao salvar automaticamente", variant: "destructive" });
     }
     setSaving(null);
-  }
-
-  async function handleIntervalChange(key: string, interval: number) {
-    setCarouselIntervals(prev => ({ ...prev, [key]: interval }));
-    // Auto-save with new interval
-    await autoSaveCarousel(key, carousels[key] || [], interval);
   }
 
   async function handleRemoveImage(key: string, index: number) {
@@ -376,27 +350,6 @@ export function CarouselManager() {
             <p className="text-sm text-gray-500 italic">
               Nenhuma imagem adicionada. Adicione imagens para criar o carrossel.
             </p>
-          )}
-
-          {/* Interval Config for carousels that support it */}
-          {config.hasInterval && (
-            <div className="flex items-center gap-4 pt-4 border-t border-gray-200">
-              <Clock className="h-5 w-5 text-gray-500" />
-              <label className="text-sm font-medium text-gray-700">Tempo entre imagens:</label>
-              <select
-                value={carouselIntervals[config.key] || 4000}
-                onChange={(e) => handleIntervalChange(config.key, parseInt(e.target.value))}
-                className="rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-800 focus:border-primary focus:outline-none"
-              >
-                <option value={2000}>2 segundos</option>
-                <option value={3000}>3 segundos</option>
-                <option value={4000}>4 segundos</option>
-                <option value={5000}>5 segundos</option>
-                <option value={6000}>6 segundos</option>
-                <option value={8000}>8 segundos</option>
-                <option value={10000}>10 segundos</option>
-              </select>
-            </div>
           )}
         </div>
       ))}
