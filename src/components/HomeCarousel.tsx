@@ -12,12 +12,14 @@ interface HomeCarouselProps {
   fallbackImage?: string;
   className?: string;
   alt?: string;
+  imageClassName?: string;
 }
 
-export function HomeCarousel({ carouselKey, fallbackImage, className = "", alt = "Carousel image" }: HomeCarouselProps) {
+export function HomeCarousel({ carouselKey, fallbackImage, className = "", alt = "Carousel image", imageClassName = "" }: HomeCarouselProps) {
   const [images, setImages] = useState<CarouselImage[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [interval, setIntervalTime] = useState(4000);
 
   useEffect(() => {
     async function fetchImages() {
@@ -29,6 +31,10 @@ export function HomeCarousel({ carouselKey, fallbackImage, className = "", alt =
             typeof img === 'string' ? { url: img, link: '' } : img
           );
           setImages(normalizedImages);
+        }
+        // Set interval if available from API
+        if (data.interval) {
+          setIntervalTime(data.interval);
         }
       } catch (error) {
         console.error('Error fetching carousel images:', error);
@@ -43,12 +49,12 @@ export function HomeCarousel({ carouselKey, fallbackImage, className = "", alt =
   useEffect(() => {
     if (images.length <= 1) return;
     
-    const interval = setInterval(() => {
+    const timer = setInterval(() => {
       setCurrentIndex((prev) => (prev + 1) % images.length);
-    }, 4000); // Change every 4 seconds
+    }, interval);
 
-    return () => clearInterval(interval);
-  }, [images.length]);
+    return () => clearInterval(timer);
+  }, [images.length, interval]);
 
   if (loading) {
     return (
@@ -75,7 +81,7 @@ export function HomeCarousel({ carouselKey, fallbackImage, className = "", alt =
       <img
         src={image.url}
         alt={`${alt} ${index + 1}`}
-        className={`flex-shrink-0 w-full ${className}`}
+        className={`flex-shrink-0 w-full ${imageClassName || className}`}
       />
     );
 

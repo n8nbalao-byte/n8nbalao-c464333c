@@ -187,10 +187,12 @@ export default function Automacao() {
 
             <div className="relative flex justify-center">
               <div className="relative">
-                <img
-                  src="https://meuwhatsappbot.com.br/images/celular.png"
+                <HomeCarousel
+                  carouselKey="automacao_phone_carousel"
+                  fallbackImage="https://meuwhatsappbot.com.br/images/celular.png"
+                  className="relative z-10 max-w-sm drop-shadow-2xl"
+                  imageClassName="relative z-10 max-w-sm rounded-3xl drop-shadow-2xl"
                   alt="WhatsApp Bot Demo"
-                  className="relative z-10 max-w-sm rounded-3xl drop-shadow-2xl"
                 />
                 {/* Glow effect behind phone */}
                 <div className="absolute inset-0 -z-10 blur-3xl rounded-full scale-75" style={{ backgroundColor: `${accentColor}30` }} />
