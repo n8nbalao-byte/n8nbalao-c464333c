@@ -67,7 +67,7 @@ export function Footer() {
         </div>
 
         <div className="mt-8 border-t border-white/10 pt-8 text-center text-sm text-gray-400">
-          © {new Date().getFullYear()} {company?.name || 'Sua Empresa'}. Todos os direitos reservados.
+          © {new Date().getFullYear()} {company?.name || 'Sua Empresa'}. Todos os direitos reservados. Desenvolvido por Hector Herera.
         </div>
       </div>
     </footer>
