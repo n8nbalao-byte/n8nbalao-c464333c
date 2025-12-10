@@ -69,10 +69,10 @@ export function AICategoryClassifier({
   const [productsToClassify, setProductsToClassify] = useState<Product[]>(selectedProducts);
 
   const runClassification = async () => {
-    // If no products selected and onAutoSelect is available, auto-select next 10
+    // If no products selected and onAutoSelect is available, auto-select next 3
     let products = productsToClassify;
     if (products.length === 0 && onAutoSelect) {
-      products = onAutoSelect(10);
+      products = onAutoSelect(3); // Changed from 10 to 3 to avoid errors
       setProductsToClassify(products);
     }
     
@@ -346,7 +346,7 @@ export function AICategoryClassifier({
           <p className="text-gray-600 mt-2">
             {productsToClassify.length > 0 
               ? `${productsToClassify.length} produto(s) para classificação`
-              : 'Clique para classificar automaticamente os próximos 10 produtos'
+              : 'Clique para classificar automaticamente os próximos 3 produtos'
             }
           </p>
         </div>
@@ -360,7 +360,7 @@ export function AICategoryClassifier({
                 Pronto para classificar
               </h3>
               <p className="text-gray-500 mb-6">
-                A IA analisará os títulos dos produtos, sugerirá categorias, poderá criar novas categorias/subcategorias e detectar campos de compatibilidade para hardware.
+                A IA analisará os títulos dos produtos, sugerirá categorias, poderá criar novas categorias/subcategorias, atualizar fotos automaticamente e detectar campos de compatibilidade para hardware.
               </p>
               <button
                 onClick={runClassification}
@@ -375,7 +375,7 @@ export function AICategoryClassifier({
                 ) : (
                   <>
                     <Sparkles className="h-5 w-5" />
-                    Classificar Próximos 10
+                    Classificar Próximos 3
                   </>
                 )}
               </button>

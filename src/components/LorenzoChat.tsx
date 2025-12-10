@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Send, X, Minimize2, Maximize2, Bot, User, Loader2, Volume2, VolumeX } from 'lucide-react';
+import { Send, X, Minimize2, Maximize2, Bot, User, Loader2, Volume2, VolumeX, Music, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -13,6 +13,11 @@ interface Message {
   content: string;
   timestamp: Date;
   audioUrl?: string;
+  musicData?: {
+    title: string;
+    audioUrl: string;
+    imageUrl?: string;
+  }[];
 }
 
 interface LorenzoChatProps {
@@ -26,7 +31,7 @@ const LorenzoChat = ({ isOpen, onClose, customerId }: LorenzoChatProps) => {
     {
       id: '1',
       role: 'assistant',
-      content: 'Olá! 🎈 Sou o **Lorenzo**, assistente virtual da Balão da Informática!\n\nComo posso ajudar você hoje?\n\n- 🖥️ Montar um PC\n- 💰 Ver produtos e preços\n- ❓ Tirar dúvidas técnicas\n- 📦 Consultar pedidos',
+      content: 'Olá! 🎈 Sou o **Lorenzo**, assistente virtual da Balão da Informática!\n\nComo posso ajudar você hoje?\n\n- 🖥️ Montar um PC\n- 💰 Ver produtos e preços\n- ❓ Tirar dúvidas técnicas\n- 📦 Consultar pedidos\n- 🎵 Me pedir uma música!',
       timestamp: new Date()
     }
   ]);
@@ -35,6 +40,7 @@ const LorenzoChat = ({ isOpen, onClose, customerId }: LorenzoChatProps) => {
   const [isMinimized, setIsMinimized] = useState(false);
   const [voiceEnabled, setVoiceEnabled] = useState(true);
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
+  const [generatingMusic, setGeneratingMusic] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -112,6 +118,72 @@ const LorenzoChat = ({ isOpen, onClose, customerId }: LorenzoChatProps) => {
     }
   };
 
+  // Check if message contains music generation command
+  const checkForMusicGeneration = async (text: string): Promise<Message | null> => {
+    const musicMatch = text.match(/\[GERAR_MUSICA\]\s*tema:\s*([^|]+)\s*\|\s*estilo:\s*([^|]+)\s*\|\s*titulo:\s*(.+)/i);
+    
+    if (musicMatch) {
+      const [, tema, estilo, titulo] = musicMatch;
+      setGeneratingMusic(true);
+      
+      try {
+        // Start music generation
+        const response = await fetch(`${API_BASE}/suno-generate.php`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            prompt: tema.trim(),
+            style: estilo.trim(),
+            title: titulo.trim()
+          })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success && data.taskId) {
+          // Poll for completion
+          let attempts = 0;
+          const maxAttempts = 60; // 2 minutes max
+          
+          while (attempts < maxAttempts) {
+            await new Promise(r => setTimeout(r, 2000)); // Wait 2 seconds
+            
+            const statusResponse = await fetch(`${API_BASE}/suno-status.php?taskId=${data.taskId}`);
+            const statusData = await statusResponse.json();
+            
+            if (statusData.status === 'COMPLETED' && statusData.music) {
+              setGeneratingMusic(false);
+              return {
+                id: Date.now().toString(),
+                role: 'assistant',
+                content: `🎵 **A música ficou pronta!**\n\n"${titulo.trim()}" está disponível para download!`,
+                timestamp: new Date(),
+                musicData: statusData.music
+              };
+            } else if (statusData.status === 'FAILED') {
+              throw new Error('Falha na geração da música');
+            }
+            
+            attempts++;
+          }
+          
+          throw new Error('Tempo limite excedido');
+        }
+      } catch (error) {
+        console.error('Music generation error:', error);
+        setGeneratingMusic(false);
+        return {
+          id: Date.now().toString(),
+          role: 'assistant',
+          content: '😅 Ops! A banda teve um probleminha técnico... Tenta pedir a música de novo?',
+          timestamp: new Date()
+        };
+      }
+    }
+    
+    return null;
+  };
+
   const sendMessage = async () => {
     if (!input.trim() || isLoading) return;
 
@@ -142,28 +214,45 @@ const LorenzoChat = ({ isOpen, onClose, customerId }: LorenzoChatProps) => {
       const data = await response.json();
 
       if (data.success && data.message) {
-        const assistantMessage: Message = {
-          id: (Date.now() + 1).toString(),
-          role: 'assistant',
-          content: data.message,
-          timestamp: new Date()
-        };
-        setMessages(prev => [...prev, assistantMessage]);
-
-        // Play voice response if enabled
-        if (voiceEnabled) {
-          // Clean markdown for better audio
-          const cleanText = data.message
-            .replace(/\*\*/g, '')
-            .replace(/\*/g, '')
-            .replace(/#{1,6}\s/g, '')
-            .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
-            .replace(/`[^`]+`/g, '')
-            .replace(/\n+/g, ' ')
-            .trim();
+        // Check if AI wants to generate music
+        const musicMessage = await checkForMusicGeneration(data.message);
+        
+        if (musicMessage) {
+          // Remove the [GERAR_MUSICA] command from displayed message
+          const cleanContent = data.message.replace(/\*\*\[GERAR_MUSICA\]\*\*.*/s, '').trim();
           
-          if (cleanText.length > 0 && cleanText.length < 5000) {
-            playAudio(cleanText);
+          const assistantMessage: Message = {
+            id: (Date.now() + 1).toString(),
+            role: 'assistant',
+            content: cleanContent || '🎸 A banda está tocando sua música...',
+            timestamp: new Date()
+          };
+          setMessages(prev => [...prev, assistantMessage, musicMessage]);
+        } else {
+          const assistantMessage: Message = {
+            id: (Date.now() + 1).toString(),
+            role: 'assistant',
+            content: data.message,
+            timestamp: new Date()
+          };
+          setMessages(prev => [...prev, assistantMessage]);
+
+          // Play voice response if enabled
+          if (voiceEnabled) {
+            // Clean markdown for better audio
+            const cleanText = data.message
+              .replace(/\*\*/g, '')
+              .replace(/\*/g, '')
+              .replace(/#{1,6}\s/g, '')
+              .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+              .replace(/`[^`]+`/g, '')
+              .replace(/\n+/g, ' ')
+              .replace(/\[GERAR_MUSICA\].*/gi, '')
+              .trim();
+            
+            if (cleanText.length > 0 && cleanText.length < 5000) {
+              playAudio(cleanText);
+            }
           }
         }
       } else {
@@ -287,6 +376,41 @@ const LorenzoChat = ({ isOpen, onClose, customerId }: LorenzoChatProps) => {
                         {message.content}
                       </ReactMarkdown>
                     </div>
+                    
+                    {/* Music player if music data exists */}
+                    {message.musicData && message.musicData.length > 0 && (
+                      <div className="mt-3 space-y-2">
+                        {message.musicData.map((music, idx) => (
+                          <div key={idx} className="bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg p-3 text-white">
+                            <div className="flex items-center gap-3">
+                              {music.imageUrl && (
+                                <img src={music.imageUrl} alt={music.title} className="w-12 h-12 rounded-lg object-cover" />
+                              )}
+                              <div className="flex-1">
+                                <p className="font-bold flex items-center gap-2">
+                                  <Music className="w-4 h-4" />
+                                  {music.title}
+                                </p>
+                                <audio controls className="w-full mt-2 h-8" src={music.audioUrl}>
+                                  Seu navegador não suporta áudio
+                                </audio>
+                              </div>
+                            </div>
+                            <a
+                              href={music.audioUrl}
+                              download={`${music.title}.mp3`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="mt-2 flex items-center justify-center gap-2 bg-white/20 hover:bg-white/30 rounded-lg py-2 text-sm font-medium transition-colors"
+                            >
+                              <Download className="w-4 h-4" />
+                              Download
+                            </a>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    
                     <p className={`text-xs mt-1 ${message.role === 'user' ? 'text-white/70' : 'text-gray-400'}`}>
                       {message.timestamp.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                     </p>
@@ -294,7 +418,7 @@ const LorenzoChat = ({ isOpen, onClose, customerId }: LorenzoChatProps) => {
                 </div>
               ))}
               
-              {isLoading && (
+              {(isLoading || generatingMusic) && (
                 <div className="flex gap-3">
                   <div className="w-8 h-8 rounded-full bg-red-100 text-red-600 flex items-center justify-center">
                     <Bot className="w-4 h-4" />
@@ -302,7 +426,9 @@ const LorenzoChat = ({ isOpen, onClose, customerId }: LorenzoChatProps) => {
                   <div className="bg-gray-100 rounded-2xl rounded-tl-sm px-4 py-3">
                     <div className="flex items-center gap-2 text-gray-500">
                       <Loader2 className="w-4 h-4 animate-spin" />
-                      <span className="text-sm">Lorenzo está digitando...</span>
+                      <span className="text-sm">
+                        {generatingMusic ? '🎸 A banda está tocando sua música...' : 'Lorenzo está digitando...'}
+                      </span>
                     </div>
                   </div>
                 </div>

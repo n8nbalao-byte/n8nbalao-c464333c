@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Link } from "react-router-dom";
 import { api, type Product, type HardwareItem, getCategories, type Category } from "@/lib/api";
 import { getIconFromKey } from "@/lib/icons";
@@ -30,7 +30,10 @@ export default function Home() {
   const [searchQuery, setSearchQuery] = useState("");
   const [showAdminChoice, setShowAdminChoice] = useState(false);
   const [hoveredProduct, setHoveredProduct] = useState<string | null>(null);
-
+  
+  // Quick click detection for secret mode on logo
+  const logoClickCount = useRef(0);
+  const logoClickTimer = useRef<NodeJS.Timeout | null>(null);
   useEffect(() => {
     async function fetchData() {
       const [productsData, hardwareData, dbCategories] = await Promise.all([
@@ -97,6 +100,27 @@ export default function Home() {
     } else {
       window.location.href = '/extract-products';
     }
+  };
+
+  // Quick click on logo to open secret mode
+  const handleLogoClick = () => {
+    logoClickCount.current += 1;
+    
+    if (logoClickTimer.current) {
+      clearTimeout(logoClickTimer.current);
+    }
+    
+    // If user clicked 5 times quickly, show admin choice
+    if (logoClickCount.current >= 5) {
+      logoClickCount.current = 0;
+      setShowAdminChoice(true);
+      return;
+    }
+    
+    // Reset count after 1 second
+    logoClickTimer.current = setTimeout(() => {
+      logoClickCount.current = 0;
+    }, 1000);
   };
 
   const getGridClasses = () => {
@@ -294,8 +318,8 @@ export default function Home() {
       <header className="bg-white shadow-sm sticky top-0 z-50">
         <div className="container py-4">
           <div className="flex items-center justify-between gap-4">
-            {/* Logo */}
-            <Link to="/" className="shrink-0">
+            {/* Logo - Quick click opens secret mode */}
+            <div onClick={handleLogoClick} className="shrink-0 cursor-pointer">
               {company?.logo ? (
                 <img src={company.logo} alt={company.name || 'Logo'} className="h-12 md:h-16 object-contain" />
               ) : (
@@ -304,7 +328,7 @@ export default function Home() {
                   <span className="font-bold text-xl text-gray-800">{company?.name || 'Sua Empresa'}</span>
                 </div>
               )}
-            </Link>
+            </div>
 
             {/* Search Bar */}
             <form onSubmit={handleSearch} className="flex-1 max-w-2xl">
