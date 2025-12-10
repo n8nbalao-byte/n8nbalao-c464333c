@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { CartProvider } from "@/contexts/CartContext";
 import { ViewModeProvider } from "@/contexts/ViewModeContext";
+import { CompanyProvider } from "@/contexts/CompanyContext";
 import { CartDrawer } from "@/components/CartDrawer";
 import Home from "./pages/Home";
 import Automacao from "./pages/Automacao";
@@ -28,31 +29,33 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <BrowserRouter>
-        <CartProvider>
-          <ViewModeProvider>
-            <Toaster />
-            <Sonner />
-            <CartDrawer />
-            <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/automacao" element={<Automacao />} />
-              <Route path="/loja" element={<Loja />} />
-              <Route path="/produto/:id" element={<Produto />} />
-              <Route path="/hardware/:id" element={<Hardware />} />
-              <Route path="/admin" element={<Admin />} />
-              <Route path="/monte-voce-mesmo" element={<MonteVoceMesmo />} />
-              <Route path="/import-hardware" element={<ImportHardware />} />
-              <Route path="/import-products" element={<ImportProducts />} />
-              <Route path="/extract-products" element={<ExtractProducts />} />
-              <Route path="/cliente" element={<ClienteAuth />} />
-              <Route path="/meus-pedidos" element={<MeusPedidos />} />
-              <Route path="/email-marketing" element={<EmailMarketing />} />
-              <Route path="/vender" element={<LandingVendas />} />
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </ViewModeProvider>
-        </CartProvider>
+        <CompanyProvider>
+          <CartProvider>
+            <ViewModeProvider>
+              <Toaster />
+              <Sonner />
+              <CartDrawer />
+              <Routes>
+                <Route path="/" element={<Home />} />
+                <Route path="/automacao" element={<Automacao />} />
+                <Route path="/loja" element={<Loja />} />
+                <Route path="/produto/:id" element={<Produto />} />
+                <Route path="/hardware/:id" element={<Hardware />} />
+                <Route path="/admin" element={<Admin />} />
+                <Route path="/monte-voce-mesmo" element={<MonteVoceMesmo />} />
+                <Route path="/import-hardware" element={<ImportHardware />} />
+                <Route path="/import-products" element={<ImportProducts />} />
+                <Route path="/extract-products" element={<ExtractProducts />} />
+                <Route path="/cliente" element={<ClienteAuth />} />
+                <Route path="/meus-pedidos" element={<MeusPedidos />} />
+                <Route path="/email-marketing" element={<EmailMarketing />} />
+                <Route path="/vender" element={<LandingVendas />} />
+                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </ViewModeProvider>
+          </CartProvider>
+        </CompanyProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

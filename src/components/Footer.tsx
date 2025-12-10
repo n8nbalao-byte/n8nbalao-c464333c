@@ -1,17 +1,27 @@
 import { Link } from "react-router-dom";
-import logo from "@/assets/logo-white.svg";
+import { Building2 } from "lucide-react";
+import { useCompany } from "@/contexts/CompanyContext";
 
 export function Footer() {
+  const { company } = useCompany();
+
   return (
     <footer className="border-t border-white/10 bg-[hsl(222,20%,8%)] py-12">
       <div className="container">
         <div className="grid gap-8 md:grid-cols-4">
           <div>
             <Link to="/" className="flex items-center gap-2">
-              <img src={logo} alt="n8nBalão" className="h-6" />
+              {company?.logo ? (
+                <img src={company.logo} alt={company.name || 'Logo'} className="h-8 object-contain" />
+              ) : (
+                <div className="flex items-center gap-2">
+                  <Building2 className="h-6 w-6 text-primary" />
+                  <span className="font-bold text-white">{company?.name || 'Sua Empresa'}</span>
+                </div>
+              )}
             </Link>
             <p className="mt-4 text-sm text-gray-400">
-              Automatize seu atendimento com nosso chatbot inteligente para WhatsApp.
+              {company?.name ? `${company.name} - Sua loja de informática completa.` : 'Automatize seu atendimento com nosso chatbot inteligente para WhatsApp.'}
             </p>
           </div>
 
@@ -20,23 +30,30 @@ export function Footer() {
             <ul className="space-y-2 text-sm text-gray-400">
               <li><Link to="/" className="hover:text-primary">Início</Link></li>
               <li><Link to="/loja" className="hover:text-primary">Loja</Link></li>
-              <li><Link to="/admin" className="hover:text-primary">Admin</Link></li>
+              <li><Link to="/monte-voce-mesmo" className="hover:text-primary">Monte seu PC</Link></li>
             </ul>
           </div>
 
           <div>
             <h4 className="mb-4 font-semibold text-white">Contato</h4>
             <ul className="space-y-2 text-sm text-gray-400">
-              <li>
-                <a href="https://wa.me/5519981470446" target="_blank" rel="noopener noreferrer" className="hover:text-primary">
-                  WhatsApp
-                </a>
-              </li>
-              <li>
-                <a href="https://www.linkedin.com/in/hector-herrera-junior-77317632b/" target="_blank" rel="noopener noreferrer" className="hover:text-primary">
-                  LinkedIn
-                </a>
-              </li>
+              {company?.phone && (
+                <li>
+                  <a href={`https://wa.me/${company.phone.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer" className="hover:text-primary">
+                    WhatsApp: {company.phone}
+                  </a>
+                </li>
+              )}
+              {company?.email && (
+                <li>
+                  <a href={`mailto:${company.email}`} className="hover:text-primary">
+                    {company.email}
+                  </a>
+                </li>
+              )}
+              {!company?.phone && !company?.email && (
+                <li className="text-gray-500 italic">Configure os dados da empresa</li>
+              )}
             </ul>
           </div>
 
@@ -50,7 +67,7 @@ export function Footer() {
         </div>
 
         <div className="mt-8 border-t border-white/10 pt-8 text-center text-sm text-gray-400">
-          © {new Date().getFullYear()} n8nBalão. Todos os direitos reservados.
+          © {new Date().getFullYear()} {company?.name || 'Sua Empresa'}. Todos os direitos reservados.
         </div>
       </div>
     </footer>

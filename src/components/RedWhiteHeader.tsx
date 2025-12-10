@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
-import { ShoppingCart, Search, Menu, Cpu, HardDrive, Monitor, Laptop, Bot } from "lucide-react";
+import { ShoppingCart, Search, Menu, Cpu, HardDrive, Monitor, Laptop, Bot, Building2 } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
-import balaoLogo from "@/assets/balao-logo.png";
+import { useCompany } from "@/contexts/CompanyContext";
 
 interface RedWhiteHeaderProps {
   searchValue?: string;
@@ -12,13 +12,17 @@ interface RedWhiteHeaderProps {
 
 export function RedWhiteHeader({ searchValue, onSearchChange, hideCart, hideNavigation }: RedWhiteHeaderProps) {
   const { totalItems, setIsOpen } = useCart();
+  const { company } = useCompany();
+
+  // Use company primary color or default red
+  const primaryColor = company?.primaryColor || '#DC2626';
 
   return (
     <>
       {/* Top Bar */}
-      <div style={{ backgroundColor: '#DC2626' }} className="text-white py-2 text-sm">
+      <div style={{ backgroundColor: primaryColor }} className="text-white py-2 text-sm">
         <div className="container flex justify-between items-center">
-          <span>Bem-vindo à Balão da Informática!</span>
+          <span>Bem-vindo à {company?.name || 'Nossa Loja'}!</span>
           <div className="flex gap-4">
             <Link to="/cliente" className="hover:underline">Minha Conta</Link>
             <Link to="/meus-pedidos" className="hover:underline">Meus Pedidos</Link>
@@ -32,7 +36,14 @@ export function RedWhiteHeader({ searchValue, onSearchChange, hideCart, hideNavi
           <div className="flex items-center justify-between gap-4">
             {/* Logo */}
             <Link to="/" className="shrink-0">
-              <img src={balaoLogo} alt="Balão da Informática" className="h-12 md:h-16" />
+              {company?.logo ? (
+                <img src={company.logo} alt={company.name || 'Logo'} className="h-12 md:h-16 object-contain" />
+              ) : (
+                <div className="flex items-center gap-2">
+                  <Building2 className="h-12 w-12" style={{ color: primaryColor }} />
+                  <span className="font-bold text-xl text-gray-800">{company?.name || 'Sua Empresa'}</span>
+                </div>
+              )}
             </Link>
 
             {/* Search Bar */}
@@ -45,9 +56,9 @@ export function RedWhiteHeader({ searchValue, onSearchChange, hideCart, hideNavi
                     value={searchValue || ''}
                     onChange={(e) => onSearchChange(e.target.value)}
                     className="w-full px-4 py-3 pr-12 border-2 rounded-lg text-gray-800 placeholder:text-gray-400 focus:outline-none focus:ring-2"
-                    style={{ borderColor: '#DC2626' }}
+                    style={{ borderColor: primaryColor }}
                   />
-                  <button type="button" className="absolute right-2 top-1/2 -translate-y-1/2 text-white p-2 rounded-lg transition-colors" style={{ backgroundColor: '#DC2626' }}>
+                  <button type="button" className="absolute right-2 top-1/2 -translate-y-1/2 text-white p-2 rounded-lg transition-colors" style={{ backgroundColor: primaryColor }}>
                     <Search className="h-5 w-5" />
                   </button>
                 </div>
@@ -59,12 +70,12 @@ export function RedWhiteHeader({ searchValue, onSearchChange, hideCart, hideNavi
               <button 
                 onClick={() => setIsOpen(true)}
                 className="flex items-center gap-2 text-white px-4 py-2 rounded-lg transition-colors relative"
-                style={{ backgroundColor: '#DC2626' }}
+                style={{ backgroundColor: primaryColor }}
               >
                 <ShoppingCart className="h-5 w-5" />
                 <span className="hidden md:inline font-medium">Carrinho</span>
                 {totalItems > 0 && (
-                  <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-white text-xs font-bold" style={{ color: '#DC2626' }}>
+                  <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-white text-xs font-bold" style={{ color: primaryColor }}>
                     {totalItems}
                   </span>
                 )}
@@ -85,7 +96,7 @@ export function RedWhiteHeader({ searchValue, onSearchChange, hideCart, hideNavi
                   <Menu className="h-4 w-4" />
                   Loja
                 </Link>
-                <Link to="/monte-voce-mesmo" className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:bg-white rounded-lg transition-colors whitespace-nowrap font-medium" style={{ color: '#DC2626' }}>
+                <Link to="/monte-voce-mesmo" className="flex items-center gap-2 px-4 py-2 hover:bg-white rounded-lg transition-colors whitespace-nowrap font-medium" style={{ color: primaryColor }}>
                   <Cpu className="h-4 w-4" />
                   Monte seu PC
                 </Link>
