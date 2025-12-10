@@ -36,9 +36,17 @@ $pdo->exec("CREATE TABLE IF NOT EXISTS carousels (
     id INT AUTO_INCREMENT PRIMARY KEY,
     carousel_key VARCHAR(50) NOT NULL UNIQUE,
     images LONGTEXT,
+    interval_ms INT DEFAULT 4000,
     createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
     updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 )");
+
+// Add interval_ms column if it doesn't exist (for existing installations)
+try {
+    $pdo->exec("ALTER TABLE carousels ADD COLUMN interval_ms INT DEFAULT 4000");
+} catch (PDOException $e) {
+    // Column might already exist, ignore error
+}
 
 $method = $_SERVER['REQUEST_METHOD'];
 
@@ -53,11 +61,12 @@ switch ($method) {
             if ($carousel) {
                 $result = [
                     'key' => $carousel['carousel_key'],
-                    'images' => json_decode($carousel['images'], true) ?? []
+                    'images' => json_decode($carousel['images'], true) ?? [],
+                    'interval' => (int)($carousel['interval_ms'] ?? 4000)
                 ];
                 echo json_encode($result);
             } else {
-                echo json_encode(['key' => $_GET['key'], 'images' => []]);
+                echo json_encode(['key' => $_GET['key'], 'images' => [], 'interval' => 4000]);
             }
         } else {
             // Get all carousels
@@ -67,7 +76,8 @@ switch ($method) {
             $result = array_map(function($carousel) {
                 return [
                     'key' => $carousel['carousel_key'],
-                    'images' => json_decode($carousel['images'], true) ?? []
+                    'images' => json_decode($carousel['images'], true) ?? [],
+                    'interval' => (int)($carousel['interval_ms'] ?? 4000)
                 ];
             }, $carousels);
             
@@ -85,15 +95,18 @@ switch ($method) {
         }
 
         $imagesJson = json_encode($data['images'] ?? []);
+        $intervalMs = isset($data['interval']) ? (int)$data['interval'] : 4000;
 
         // Upsert - insert or update
-        $stmt = $pdo->prepare("INSERT INTO carousels (carousel_key, images) VALUES (?, ?) 
-                               ON DUPLICATE KEY UPDATE images = ?");
+        $stmt = $pdo->prepare("INSERT INTO carousels (carousel_key, images, interval_ms) VALUES (?, ?, ?) 
+                               ON DUPLICATE KEY UPDATE images = ?, interval_ms = ?");
         
         $success = $stmt->execute([
             $data['key'],
             $imagesJson,
-            $imagesJson
+            $intervalMs,
+            $imagesJson,
+            $intervalMs
         ]);
 
         if ($success) {
