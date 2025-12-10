@@ -6,8 +6,8 @@ import { CategoryNavbar } from "@/components/CategoryNavbar";
 import { api, type Product, type HardwareItem, type CompanyData, type HardwareCategory, getCustomCategories } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { useCart } from "@/contexts/CartContext";
-import { Check, Printer, ShoppingCart, ArrowLeft, Plus, X, Search, Package, ChevronRight, Cpu, Minus, CircuitBoard, MemoryStick, HardDrive, Monitor, Zap, Box, Droplets, Wrench, MessageCircle } from "lucide-react";
-import balaoLogo from "@/assets/balao-logo-red.png";
+import { useCompany } from "@/contexts/CompanyContext";
+import { Check, Printer, ShoppingCart, ArrowLeft, Plus, X, Search, Package, ChevronRight, Cpu, Minus, CircuitBoard, MemoryStick, HardDrive, Monitor, Zap, Box, Droplets, Wrench, MessageCircle, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -67,6 +67,7 @@ type Phase = 'build' | 'quote';
 export default function MonteVoceMesmo() {
   const { toast } = useToast();
   const { addToCart, setIsOpen } = useCart();
+  const { company } = useCompany();
   const [phase, setPhase] = useState<Phase>('build');
   const [hardware, setHardware] = useState<HardwareItem[]>([]);
   const [selectedHardware, setSelectedHardware] = useState<SelectedHardware>({});
@@ -551,7 +552,16 @@ export default function MonteVoceMesmo() {
         {/* Header */}
         <header className="bg-white py-4 shadow-md">
           <div className="container flex items-center justify-between">
-            <Link to="/"><img src={balaoLogo} alt="Balão da Informática" className="h-12" /></Link>
+            <Link to="/">
+              {company?.logo ? (
+                <img src={company.logo} alt={company.name || 'Logo'} className="h-12 object-contain" />
+              ) : (
+                <div className="flex items-center gap-2">
+                  <Building2 className="h-10 w-10 text-primary" />
+                  <span className="font-bold text-lg text-gray-800">{company?.name || 'Sua Empresa'}</span>
+                </div>
+              )}
+            </Link>
             <Button variant="ghost" onClick={() => setPhase('build')} className="text-primary hover:bg-primary/10">
               <ArrowLeft className="mr-2 h-4 w-4" />
               Voltar
@@ -723,7 +733,14 @@ export default function MonteVoceMesmo() {
           {/* Hero Section */}
           <div className="text-center mb-8">
             <div className="flex justify-center mb-4">
-              <img src={balaoLogo} alt="Balão da Informática" className="h-20" />
+              {company?.logo ? (
+                <img src={company.logo} alt={company.name || 'Logo'} className="h-20 object-contain" />
+              ) : (
+                <div className="flex items-center justify-center gap-2">
+                  <Building2 className="h-16 w-16 text-primary" />
+                  <span className="font-bold text-2xl text-primary">{company?.name || 'Sua Empresa'}</span>
+                </div>
+              )}
             </div>
             <h1 className="text-4xl font-bold text-primary mb-2">MONTE SEU PC</h1>
             <p className="text-primary">Escolha cada componente e monte o computador perfeito para você!</p>
