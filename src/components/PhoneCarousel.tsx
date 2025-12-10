@@ -1,6 +1,18 @@
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 
+// Import local images
+import phone1 from "@/assets/phone-carousel/phone-1.png";
+import phone2 from "@/assets/phone-carousel/phone-2.png";
+import phone3 from "@/assets/phone-carousel/phone-3.png";
+import phone4 from "@/assets/phone-carousel/phone-4.png";
+import phone5 from "@/assets/phone-carousel/phone-5.png";
+import phone6 from "@/assets/phone-carousel/phone-6.png";
+import phone7 from "@/assets/phone-carousel/phone-7.png";
+import phone8 from "@/assets/phone-carousel/phone-8.png";
+
+const localImages = [phone1, phone2, phone3, phone4, phone5, phone6, phone7, phone8];
+
 interface PhoneCarouselProps {
   carouselKey: string;
   fallbackImage?: string;
@@ -8,8 +20,8 @@ interface PhoneCarouselProps {
   alt?: string;
 }
 
-export function PhoneCarousel({ carouselKey, fallbackImage, className = "", alt = "Phone image" }: PhoneCarouselProps) {
-  const [images, setImages] = useState<string[]>([]);
+export function PhoneCarousel({ carouselKey, className = "", alt = "Phone image" }: PhoneCarouselProps) {
+  const [images, setImages] = useState<string[]>(localImages);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [interval, setIntervalTime] = useState(4000);
 
@@ -28,6 +40,7 @@ export function PhoneCarousel({ carouselKey, fallbackImage, className = "", alt 
         }
       } catch (error) {
         console.error('Error fetching carousel images:', error);
+        // Keep using local images as fallback
       }
     }
     fetchImages();
@@ -44,8 +57,7 @@ export function PhoneCarousel({ carouselKey, fallbackImage, className = "", alt 
     return () => clearInterval(timer);
   }, [images.length, interval]);
 
-  // Get the current image to display
-  const currentImage = images.length > 0 ? images[currentIndex] : fallbackImage;
+  const currentImage = images[currentIndex];
 
   if (!currentImage) {
     return null;
@@ -55,7 +67,10 @@ export function PhoneCarousel({ carouselKey, fallbackImage, className = "", alt 
     <img
       src={currentImage}
       alt={`${alt} ${currentIndex + 1}`}
-      className={`transition-opacity duration-1000 ease-in-out ${className}`}
+      className={className}
+      style={{
+        transition: 'opacity 1s ease-in-out',
+      }}
     />
   );
 }
