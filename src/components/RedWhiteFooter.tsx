@@ -49,7 +49,7 @@ export function RedWhiteFooter({ hideFooter }: RedWhiteFooterProps) {
               <li><Link to="/" className="hover:text-primary transition-colors">Início</Link></li>
               <li><Link to="/loja" className="hover:text-primary transition-colors">Loja</Link></li>
               <li><Link to="/monte-voce-mesmo" className="hover:text-primary transition-colors">Monte seu PC</Link></li>
-              <li><Link to="/automacao" className="hover:text-primary transition-colors">Automação</Link></li>
+              <li><Link to="/loja?category=fluxos_n8n" className="hover:text-primary transition-colors">Fluxos n8n</Link></li>
             </ul>
           </div>
           

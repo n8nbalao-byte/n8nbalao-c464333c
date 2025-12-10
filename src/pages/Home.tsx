@@ -524,7 +524,7 @@ export default function Home() {
                 <li><Link to="/" className="hover:text-white transition-colors">Início</Link></li>
                 <li><Link to="/loja" className="hover:text-white transition-colors">Loja</Link></li>
                 <li><Link to="/monte-voce-mesmo" className="hover:text-white transition-colors">Monte seu PC</Link></li>
-                <li><Link to="/automacao" className="hover:text-white transition-colors">Automação</Link></li>
+                <li><Link to="/loja?category=fluxos_n8n" className="hover:text-white transition-colors">Fluxos n8n</Link></li>
               </ul>
             </div>
             

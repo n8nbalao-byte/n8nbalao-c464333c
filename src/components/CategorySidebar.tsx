@@ -131,7 +131,7 @@ export function CategorySidebar({
             className="flex items-center gap-3 px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors"
           >
             <Bot className="h-5 w-5 animate-vibrate" />
-            <span className="font-medium">Automação</span>
+            <span className="font-medium">Fluxos n8n</span>
           </Link>
         </div>
         

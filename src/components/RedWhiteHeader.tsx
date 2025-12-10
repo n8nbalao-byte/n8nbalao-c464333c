@@ -100,9 +100,9 @@ export function RedWhiteHeader({ searchValue, onSearchChange, hideCart, hideNavi
                   <Cpu className="h-4 w-4" />
                   Monte seu PC
                 </Link>
-                <Link to="/automacao" className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:bg-white rounded-lg transition-colors whitespace-nowrap font-medium">
-                  <Bot className="h-4 w-4" />
-                  Automação
+<Link to="/loja?category=fluxos_n8n" className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:bg-white rounded-lg transition-colors whitespace-nowrap font-medium">
+                  <Bot className="h-4 w-4 animate-vibrate" />
+                  Fluxos n8n
                 </Link>
                 <Link to="/loja?category=notebook" className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:bg-white rounded-lg transition-colors whitespace-nowrap font-medium">
                   <Laptop className="h-4 w-4" />
