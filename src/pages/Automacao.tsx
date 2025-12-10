@@ -4,7 +4,7 @@ import { Footer } from "@/components/Footer";
 import { Sidebar } from "@/components/Sidebar";
 import { StarryBackground } from "@/components/StarryBackground";
 import { HomeCarousel } from "@/components/HomeCarousel";
-import n8nLogo from "@/assets/balao-logo.png";
+import n8nLogo from "@/assets/n8n-logo.svg";
 
 import { BenefitsCarousel } from "@/components/BenefitsCarousel";
 import { TestimonialsCarousel } from "@/components/TestimonialsCarousel";
@@ -80,8 +80,8 @@ export default function Automacao() {
     }).slice(0, 8);
   };
 
-  // Purple/coral color for this page (matching reference)
-  const accentColor = "#e84a7f"; // Pink/coral like reference
+  // Pink/coral color matching the n8n logo (#EA4B71)
+  const accentColor = "#EA4B71";
 
   return (
     <div className="min-h-screen relative dark" style={{ "--accent-automacao": accentColor } as React.CSSProperties}>
