@@ -28,11 +28,31 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
         // Parse HSL and set to CSS variable
         const hsl = hexToHSL(data.primaryColor);
         if (hsl) {
-          document.documentElement.style.setProperty('--primary', `${hsl.h} ${hsl.s}% ${hsl.l}%`);
-          document.documentElement.style.setProperty('--accent', `${hsl.h} ${hsl.s}% ${hsl.l}%`);
-          document.documentElement.style.setProperty('--ring', `${hsl.h} ${hsl.s}% ${hsl.l}%`);
-          document.documentElement.style.setProperty('--sidebar-primary', `${hsl.h} ${hsl.s}% ${hsl.l}%`);
-          document.documentElement.style.setProperty('--sidebar-ring', `${hsl.h} ${hsl.s}% ${hsl.l}%`);
+          const hslString = `${hsl.h} ${hsl.s}% ${hsl.l}%`;
+          document.documentElement.style.setProperty('--primary', hslString);
+          document.documentElement.style.setProperty('--accent', hslString);
+          document.documentElement.style.setProperty('--ring', hslString);
+          document.documentElement.style.setProperty('--sidebar-primary', hslString);
+          document.documentElement.style.setProperty('--sidebar-ring', hslString);
+          
+          // Calculate foreground color (white or black) based on luminance
+          const foregroundColor = hsl.l > 50 ? '0 0% 0%' : '0 0% 100%';
+          document.documentElement.style.setProperty('--primary-foreground', foregroundColor);
+          document.documentElement.style.setProperty('--accent-foreground', foregroundColor);
+        }
+      }
+      
+      if (data.secondaryColor) {
+        const hsl = hexToHSL(data.secondaryColor);
+        if (hsl) {
+          document.documentElement.style.setProperty('--secondary', `${hsl.h} ${hsl.s}% ${hsl.l}%`);
+        }
+      }
+      
+      if (data.accentColor) {
+        const hsl = hexToHSL(data.accentColor);
+        if (hsl) {
+          document.documentElement.style.setProperty('--destructive', `${hsl.h} ${hsl.s}% ${hsl.l}%`);
         }
       }
     } catch (error) {
@@ -63,6 +83,11 @@ function hexToHSL(hex: string): { h: number; s: number; l: number } | null {
   
   // Remove # if present
   hex = hex.replace('#', '');
+  
+  // Handle 3-digit hex
+  if (hex.length === 3) {
+    hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
+  }
   
   // Parse hex values
   const r = parseInt(hex.substring(0, 2), 16) / 255;
