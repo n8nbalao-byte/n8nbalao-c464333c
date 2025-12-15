@@ -195,7 +195,7 @@ export default function Automacao() {
 
             <div className="relative flex justify-center">
               {phoneImage && (
-                <div className="relative">
+                <div className="relative animate-float">
                   <img
                     src={phoneImage}
                     alt="WhatsApp Bot Demo"
