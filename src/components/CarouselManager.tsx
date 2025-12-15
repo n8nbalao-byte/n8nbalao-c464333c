@@ -74,6 +74,7 @@ export function CarouselManager() {
   const [editingLink, setEditingLink] = useState<{ key: string; index: number } | null>(null);
   const [linkValue, setLinkValue] = useState("");
   const [removingBackground, setRemovingBackground] = useState(false);
+  const [removeBackgroundEnabled, setRemoveBackgroundEnabled] = useState(false);
 
   useEffect(() => {
     fetchCarousels();
@@ -130,8 +131,8 @@ export function CarouselManager() {
     let uploadedCount = 0;
     const totalFiles = files.length;
 
-    // Check if this is automacao_phone - needs background removal
-    const needsBackgroundRemoval = key === 'automacao_phone';
+    // Check if background removal is enabled for automacao_phone
+    const needsBackgroundRemoval = key === 'automacao_phone' && removeBackgroundEnabled;
     
     if (needsBackgroundRemoval) {
       setRemovingBackground(true);
@@ -371,6 +372,19 @@ export function CarouselManager() {
             ))}
 
             {/* Add Image Button */}
+            {config.key === 'automacao_phone' && (
+              <div className="col-span-full flex items-center gap-3 mb-2">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={removeBackgroundEnabled}
+                    onChange={(e) => setRemoveBackgroundEnabled(e.target.checked)}
+                    className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary"
+                  />
+                  <span className="text-sm text-gray-600">Remover fundo com IA</span>
+                </label>
+              </div>
+            )}
             <label 
               className={`flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-300 hover:border-primary/50 cursor-pointer transition-colors bg-gray-50 ${
                 removingBackground && config.key === 'automacao_phone' ? 'opacity-50 pointer-events-none' : ''
@@ -385,9 +399,7 @@ export function CarouselManager() {
               ) : (
                 <>
                   <Upload className="h-8 w-8 text-gray-400 mb-2" />
-                  <span className="text-sm text-gray-500">
-                    {config.key === 'automacao_phone' ? 'Adicionar (remove fundo)' : 'Adicionar'}
-                  </span>
+                  <span className="text-sm text-gray-500">Adicionar</span>
                 </>
               )}
               <input
