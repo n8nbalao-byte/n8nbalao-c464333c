@@ -50,8 +50,8 @@ const BASE_CAROUSEL_CONFIGS: CarouselConfig[] = [
   },
   {
     key: "automacao_phone",
-    label: "Celular Automação",
-    description: "Imagem do celular na página de Automação (PNG com fundo transparente, recomendado: 400x800px)"
+    label: "Banner Principal Automação",
+    description: "Imagem principal na página de Automação (PNG com fundo transparente, recomendado: 400x800px)"
   },
   {
     key: "nocode_section",
