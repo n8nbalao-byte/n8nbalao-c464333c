@@ -1,0 +1,117 @@
+<?php
+header('Content-Type: application/json');
+header('Access-Control-Allow-Origin: *');
+header('Access-Control-Allow-Methods: POST, OPTIONS');
+header('Access-Control-Allow-Headers: Content-Type');
+
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    exit(0);
+}
+
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    echo json_encode(['success' => false, 'error' => 'Method not allowed']);
+    exit;
+}
+
+// Database connection to get API key
+$host = 'localhost';
+$dbname = 'u770915504_n8nbalao';
+$username = 'u770915504_n8nbalao';
+$password = 'Balao2025';
+
+try {
+    $pdo = new PDO("mysql:host=$host;dbname=$dbname;charset=utf8mb4", $username, $password);
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+} catch (PDOException $e) {
+    echo json_encode(['success' => false, 'error' => 'Database connection failed']);
+    exit;
+}
+
+// Get OpenAI API key
+$stmt = $pdo->query("SELECT value FROM settings WHERE `key` = 'openai_api_key'");
+$row = $stmt->fetch(PDO::FETCH_ASSOC);
+$apiKey = $row ? $row['value'] : null;
+
+if (!$apiKey) {
+    echo json_encode(['success' => false, 'error' => 'OpenAI API key not configured']);
+    exit;
+}
+
+$input = json_decode(file_get_contents('php://input'), true);
+$name = $input['name'] ?? '';
+$description = $input['description'] ?? '';
+$url = $input['url'] ?? '';
+
+if (!$name && !$description) {
+    echo json_encode(['success' => false, 'error' => 'Name or description is required']);
+    exit;
+}
+
+// Build prompt
+$systemPrompt = "Você é um especialista em SEO. Gere metadados otimizados para uma landing page.
+Responda APENAS em JSON válido no formato:
+{
+  \"title\": \"título SEO até 60 caracteres\",
+  \"description\": \"meta description até 160 caracteres\",
+  \"keywords\": [\"keyword1\", \"keyword2\", \"keyword3\", \"keyword4\", \"keyword5\"]
+}";
+
+$prompt = "Gere SEO para:\nNome: $name\nDescrição: $description" . ($url ? "\nURL de referência: $url" : "");
+
+// Call OpenAI
+$ch = curl_init('https://api.openai.com/v1/chat/completions');
+
+$data = [
+    'model' => 'gpt-4o-mini',
+    'messages' => [
+        ['role' => 'system', 'content' => $systemPrompt],
+        ['role' => 'user', 'content' => $prompt]
+    ],
+    'max_tokens' => 500,
+    'temperature' => 0.7
+];
+
+curl_setopt_array($ch, [
+    CURLOPT_RETURNTRANSFER => true,
+    CURLOPT_POST => true,
+    CURLOPT_POSTFIELDS => json_encode($data),
+    CURLOPT_HTTPHEADER => [
+        'Content-Type: application/json',
+        'Authorization: Bearer ' . $apiKey
+    ]
+]);
+
+$response = curl_exec($ch);
+$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+curl_close($ch);
+
+if ($httpCode !== 200) {
+    echo json_encode(['success' => false, 'error' => 'OpenAI API error']);
+    exit;
+}
+
+$result = json_decode($response, true);
+$content = $result['choices'][0]['message']['content'] ?? '';
+
+// Parse JSON from response
+$content = preg_replace('/^```json\s*/', '', $content);
+$content = preg_replace('/\s*```$/', '', $content);
+
+$seo = json_decode($content, true);
+
+if ($seo && isset($seo['title'])) {
+    echo json_encode([
+        'success' => true,
+        'seo' => $seo
+    ]);
+} else {
+    // Fallback
+    echo json_encode([
+        'success' => true,
+        'seo' => [
+            'title' => substr($name, 0, 60),
+            'description' => substr($description ?: $name, 0, 160),
+            'keywords' => explode(' ', strtolower($name))
+        ]
+    ]);
+}
