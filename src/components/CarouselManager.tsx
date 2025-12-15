@@ -57,7 +57,8 @@ const BASE_CAROUSEL_CONFIGS: CarouselConfig[] = [
   {
     key: "nocode_section",
     label: "Seção No-Code (Automação)",
-    description: "Imagens na página de Automação - seção 'Interface No-Code'"
+    description: "Imagens ou vídeos na página de Automação - seção 'Interface No-Code'. Suporta fotos, vídeos e arquivos base64 com reprodução automática.",
+    acceptVideo: true
   },
   {
     key: "workflow_section",
