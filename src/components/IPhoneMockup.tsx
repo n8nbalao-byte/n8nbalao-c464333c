@@ -28,7 +28,7 @@ export function IPhoneMockup({
   return (
     <div className={`relative ${className}`}>
       {/* iPhone Frame */}
-      <div className="relative mx-auto" style={{ width: "280px", height: "580px" }}>
+      <div className="relative mx-auto" style={{ width: "320px", height: "660px" }}>
         {/* Phone body */}
         <div 
           className="absolute inset-0 rounded-[50px] bg-gradient-to-b from-gray-800 to-gray-900 shadow-2xl"
