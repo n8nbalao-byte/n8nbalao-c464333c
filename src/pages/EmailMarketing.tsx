@@ -555,10 +555,6 @@ Retorne APENAS o código HTML do email, sem explicações.`,
     setSendResults([]);
     const results: { email: string; success: boolean }[] = [];
 
-    const fromAddress = useTestMode 
-      ? `${companyName} <onboarding@resend.dev>`
-      : `${companyName} <promocao@n8nbalao.com>`;
-
     // Get all contacts (customers + uploaded)
     const allContacts = [
       ...customers.map(c => ({ email: c.email, name: c.name })),
@@ -571,14 +567,14 @@ Retorne APENAS o código HTML do email, sem explicações.`,
         const customerName = contact?.name || 'Cliente';
         const personalizedHtml = personalizeHtml(htmlContent, customerName);
 
-        const response = await fetch(`${API_BASE}/send-notification.php`, {
+        const response = await fetch(`${API_BASE}/send-email.php`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             to: email,
             subject: subject,
             html: personalizedHtml,
-            from: fromAddress
+            fromName: companyName
           })
         });
 
