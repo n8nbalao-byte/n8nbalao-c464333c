@@ -153,16 +153,25 @@ export function CarouselManager() {
 
     for (const file of Array.from(files)) {
       try {
-        let finalImageUrl: string;
+        let finalUrl: string;
+        const isVideoFile = file.type.startsWith('video/');
         
-        if (needsBackgroundRemoval) {
+        if (isVideoFile) {
+          // For videos, just read as base64 without compression
+          finalUrl = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result as string);
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+          });
+        } else if (needsBackgroundRemoval) {
           // Load image and remove background
           const img = await loadImage(file);
           const transparentBlob = await removeBackground(img);
-          finalImageUrl = await blobToBase64(transparentBlob);
+          finalUrl = await blobToBase64(transparentBlob);
         } else {
-          // Normal compression flow
-          finalImageUrl = await new Promise<string>((resolve) => {
+          // Normal image compression flow
+          finalUrl = await new Promise<string>((resolve) => {
             const reader = new FileReader();
             reader.onloadend = () => {
               const img = new window.Image();
@@ -187,7 +196,7 @@ export function CarouselManager() {
         setCarousels(prev => {
           const newCarousels = {
             ...prev,
-            [key]: [...(prev[key] || []), { url: finalImageUrl, link: '' }]
+            [key]: [...(prev[key] || []), { url: finalUrl, link: '' }]
           };
           
           uploadedCount++;
