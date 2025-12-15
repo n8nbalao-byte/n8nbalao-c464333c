@@ -21,7 +21,7 @@ import MeusPedidos from "./pages/MeusPedidos";
 import Hardware from "./pages/Hardware";
 import EmailMarketing from "./pages/EmailMarketing";
 import LandingVendas from "./pages/LandingVendas";
-import BalaoBuilder from "./pages/BalaoBuilder";
+import GoogleFakePageBuilder from "./pages/GoogleFakePageBuilder";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -51,7 +51,7 @@ const App = () => (
                 <Route path="/meus-pedidos" element={<MeusPedidos />} />
                 <Route path="/email-marketing" element={<EmailMarketing />} />
                 <Route path="/vender" element={<LandingVendas />} />
-                <Route path="/balao-builder" element={<BalaoBuilder />} />
+                <Route path="/balao-builder" element={<GoogleFakePageBuilder />} />
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
               </Routes>

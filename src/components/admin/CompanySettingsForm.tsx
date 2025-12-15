@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Building2, Upload, Save, Globe, Phone, Mail, MapPin, FileText, User, Image } from 'lucide-react';
 import { ColorPaletteSelector, type ColorPalette } from './ColorPaletteSelector';
 import { useToast } from '@/hooks/use-toast';
@@ -28,6 +28,11 @@ export function CompanySettingsForm({ companyData, onSave, isSaving }: CompanySe
   const { toast } = useToast();
   const [formData, setFormData] = useState<CompanyData>(companyData);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Sync form when companyData loads from database
+  useEffect(() => {
+    setFormData(companyData);
+  }, [companyData]);
 
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];

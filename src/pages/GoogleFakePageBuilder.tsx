@@ -46,7 +46,7 @@ interface LandingPage {
   status: 'draft' | 'published';
 }
 
-const BalaoBuilder = () => {
+const GoogleFakePageBuilder = () => {
   const navigate = useNavigate();
   const { company } = useCompany();
   const [activeTab, setActiveTab] = useState('create');
@@ -252,8 +252,8 @@ const BalaoBuilder = () => {
                 <Wand2 className="h-5 w-5 text-primary" />
               </div>
               <div>
-                <h1 className="text-xl font-bold">Balão Builder</h1>
-                <p className="text-xs text-muted-foreground">Criador de Landing Pages com IA</p>
+                <h1 className="text-xl font-bold">Google Fake Page Builder</h1>
+                <p className="text-xs text-muted-foreground">Criador de Páginas Falsas com IA</p>
               </div>
             </div>
           </div>
@@ -542,4 +542,4 @@ const BalaoBuilder = () => {
   );
 };
 
-export default BalaoBuilder;
+export default GoogleFakePageBuilder;
