@@ -171,10 +171,10 @@
 
   @keyframes float {
     0%, 100% {
-      transform: translateY(0px) rotate(-2deg);
+      transform: translateY(0px);
     }
     50% {
-      transform: translateY(-20px) rotate(2deg);
+      transform: translateY(-8px);
     }
   }
 
@@ -187,7 +187,7 @@
   }
 
   .animate-float {
-    animation: float 4s ease-in-out infinite;
+    animation: float 6s ease-in-out infinite;
   }
 
   /* Flip card styles */
