@@ -14,6 +14,13 @@ interface HomeCarouselProps {
   alt?: string;
 }
 
+// Check if URL is a video
+function isVideo(url: string): boolean {
+  if (url.startsWith('data:video/')) return true;
+  const videoExtensions = ['.mp4', '.webm', '.ogg', '.mov'];
+  return videoExtensions.some(ext => url.toLowerCase().includes(ext));
+}
+
 export function HomeCarousel({ carouselKey, fallbackImage, className = "", alt = "Carousel image" }: HomeCarouselProps) {
   const [images, setImages] = useState<CarouselImage[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -39,16 +46,20 @@ export function HomeCarousel({ carouselKey, fallbackImage, className = "", alt =
     fetchImages();
   }, [carouselKey]);
 
-  // Auto-rotate images
+  // Auto-rotate images (only for images, not videos)
   useEffect(() => {
     if (images.length <= 1) return;
+    
+    // Don't auto-rotate if current item is a video
+    const currentItem = images[currentIndex];
+    if (currentItem && isVideo(currentItem.url)) return;
     
     const interval = setInterval(() => {
       setCurrentIndex((prev) => (prev + 1) % images.length);
     }, 4000); // Change every 4 seconds
 
     return () => clearInterval(interval);
-  }, [images.length]);
+  }, [images.length, currentIndex, images]);
 
   if (loading) {
     return (
@@ -70,39 +81,50 @@ export function HomeCarousel({ carouselKey, fallbackImage, className = "", alt =
     );
   }
 
-  const renderImage = (image: CarouselImage, index: number) => {
-    const imgElement = (
+  const renderMedia = (media: CarouselImage, index: number) => {
+    const isVideoFile = isVideo(media.url);
+    
+    const mediaElement = isVideoFile ? (
+      <video
+        src={media.url}
+        autoPlay
+        muted
+        loop
+        playsInline
+        className={`flex-shrink-0 w-full ${className}`}
+      />
+    ) : (
       <img
-        src={image.url}
+        src={media.url}
         alt={`${alt} ${index + 1}`}
         className={`flex-shrink-0 w-full ${className}`}
       />
     );
 
-    if (image.link) {
+    if (media.link) {
       // External link
-      if (image.link.startsWith('http')) {
+      if (media.link.startsWith('http')) {
         return (
           <a
             key={index}
-            href={image.link}
+            href={media.link}
             target="_blank"
             rel="noopener noreferrer"
             className="flex-shrink-0 w-full"
           >
-            {imgElement}
+            {mediaElement}
           </a>
         );
       }
       // Internal link
       return (
-        <Link key={index} to={image.link} className="flex-shrink-0 w-full">
-          {imgElement}
+        <Link key={index} to={media.link} className="flex-shrink-0 w-full">
+          {mediaElement}
         </Link>
       );
     }
 
-    return <div key={index} className="flex-shrink-0 w-full">{imgElement}</div>;
+    return <div key={index} className="flex-shrink-0 w-full">{mediaElement}</div>;
   };
 
   return (
@@ -111,7 +133,7 @@ export function HomeCarousel({ carouselKey, fallbackImage, className = "", alt =
         className="flex transition-transform duration-700 ease-in-out"
         style={{ transform: `translateX(-${currentIndex * 100}%)` }}
       >
-        {images.map((image, index) => renderImage(image, index))}
+        {images.map((image, index) => renderMedia(image, index))}
       </div>
       
       {/* Dots indicator */}
