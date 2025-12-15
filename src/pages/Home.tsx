@@ -93,10 +93,12 @@ export default function Home() {
     }
   };
 
-  const handleAdminChoice = (choice: 'admin' | 'extrator') => {
+  const handleAdminChoice = (choice: 'admin' | 'extrator' | 'builder') => {
     setShowAdminChoice(false);
     if (choice === 'admin') {
       window.location.href = '/admin';
+    } else if (choice === 'builder') {
+      window.location.href = '/balao-builder';
     } else {
       window.location.href = '/extract-products';
     }
@@ -286,6 +288,12 @@ export default function Home() {
                 className="w-full py-3 px-4 bg-primary text-white rounded-lg font-medium hover:bg-primary/90 transition-colors"
               >
                 Painel Administrativo
+              </button>
+              <button
+                onClick={() => handleAdminChoice('builder')}
+                className="w-full py-3 px-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg font-medium hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
+              >
+                <span>✨</span> Balão Builder
               </button>
               <button
                 onClick={() => handleAdminChoice('extrator')}
