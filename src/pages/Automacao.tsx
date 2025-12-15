@@ -4,6 +4,7 @@ import { Footer } from "@/components/Footer";
 import { Sidebar } from "@/components/Sidebar";
 import { StarryBackground } from "@/components/StarryBackground";
 import { HomeCarousel } from "@/components/HomeCarousel";
+import { IPhoneMockup } from "@/components/IPhoneMockup";
 import n8nLogo from "@/assets/n8n-logo.svg";
 
 import { BenefitsCarousel } from "@/components/BenefitsCarousel";
@@ -40,6 +41,8 @@ export default function Automacao() {
   const [loading, setLoading] = useState(true);
   const [categoryConfig, setCategoryConfig] = useState(baseCategoryConfig);
   const [phoneImage, setPhoneImage] = useState<string>("");
+  const [phoneScreenshots, setPhoneScreenshots] = useState<string[]>([]);
+  const [useIPhoneFrame, setUseIPhoneFrame] = useState(false);
   const { totalItems, setIsOpen } = useCart();
   const navigate = useNavigate();
   const location = useLocation();
@@ -52,18 +55,31 @@ export default function Automacao() {
 
   useEffect(() => {
     async function fetchData() {
-      const [data, customCategories, phoneCarousel] = await Promise.all([
+      const [data, customCategories, phoneCarousel, frameConfig] = await Promise.all([
         api.getProducts(),
         getCustomCategories(),
-        api.getCarousel("automacao_phone")
+        api.getCarousel("automacao_phone"),
+        api.getCarousel("automacao_phone_config")
       ]);
       // Sort by price (cheapest to most expensive)
       setProducts(data.sort((a, b) => (a.totalPrice || 0) - (b.totalPrice || 0)));
       
-      // Get phone image from carousel
+      // Check if using iPhone frame mode
+      const isFrameMode = frameConfig.images?.length > 0 && 
+        (typeof frameConfig.images[0] === 'string' ? frameConfig.images[0] : frameConfig.images[0].url) === 'frame';
+      setUseIPhoneFrame(isFrameMode);
+      
+      // Get phone images from carousel
       if (phoneCarousel.images && phoneCarousel.images.length > 0) {
-        const img = phoneCarousel.images[0];
-        setPhoneImage(typeof img === 'string' ? img : img.url);
+        const urls = phoneCarousel.images.map((img: any) => 
+          typeof img === 'string' ? img : img.url
+        );
+        
+        if (isFrameMode) {
+          setPhoneScreenshots(urls);
+        } else {
+          setPhoneImage(urls[0]);
+        }
       }
       
       // Merge base categories with custom categories
@@ -194,7 +210,13 @@ export default function Automacao() {
             </div>
 
             <div className="relative flex justify-center">
-              {phoneImage && (
+              {useIPhoneFrame && phoneScreenshots.length > 0 ? (
+                <div className="animate-float">
+                  <IPhoneMockup screenshots={phoneScreenshots} />
+                  {/* Glow effect behind phone */}
+                  <div className="absolute inset-0 -z-10 blur-3xl rounded-full scale-75" style={{ backgroundColor: `${accentColor}30` }} />
+                </div>
+              ) : phoneImage ? (
                 <div className="relative animate-float">
                   <img
                     src={phoneImage}
@@ -205,7 +227,7 @@ export default function Automacao() {
                   {/* Glow effect behind phone */}
                   <div className="absolute inset-0 -z-10 blur-3xl rounded-full scale-75" style={{ backgroundColor: `${accentColor}30` }} />
                 </div>
-              )}
+              ) : null}
             </div>
           </div>
         </div>
