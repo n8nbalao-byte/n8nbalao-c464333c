@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { api, getCustomCategories } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2, Upload, Save, Image, Link as LinkIcon, ExternalLink } from "lucide-react";
+import { Plus, Trash2, Upload, Save, Image, Link as LinkIcon, ExternalLink, Loader2 } from "lucide-react";
+import { removeBackground, loadImage, blobToBase64 } from "@/lib/removeBackground";
 
 interface CarouselConfig {
   key: string;
@@ -72,6 +73,7 @@ export function CarouselManager() {
   const [carouselConfigs, setCarouselConfigs] = useState<CarouselConfig[]>(BASE_CAROUSEL_CONFIGS);
   const [editingLink, setEditingLink] = useState<{ key: string; index: number } | null>(null);
   const [linkValue, setLinkValue] = useState("");
+  const [removingBackground, setRemovingBackground] = useState(false);
 
   useEffect(() => {
     fetchCarousels();
@@ -121,51 +123,85 @@ export function CarouselManager() {
     setSaving(null);
   }
 
-  function handleImageUpload(key: string, e: React.ChangeEvent<HTMLInputElement>) {
+  async function handleImageUpload(key: string, e: React.ChangeEvent<HTMLInputElement>) {
     const files = e.target.files;
     if (!files) return;
 
     let uploadedCount = 0;
     const totalFiles = files.length;
 
-    Array.from(files).forEach(file => {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        // Compress image
-        const img = new window.Image();
-        img.onload = async () => {
-          const canvas = document.createElement('canvas');
-          const maxWidth = 1200;
-          const scale = Math.min(1, maxWidth / img.width);
-          canvas.width = img.width * scale;
-          canvas.height = img.height * scale;
-          
-          const ctx = canvas.getContext('2d');
-          ctx?.drawImage(img, 0, 0, canvas.width, canvas.height);
-          
-          const compressedImage = canvas.toDataURL('image/jpeg', 0.8);
-          
-          setCarousels(prev => {
-            const newCarousels = {
-              ...prev,
-              [key]: [...(prev[key] || []), { url: compressedImage, link: '' }]
+    // Check if this is automacao_phone - needs background removal
+    const needsBackgroundRemoval = key === 'automacao_phone';
+    
+    if (needsBackgroundRemoval) {
+      setRemovingBackground(true);
+      toast({ title: "Processando", description: "Removendo fundo da imagem com IA..." });
+    }
+
+    for (const file of Array.from(files)) {
+      try {
+        let finalImageUrl: string;
+        
+        if (needsBackgroundRemoval) {
+          // Load image and remove background
+          const img = await loadImage(file);
+          const transparentBlob = await removeBackground(img);
+          finalImageUrl = await blobToBase64(transparentBlob);
+        } else {
+          // Normal compression flow
+          finalImageUrl = await new Promise<string>((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+              const img = new window.Image();
+              img.onload = () => {
+                const canvas = document.createElement('canvas');
+                const maxWidth = 1200;
+                const scale = Math.min(1, maxWidth / img.width);
+                canvas.width = img.width * scale;
+                canvas.height = img.height * scale;
+                
+                const ctx = canvas.getContext('2d');
+                ctx?.drawImage(img, 0, 0, canvas.width, canvas.height);
+                
+                resolve(canvas.toDataURL('image/jpeg', 0.8));
+              };
+              img.src = reader.result as string;
             };
-            
-            // Auto-save after all images uploaded
-            uploadedCount++;
-            if (uploadedCount === totalFiles) {
-              setTimeout(() => {
-                autoSaveCarousel(key, newCarousels[key]);
-              }, 100);
-            }
-            
-            return newCarousels;
+            reader.readAsDataURL(file);
           });
-        };
-        img.src = reader.result as string;
-      };
-      reader.readAsDataURL(file);
-    });
+        }
+        
+        setCarousels(prev => {
+          const newCarousels = {
+            ...prev,
+            [key]: [...(prev[key] || []), { url: finalImageUrl, link: '' }]
+          };
+          
+          uploadedCount++;
+          if (uploadedCount === totalFiles) {
+            setTimeout(() => {
+              autoSaveCarousel(key, newCarousels[key]);
+            }, 100);
+          }
+          
+          return newCarousels;
+        });
+      } catch (error) {
+        console.error('Error processing image:', error);
+        toast({ 
+          title: "Erro", 
+          description: needsBackgroundRemoval 
+            ? "Falha ao remover fundo. Tente uma imagem PNG." 
+            : "Falha ao processar imagem", 
+          variant: "destructive" 
+        });
+      }
+    }
+    
+    if (needsBackgroundRemoval) {
+      setRemovingBackground(false);
+      toast({ title: "Concluído", description: "Fundo removido com sucesso!" });
+    }
     
     // Reset input
     e.target.value = '';
@@ -336,17 +372,31 @@ export function CarouselManager() {
 
             {/* Add Image Button */}
             <label 
-              className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-300 hover:border-primary/50 cursor-pointer transition-colors bg-gray-50"
+              className={`flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-300 hover:border-primary/50 cursor-pointer transition-colors bg-gray-50 ${
+                removingBackground && config.key === 'automacao_phone' ? 'opacity-50 pointer-events-none' : ''
+              }`}
               style={{ aspectRatio: config.aspectRatio || '16/9' }}
             >
-              <Upload className="h-8 w-8 text-gray-400 mb-2" />
-              <span className="text-sm text-gray-500">Adicionar</span>
+              {removingBackground && config.key === 'automacao_phone' ? (
+                <>
+                  <Loader2 className="h-8 w-8 text-primary mb-2 animate-spin" />
+                  <span className="text-sm text-primary">Removendo fundo...</span>
+                </>
+              ) : (
+                <>
+                  <Upload className="h-8 w-8 text-gray-400 mb-2" />
+                  <span className="text-sm text-gray-500">
+                    {config.key === 'automacao_phone' ? 'Adicionar (remove fundo)' : 'Adicionar'}
+                  </span>
+                </>
+              )}
               <input
                 type="file"
                 accept="image/*"
-                multiple
+                multiple={config.key !== 'automacao_phone'}
                 onChange={(e) => handleImageUpload(config.key, e)}
                 className="hidden"
+                disabled={removingBackground && config.key === 'automacao_phone'}
               />
             </label>
           </div>
