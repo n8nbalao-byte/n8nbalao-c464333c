@@ -18,6 +18,9 @@ import { AICategoryClassifier } from "@/components/AICategoryClassifier";
 import { CompanySettingsForm } from "@/components/admin/CompanySettingsForm";
 import { GlobalSettingsForm } from "@/components/admin/GlobalSettingsForm";
 import { ColorPaletteSelector, type ColorPalette } from "@/components/admin/ColorPaletteSelector";
+import { ConfigurationTypeSelector, type ConfigurationType } from "@/components/admin/ConfigurationTypeSelector";
+import { ManualConfigurationBuilder } from "@/components/admin/ManualConfigurationBuilder";
+import { AIConfigurationBuilder } from "@/components/admin/AIConfigurationBuilder";
 import {
   DndContext,
   closestCenter,
@@ -354,6 +357,12 @@ export default function Admin() {
   // AI Classifier state
   const [showAIClassifier, setShowAIClassifier] = useState(false);
   const [categoriesForSort, setCategoriesForSort] = useState<Category[]>([]);
+  
+  // Configuration Builder state
+  const [showConfigTypeSelector, setShowConfigTypeSelector] = useState(false);
+  const [showManualBuilder, setShowManualBuilder] = useState(false);
+  const [showAIBuilder, setShowAIBuilder] = useState(false);
+  const [selectedConfigType, setSelectedConfigType] = useState<ConfigurationType>('pc');
   
   // Settings state
   const [openaiApiKey, setOpenaiApiKey] = useState("");
@@ -2142,11 +2151,11 @@ export default function Admin() {
               </button>
               {activeTab === 'products' && (
                   <button
-                    onClick={() => openProductEditor()}
+                    onClick={() => setShowConfigTypeSelector(true)}
                     className="inline-flex items-center gap-2 rounded-lg bg-primary px-6 py-3 font-semibold text-primary-foreground shadow-glow transition-colors hover:bg-primary/90"
                   >
                     <Plus className="h-5 w-5" />
-                    Novo Produto
+                    Nova Configuração
                   </button>
               )}
               {activeTab === 'hardware' && (
@@ -2188,7 +2197,7 @@ export default function Admin() {
                 : { backgroundColor: 'white', color: '#374151', border: '1px solid #E5E7EB' }}
             >
               <Monitor className="h-5 w-5" />
-              Montar Configurações
+              Configurações Montadas
             </button>
             <button
               onClick={() => setActiveTab('simple_products')}
@@ -5075,6 +5084,54 @@ export default function Admin() {
             setSelectedProducts(new Set());
             toast({ title: "Classificação aplicada com sucesso!" });
           }}
+        />
+      )}
+
+      {/* Configuration Type Selector Modal */}
+      {showConfigTypeSelector && (
+        <ConfigurationTypeSelector
+          onSelectManual={(type) => {
+            setSelectedConfigType(type);
+            setShowConfigTypeSelector(false);
+            setShowManualBuilder(true);
+          }}
+          onSelectAI={() => {
+            setShowConfigTypeSelector(false);
+            setShowAIBuilder(true);
+          }}
+          onClose={() => setShowConfigTypeSelector(false)}
+        />
+      )}
+
+      {/* Manual Configuration Builder */}
+      {showManualBuilder && (
+        <ManualConfigurationBuilder
+          configurationType={selectedConfigType}
+          hardware={hardware}
+          allProducts={products}
+          onSave={async (product) => {
+            await api.createProduct(product as any);
+            const updatedProducts = await api.getProducts();
+            setProducts(updatedProducts);
+            setShowManualBuilder(false);
+            toast({ title: "Configuração salva com sucesso!" });
+          }}
+          onClose={() => setShowManualBuilder(false)}
+        />
+      )}
+
+      {/* AI Configuration Builder */}
+      {showAIBuilder && (
+        <AIConfigurationBuilder
+          hardware={hardware}
+          onSave={async (product) => {
+            await api.createProduct(product as any);
+            const updatedProducts = await api.getProducts();
+            setProducts(updatedProducts);
+            setShowAIBuilder(false);
+            toast({ title: "Configuração salva com sucesso!" });
+          }}
+          onClose={() => setShowAIBuilder(false)}
         />
       )}
 
