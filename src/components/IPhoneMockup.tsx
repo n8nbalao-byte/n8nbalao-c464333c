@@ -1,27 +1,23 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 
 interface IPhoneMockupProps {
   screenshots: string[];
-  autoPlayInterval?: number;
   className?: string;
 }
 
 export function IPhoneMockup({ 
   screenshots, 
-  autoPlayInterval = 4000,
   className = ""
 }: IPhoneMockupProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
 
-  useEffect(() => {
-    if (screenshots.length <= 1) return;
-    
-    const interval = setInterval(() => {
-      setCurrentIndex((prev) => (prev + 1) % screenshots.length);
-    }, autoPlayInterval);
+  const handleNext = () => {
+    setCurrentIndex((prev) => (prev + 1) % screenshots.length);
+  };
 
-    return () => clearInterval(interval);
-  }, [screenshots.length, autoPlayInterval]);
+  const handlePrev = () => {
+    setCurrentIndex((prev) => (prev - 1 + screenshots.length) % screenshots.length);
+  };
 
   if (screenshots.length === 0) return null;
 
@@ -42,7 +38,7 @@ export function IPhoneMockup({
           
           {/* Screen area */}
           <div 
-            className="absolute overflow-hidden bg-black"
+            className="absolute overflow-hidden bg-black cursor-pointer"
             style={{
               top: "14px",
               left: "14px",
@@ -69,6 +65,20 @@ export function IPhoneMockup({
                 </div>
               ))}
             </div>
+            
+            {/* Click zones for navigation */}
+            {screenshots.length > 1 && (
+              <>
+                <div 
+                  className="absolute left-0 top-0 w-1/3 h-full z-10 hover:bg-white/5 transition-colors"
+                  onClick={handlePrev}
+                />
+                <div 
+                  className="absolute right-0 top-0 w-1/3 h-full z-10 hover:bg-white/5 transition-colors"
+                  onClick={handleNext}
+                />
+              </>
+            )}
           </div>
           
           {/* Side buttons */}
