@@ -15,6 +15,9 @@ import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/comp
 import { AdminDashboard } from "@/components/AdminDashboard";
 import { CarouselManager } from "@/components/CarouselManager";
 import { AICategoryClassifier } from "@/components/AICategoryClassifier";
+import { CompanySettingsForm } from "@/components/admin/CompanySettingsForm";
+import { GlobalSettingsForm } from "@/components/admin/GlobalSettingsForm";
+import { ColorPaletteSelector, type ColorPalette } from "@/components/admin/ColorPaletteSelector";
 import {
   DndContext,
   closestCenter,
@@ -248,6 +251,7 @@ const baseProductTypes: { key: ProductCategory; label: string; icon: React.Eleme
 
 export default function Admin() {
   const { toast } = useToast();
+  const { company, refreshCompany } = useCompany();
   const navigate = useNavigate();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [currentAdmin, setCurrentAdmin] = useState<AdminUser | null>(null);
@@ -2734,247 +2738,30 @@ export default function Admin() {
 
           {/* Company Tab */}
           {activeTab === 'company' && (
-            <div className="max-w-2xl">
-              {loading ? (
-                <div className="h-64 animate-pulse rounded-xl bg-card" />
-              ) : (
-                <div className="rounded-xl border border-border bg-card p-6">
-                  <h2 className="text-xl font-bold text-foreground mb-6">Dados da Empresa</h2>
-                  <p className="text-sm text-muted-foreground mb-6">
-                    Estes dados serão exibidos nos orçamentos gerados pelos clientes.
-                  </p>
-
-                  <div className="space-y-4">
-                    {/* Logo */}
-                    <div>
-                      <label className="block text-sm font-medium text-foreground mb-2">Logo da Empresa</label>
-                      <div className="flex items-center gap-4">
-                        {companyData.logo ? (
-                          <img
-                            src={companyData.logo}
-                            alt="Logo"
-                            className="h-20 w-20 object-contain rounded-lg border border-border bg-background"
-                          />
-                        ) : (
-                          <div className="h-20 w-20 rounded-lg border border-dashed border-border bg-secondary flex items-center justify-center">
-                            <Building2 className="h-8 w-8 text-muted-foreground" />
-                          </div>
-                        )}
-                        <label className="cursor-pointer inline-flex items-center gap-2 rounded-lg bg-secondary px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-secondary/80">
-                          <Upload className="h-4 w-4" />
-                          Enviar Logo
-                          <input
-                            type="file"
-                            accept="image/*"
-                            onChange={handleCompanyLogoUpload}
-                            className="hidden"
-                          />
-                        </label>
-                        {companyData.logo && (
-                          <button
-                            onClick={() => setCompanyData(prev => ({ ...prev, logo: '' }))}
-                            className="text-sm text-destructive hover:underline"
-                          >
-                            Remover
-                          </button>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Name */}
-                    <div>
-                      <label className="block text-sm font-medium text-foreground mb-2">Nome da Empresa</label>
-                      <input
-                        type="text"
-                        value={companyData.name}
-                        onChange={(e) => setCompanyData(prev => ({ ...prev, name: e.target.value }))}
-                        className="w-full rounded-lg border border-border bg-background px-4 py-3 text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                        placeholder="Nome da sua empresa"
-                      />
-                    </div>
-
-                    {/* CNPJ */}
-                    <div>
-                      <label className="block text-sm font-medium text-foreground mb-2">CNPJ</label>
-                      <input
-                        type="text"
-                        value={companyData.cnpj}
-                        onChange={(e) => setCompanyData(prev => ({ ...prev, cnpj: e.target.value }))}
-                        className="w-full rounded-lg border border-border bg-background px-4 py-3 text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                        placeholder="00.000.000/0001-00"
-                      />
-                    </div>
-
-                    {/* Address */}
-                    <div>
-                      <label className="block text-sm font-medium text-foreground mb-2">Endereço</label>
-                      <input
-                        type="text"
-                        value={companyData.address}
-                        onChange={(e) => setCompanyData(prev => ({ ...prev, address: e.target.value }))}
-                        className="w-full rounded-lg border border-border bg-background px-4 py-3 text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                        placeholder="Rua, número, bairro"
-                      />
-                    </div>
-
-                    {/* City */}
-                    <div>
-                      <label className="block text-sm font-medium text-foreground mb-2">Cidade/Estado</label>
-                      <input
-                        type="text"
-                        value={companyData.city}
-                        onChange={(e) => setCompanyData(prev => ({ ...prev, city: e.target.value }))}
-                        className="w-full rounded-lg border border-border bg-background px-4 py-3 text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                        placeholder="São Paulo - SP"
-                      />
-                    </div>
-
-                    {/* Phone */}
-                    <div>
-                      <label className="block text-sm font-medium text-foreground mb-2">Telefone</label>
-                      <input
-                        type="text"
-                        value={companyData.phone}
-                        onChange={(e) => setCompanyData(prev => ({ ...prev, phone: e.target.value }))}
-                        className="w-full rounded-lg border border-border bg-background px-4 py-3 text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                        placeholder="(11) 99999-9999"
-                      />
-                    </div>
-
-                    {/* Email */}
-                    <div>
-                      <label className="block text-sm font-medium text-foreground mb-2">E-mail</label>
-                      <input
-                        type="email"
-                        value={companyData.email}
-                        onChange={(e) => setCompanyData(prev => ({ ...prev, email: e.target.value }))}
-                        className="w-full rounded-lg border border-border bg-background px-4 py-3 text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                        placeholder="contato@empresa.com"
-                      />
-                    </div>
-
-                    {/* Seller */}
-                    <div>
-                      <label className="block text-sm font-medium text-foreground mb-2">Vendedor</label>
-                      <input
-                        type="text"
-                        value={companyData.seller}
-                        onChange={(e) => setCompanyData(prev => ({ ...prev, seller: e.target.value }))}
-                        className="w-full rounded-lg border border-border bg-background px-4 py-3 text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                        placeholder="Nome do vendedor padrão"
-                      />
-                    </div>
-
-                    {/* Color Customization Section */}
-                    <div className="border-t border-border pt-6 mt-6">
-                      <h3 className="text-lg font-semibold text-foreground mb-4">Personalização de Cores</h3>
-                      <p className="text-sm text-muted-foreground mb-4">
-                        Defina as cores do site. A cor primária será aplicada em todo o site.
-                      </p>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        {/* Primary Color */}
-                        <div>
-                          <label className="block text-sm font-medium text-foreground mb-2">Cor Primária</label>
-                          <div className="flex items-center gap-3">
-                            <input
-                              type="color"
-                              value={companyData.primaryColor || '#E31C23'}
-                              onChange={(e) => setCompanyData(prev => ({ ...prev, primaryColor: e.target.value }))}
-                              className="h-10 w-16 rounded cursor-pointer border border-border"
-                            />
-                            <input
-                              type="text"
-                              value={companyData.primaryColor || '#E31C23'}
-                              onChange={(e) => setCompanyData(prev => ({ ...prev, primaryColor: e.target.value }))}
-                              className="flex-1 rounded-lg border border-border bg-background px-3 py-2 text-foreground text-sm"
-                              placeholder="#E31C23"
-                            />
-                          </div>
-                          <p className="text-xs text-muted-foreground mt-1">Botões, links, destaques</p>
-                        </div>
-
-                        {/* Secondary Color */}
-                        <div>
-                          <label className="block text-sm font-medium text-foreground mb-2">Cor Secundária</label>
-                          <div className="flex items-center gap-3">
-                            <input
-                              type="color"
-                              value={companyData.secondaryColor || '#FFFFFF'}
-                              onChange={(e) => setCompanyData(prev => ({ ...prev, secondaryColor: e.target.value }))}
-                              className="h-10 w-16 rounded cursor-pointer border border-border"
-                            />
-                            <input
-                              type="text"
-                              value={companyData.secondaryColor || '#FFFFFF'}
-                              onChange={(e) => setCompanyData(prev => ({ ...prev, secondaryColor: e.target.value }))}
-                              className="flex-1 rounded-lg border border-border bg-background px-3 py-2 text-foreground text-sm"
-                              placeholder="#FFFFFF"
-                            />
-                          </div>
-                          <p className="text-xs text-muted-foreground mt-1">Fundos, cards</p>
-                        </div>
-
-                        {/* Accent Color */}
-                        <div>
-                          <label className="block text-sm font-medium text-foreground mb-2">Cor de Destaque</label>
-                          <div className="flex items-center gap-3">
-                            <input
-                              type="color"
-                              value={companyData.accentColor || '#DC2626'}
-                              onChange={(e) => setCompanyData(prev => ({ ...prev, accentColor: e.target.value }))}
-                              className="h-10 w-16 rounded cursor-pointer border border-border"
-                            />
-                            <input
-                              type="text"
-                              value={companyData.accentColor || '#DC2626'}
-                              onChange={(e) => setCompanyData(prev => ({ ...prev, accentColor: e.target.value }))}
-                              className="flex-1 rounded-lg border border-border bg-background px-3 py-2 text-foreground text-sm"
-                              placeholder="#DC2626"
-                            />
-                          </div>
-                          <p className="text-xs text-muted-foreground mt-1">Elementos especiais</p>
-                        </div>
-                      </div>
-
-                      {/* Color Preview */}
-                      <div className="mt-4 p-4 rounded-lg border border-border">
-                        <p className="text-sm font-medium text-foreground mb-3">Pré-visualização:</p>
-                        <div className="flex items-center gap-4">
-                          <div 
-                            className="px-4 py-2 rounded-lg text-white font-medium"
-                            style={{ backgroundColor: companyData.primaryColor || '#E31C23' }}
-                          >
-                            Botão Primário
-                          </div>
-                          <div 
-                            className="px-4 py-2 rounded-lg border-2 font-medium"
-                            style={{ 
-                              borderColor: companyData.primaryColor || '#E31C23',
-                              color: companyData.primaryColor || '#E31C23'
-                            }}
-                          >
-                            Botão Outline
-                          </div>
-                          <div 
-                            className="h-8 w-8 rounded-full"
-                            style={{ backgroundColor: companyData.accentColor || '#DC2626' }}
-                          />
-                        </div>
-                      </div>
-                    </div>
-
-                    <button
-                      onClick={handleCompanySave}
-                      disabled={savingCompany}
-                      className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-primary py-3 font-semibold text-primary-foreground shadow-glow transition-colors hover:bg-primary/90 disabled:opacity-50"
-                    >
-                      <Save className="h-5 w-5" />
-                      {savingCompany ? "Salvando..." : "Salvar Dados"}
-                    </button>
-                  </div>
-                </div>
-              )}
+            <div className="max-w-4xl">
+              <div className="mb-6">
+                <h2 className="text-2xl font-bold text-foreground">Configuração da Empresa</h2>
+                <p className="text-muted-foreground mt-1">
+                  Configure todos os dados da sua empresa. Estas informações serão exibidas em todo o site.
+                </p>
+              </div>
+              <CompanySettingsForm
+                companyData={companyData}
+                onSave={async (data) => {
+                  setSavingCompany(true);
+                  try {
+                    await api.saveCompany(data);
+                    setCompanyData(data);
+                    await refreshCompany();
+                    toast({ title: "Dados salvos com sucesso!" });
+                  } catch (error) {
+                    toast({ title: "Erro ao salvar", variant: "destructive" });
+                  } finally {
+                    setSavingCompany(false);
+                  }
+                }}
+                isSaving={savingCompany}
+              />
             </div>
           )}
 
