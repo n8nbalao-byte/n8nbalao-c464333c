@@ -48,6 +48,11 @@ const BASE_CAROUSEL_CONFIGS: CarouselConfig[] = [
     aspectRatio: "3/4"
   },
   {
+    key: "automacao_phone",
+    label: "Celular Automação",
+    description: "Imagem do celular na página de Automação (PNG com fundo transparente, recomendado: 400x800px)"
+  },
+  {
     key: "nocode_section",
     label: "Seção No-Code (Automação)",
     description: "Imagens na página de Automação - seção 'Interface No-Code'"

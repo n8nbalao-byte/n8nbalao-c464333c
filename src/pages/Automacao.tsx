@@ -39,6 +39,7 @@ export default function Automacao() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [categoryConfig, setCategoryConfig] = useState(baseCategoryConfig);
+  const [phoneImage, setPhoneImage] = useState<string>("");
   const { totalItems, setIsOpen } = useCart();
   const navigate = useNavigate();
   const location = useLocation();
@@ -51,12 +52,19 @@ export default function Automacao() {
 
   useEffect(() => {
     async function fetchData() {
-      const [data, customCategories] = await Promise.all([
+      const [data, customCategories, phoneCarousel] = await Promise.all([
         api.getProducts(),
-        getCustomCategories()
+        getCustomCategories(),
+        api.getCarousel("automacao_phone")
       ]);
       // Sort by price (cheapest to most expensive)
       setProducts(data.sort((a, b) => (a.totalPrice || 0) - (b.totalPrice || 0)));
+      
+      // Get phone image from carousel
+      if (phoneCarousel.images && phoneCarousel.images.length > 0) {
+        const img = phoneCarousel.images[0];
+        setPhoneImage(typeof img === 'string' ? img : img.url);
+      }
       
       // Merge base categories with custom categories
       setCategoryConfig([
@@ -186,15 +194,22 @@ export default function Automacao() {
             </div>
 
             <div className="relative flex justify-center">
-              <div className="relative">
-                <img
-                  src="https://meuwhatsappbot.com.br/images/celular.png"
-                  alt="WhatsApp Bot Demo"
-                  className="relative z-10 max-w-sm rounded-3xl drop-shadow-2xl"
-                />
-                {/* Glow effect behind phone */}
-                <div className="absolute inset-0 -z-10 blur-3xl rounded-full scale-75" style={{ backgroundColor: `${accentColor}30` }} />
-              </div>
+              {phoneImage ? (
+                <div className="relative">
+                  <img
+                    src={phoneImage}
+                    alt="WhatsApp Bot Demo"
+                    className="relative z-10 max-w-sm drop-shadow-2xl"
+                    style={{ background: 'transparent' }}
+                  />
+                  {/* Glow effect behind phone */}
+                  <div className="absolute inset-0 -z-10 blur-3xl rounded-full scale-75" style={{ backgroundColor: `${accentColor}30` }} />
+                </div>
+              ) : (
+                <div className="w-64 h-96 rounded-3xl bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center">
+                  <span className="text-gray-500 text-sm">Adicione imagem em Carrosséis</span>
+                </div>
+              )}
             </div>
           </div>
         </div>
