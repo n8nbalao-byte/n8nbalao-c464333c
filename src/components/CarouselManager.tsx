@@ -65,6 +65,11 @@ const BASE_CAROUSEL_CONFIGS: CarouselConfig[] = [
     label: "Seção Workflow (Automação)",
     description: "Imagens ou vídeos na página de Automação - seção 'Automatize processos'. Suporta fotos, vídeos e arquivos base64 com reprodução automática.",
     acceptVideo: true
+  },
+  {
+    key: "team_photo",
+    label: "Foto da Equipe (Automação)",
+    description: "Foto da equipe exibida na seção 'Plano Personalizado' da página de Automação (recomendado: 600x400px)"
   }
 ];
 

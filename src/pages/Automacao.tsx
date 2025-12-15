@@ -43,6 +43,7 @@ export default function Automacao() {
   const [phoneImage, setPhoneImage] = useState<string>("");
   const [phoneScreenshots, setPhoneScreenshots] = useState<string[]>([]);
   const [useIPhoneFrame, setUseIPhoneFrame] = useState(false);
+  const [teamPhoto, setTeamPhoto] = useState<string>("https://meuwhatsappbot.com.br/images/team.png");
   const { totalItems, setIsOpen } = useCart();
   const navigate = useNavigate();
   const location = useLocation();
@@ -55,11 +56,12 @@ export default function Automacao() {
 
   useEffect(() => {
     async function fetchData() {
-      const [data, customCategories, phoneCarousel, frameConfig] = await Promise.all([
+      const [data, customCategories, phoneCarousel, frameConfig, teamCarousel] = await Promise.all([
         api.getProducts(),
         getCustomCategories(),
         api.getCarousel("automacao_phone"),
-        api.getCarousel("automacao_phone_config")
+        api.getCarousel("automacao_phone_config"),
+        api.getCarousel("team_photo")
       ]);
       // Sort by price (cheapest to most expensive)
       setProducts(data.sort((a, b) => (a.totalPrice || 0) - (b.totalPrice || 0)));
@@ -80,6 +82,14 @@ export default function Automacao() {
         } else {
           setPhoneImage(urls[0]);
         }
+      }
+      
+      // Get team photo from carousel
+      if (teamCarousel.images && teamCarousel.images.length > 0) {
+        const url = typeof teamCarousel.images[0] === 'string' 
+          ? teamCarousel.images[0] 
+          : teamCarousel.images[0].url;
+        setTeamPhoto(url);
       }
       
       // Merge base categories with custom categories
@@ -313,7 +323,7 @@ export default function Automacao() {
           <div className="grid gap-12 lg:grid-cols-2 lg:items-center rounded-2xl backdrop-blur-sm border p-8 lg:p-12" style={{ backgroundColor: "rgba(30, 30, 50, 0.5)", borderColor: "rgba(255,255,255,0.1)" }}>
             <div>
               <img
-                src="https://meuwhatsappbot.com.br/images/team.png"
+                src={teamPhoto}
                 alt="Nossa Equipe"
                 className="rounded-xl"
               />
