@@ -102,7 +102,7 @@ function SortableCategoryButton({ category, isSelected, onClick, onDoubleClick, 
 // Admin API URL
 const ADMIN_API_URL = 'https://www.n8nbalao.com/api/admins.php';
 
-type AdminTab = 'dashboard' | 'products' | 'simple_products' | 'hardware' | 'company' | 'carousels' | 'admins' | 'settings';
+type AdminTab = 'dashboard' | 'products' | 'simple_products' | 'hardware' | 'categories' | 'company' | 'carousels' | 'admins' | 'settings';
 
 interface AdminUser {
   id: string;
@@ -2211,6 +2211,16 @@ export default function Admin() {
               Hardware (PC)
             </button>
             <button
+              onClick={() => setActiveTab('categories')}
+              className="inline-flex items-center gap-2 rounded-lg px-6 py-3 font-medium transition-colors"
+              style={activeTab === 'categories' 
+                ? { backgroundColor: '#DC2626', color: 'white' } 
+                : { backgroundColor: 'white', color: '#374151', border: '1px solid #E5E7EB' }}
+            >
+              <Tag className="h-5 w-5" />
+              Gerenciar Categorias
+            </button>
+            <button
               onClick={() => setActiveTab('company')}
               className="inline-flex items-center gap-2 rounded-lg px-6 py-3 font-medium transition-colors"
               style={activeTab === 'company' 
@@ -2260,20 +2270,16 @@ export default function Admin() {
             </button>
           </div>
 
-          {/* Categories display with drag-and-drop reordering */}
-          <div className="mb-6">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-sm font-medium" style={{ color: '#6B7280' }}>Categorias (arraste para reordenar):</span>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setSelectedCategoryFilter(null)}
-                  className="text-xs px-3 py-1 rounded-lg"
-                  style={selectedCategoryFilter === null 
-                    ? { backgroundColor: '#DC2626', color: 'white' } 
-                    : { backgroundColor: '#f3f4f6', color: '#6B7280' }}
-                >
-                  Mostrar Todos
-                </button>
+          {/* Categories Tab */}
+          {activeTab === 'categories' && (
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-2xl font-bold text-foreground">Gerenciar Categorias</h2>
+                  <p className="text-muted-foreground mt-1">
+                    Crie, edite e organize as categorias dos seus produtos. Arraste para reordenar.
+                  </p>
+                </div>
                 <button
                   onClick={() => {
                     setNewCategoryKey("");
@@ -2281,238 +2287,253 @@ export default function Admin() {
                     setNewCategoryIcon("tag");
                     setShowNewCategoryModal(true);
                   }}
-                  className="text-xs px-3 py-1 rounded-lg bg-primary text-white"
+                  className="inline-flex items-center gap-2 rounded-lg bg-primary px-6 py-3 font-semibold text-primary-foreground shadow-lg transition-all hover:bg-primary/90"
                 >
-                  + Nova Categoria
+                  <Plus className="h-5 w-5" />
+                  Nova Categoria
                 </button>
               </div>
-            </div>
-            {/* Category filter buttons - draggable */}
-            <DndContext
-              sensors={sensors}
-              collisionDetection={closestCenter}
-              onDragEnd={handleCategoryDragEnd}
-            >
-              <SortableContext items={customCategoriesList.map(c => c.key)} strategy={horizontalListSortingStrategy}>
-                <div className="flex flex-wrap gap-2">
-                  {customCategoriesList.map((cat) => (
-                    <SortableCategoryButton
-                      key={cat.key}
-                      category={cat}
-                      isSelected={selectedCategoryFilter === cat.key}
-                      onClick={() => setSelectedCategoryFilter(selectedCategoryFilter === cat.key ? null : cat.key)}
-                      onDoubleClick={() => {
-                        setEditingCategory({ key: cat.key, label: cat.label, icon: cat.icon });
-                        setEditCategoryLabel(cat.label);
-                        setEditCategoryIcon(cat.icon || 'tag');
-                        setShowEditCategoryModal(true);
-                      }}
-                      onDelete={async () => {
-                        if (confirm(`Excluir categoria "${cat.label}"?`)) {
-                          await removeCustomCategory(cat.key);
-                          const updatedCategories = await getCustomCategories();
-                          setCustomCategoriesList(updatedCategories);
-                          if (selectedCategoryFilter === cat.key) {
-                            setSelectedCategoryFilter(null);
-                          }
-                          toast({ title: "Categoria removida" });
-                        }
-                      }}
-                    />
-                  ))}
-                </div>
-              </SortableContext>
-            </DndContext>
-          </div>
 
-          {/* Edit Category Modal */}
-          {showEditCategoryModal && editingCategory && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-              <div className="w-full max-w-md rounded-xl bg-card p-6 shadow-xl border border-border">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold">Editar Categoria</h3>
-                  <button
-                    onClick={() => {
-                      setShowEditCategoryModal(false);
-                      setEditingCategory(null);
-                    }}
-                    className="text-muted-foreground hover:text-foreground"
-                  >
-                    <X className="h-5 w-5" />
-                  </button>
-                </div>
-                
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Nome da Categoria</label>
-                    <input
-                      type="text"
-                      value={editCategoryLabel}
-                      onChange={(e) => setEditCategoryLabel(e.target.value)}
-                      className="w-full rounded-lg border border-border bg-background px-3 py-2 text-foreground focus:border-primary focus:outline-none"
-                      placeholder="Ex: Notebooks"
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Ícone</label>
-                    <div className="grid grid-cols-8 gap-2 max-h-40 overflow-y-auto p-2 border border-border rounded-lg bg-background">
-                      {availableIcons.map((iconOption) => {
-                        const IconComp = iconOption.icon;
-                        return (
-                          <button
-                            key={iconOption.key}
-                            type="button"
-                            onClick={() => setEditCategoryIcon(iconOption.key)}
-                            className={`p-2 rounded-lg transition-colors ${
-                              editCategoryIcon === iconOption.key
-                                ? "bg-primary text-primary-foreground"
-                                : "bg-secondary hover:bg-secondary/80"
-                            }`}
-                            title={iconOption.key}
-                          >
-                            <IconComp className="h-4 w-4" />
-                          </button>
-                        );
-                      })}
+              {/* Categories Grid with drag-and-drop */}
+              <div className="rounded-xl border border-border bg-card p-6">
+                <DndContext
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  onDragEnd={handleCategoryDragEnd}
+                >
+                  <SortableContext items={customCategoriesList.map(c => c.key)} strategy={horizontalListSortingStrategy}>
+                    <div className="flex flex-wrap gap-3">
+                      {customCategoriesList.map((cat) => (
+                        <SortableCategoryButton
+                          key={cat.key}
+                          category={cat}
+                          isSelected={selectedCategoryFilter === cat.key}
+                          onClick={() => setSelectedCategoryFilter(selectedCategoryFilter === cat.key ? null : cat.key)}
+                          onDoubleClick={() => {
+                            setEditingCategory({ key: cat.key, label: cat.label, icon: cat.icon });
+                            setEditCategoryLabel(cat.label);
+                            setEditCategoryIcon(cat.icon || 'tag');
+                            setShowEditCategoryModal(true);
+                          }}
+                          onDelete={async () => {
+                            if (confirm(`Excluir categoria "${cat.label}"?`)) {
+                              await removeCustomCategory(cat.key);
+                              const updatedCategories = await getCustomCategories();
+                              setCustomCategoriesList(updatedCategories);
+                              if (selectedCategoryFilter === cat.key) {
+                                setSelectedCategoryFilter(null);
+                              }
+                              toast({ title: "Categoria removida" });
+                            }
+                          }}
+                        />
+                      ))}
+                      {customCategoriesList.length === 0 && (
+                        <p className="text-muted-foreground text-center py-8 w-full">
+                          Nenhuma categoria cadastrada. Clique em "Nova Categoria" para criar.
+                        </p>
+                      )}
                     </div>
-                  </div>
-                  
-                  <div className="flex gap-2 pt-2">
-                    <button
-                      onClick={() => {
-                        setShowEditCategoryModal(false);
-                        setEditingCategory(null);
-                      }}
-                      className="flex-1 rounded-lg border border-border px-4 py-2 text-foreground hover:bg-secondary"
-                    >
-                      Cancelar
-                    </button>
-                    <button
-                      onClick={async () => {
-                        if (!editCategoryLabel.trim()) {
-                          toast({ title: "Erro", description: "Nome é obrigatório", variant: "destructive" });
-                          return;
-                        }
-                        const success = await updateCustomCategory(
-                          editingCategory.key,
-                          editCategoryLabel.trim(),
-                          editCategoryIcon
-                        );
-                        if (success) {
-                          const updatedCategories = await getCustomCategories();
-                          setCustomCategoriesList(updatedCategories);
-                          toast({ title: "Categoria atualizada" });
+                  </SortableContext>
+                </DndContext>
+
+                <div className="mt-6 pt-6 border-t border-border">
+                  <p className="text-sm text-muted-foreground">
+                    <strong>Dica:</strong> Clique duplo em uma categoria para editar. Clique no X para remover.
+                  </p>
+                </div>
+              </div>
+
+              {/* Edit Category Modal */}
+              {showEditCategoryModal && editingCategory && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+                  <div className="w-full max-w-md rounded-xl bg-card p-6 shadow-xl border border-border">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-lg font-semibold">Editar Categoria</h3>
+                      <button
+                        onClick={() => {
                           setShowEditCategoryModal(false);
                           setEditingCategory(null);
-                        } else {
-                          toast({ title: "Erro", description: "Falha ao atualizar categoria", variant: "destructive" });
-                        }
-                      }}
-                      className="flex-1 rounded-lg bg-primary px-4 py-2 text-primary-foreground hover:bg-primary/80"
-                    >
-                      Salvar
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* New Category Modal */}
-          {showNewCategoryModal && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-              <div className="w-full max-w-md rounded-xl bg-card p-6 shadow-xl border border-border">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold">Nova Categoria</h3>
-                  <button
-                    onClick={() => setShowNewCategoryModal(false)}
-                    className="text-muted-foreground hover:text-foreground"
-                  >
-                    <X className="h-5 w-5" />
-                  </button>
-                </div>
-                
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Chave (identificador único)</label>
-                    <input
-                      type="text"
-                      value={newCategoryKey}
-                      onChange={(e) => setNewCategoryKey(e.target.value.toLowerCase().replace(/\s+/g, '_'))}
-                      placeholder="ex: eletronicos"
-                      className="w-full rounded-lg border border-border bg-background px-4 py-2 text-foreground focus:border-primary focus:outline-none"
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Nome da Categoria</label>
-                    <input
-                      type="text"
-                      value={newCategoryLabel}
-                      onChange={(e) => setNewCategoryLabel(e.target.value)}
-                      placeholder="ex: Eletrônicos"
-                      className="w-full rounded-lg border border-border bg-background px-4 py-2 text-foreground focus:border-primary focus:outline-none"
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Ícone</label>
-                    <div className="grid grid-cols-8 gap-2 max-h-40 overflow-y-auto p-2 border border-border rounded-lg">
-                      {availableIcons.slice(0, 80).map((iconItem) => {
-                        const IconComponent = iconItem.icon;
-                        return (
-                          <button
-                            key={iconItem.key}
-                            type="button"
-                            onClick={() => setNewCategoryIcon(iconItem.key)}
-                            className={`p-2 rounded-lg transition-colors ${
-                              newCategoryIcon === iconItem.key
-                                ? 'bg-primary text-primary-foreground'
-                                : 'bg-secondary hover:bg-secondary/80'
-                            }`}
-                            title={iconItem.key}
-                          >
-                            <IconComponent className="h-4 w-4" />
-                          </button>
-                        );
-                      })}
+                        }}
+                        className="text-muted-foreground hover:text-foreground"
+                      >
+                        <X className="h-5 w-5" />
+                      </button>
+                    </div>
+                    
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium mb-1">Nome da Categoria</label>
+                        <input
+                          type="text"
+                          value={editCategoryLabel}
+                          onChange={(e) => setEditCategoryLabel(e.target.value)}
+                          className="w-full rounded-lg border border-border bg-background px-3 py-2 text-foreground focus:border-primary focus:outline-none"
+                          placeholder="Ex: Notebooks"
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium mb-2">Ícone</label>
+                        <div className="grid grid-cols-8 gap-2 max-h-40 overflow-y-auto p-2 border border-border rounded-lg bg-background">
+                          {availableIcons.map((iconOption) => {
+                            const IconComp = iconOption.icon;
+                            return (
+                              <button
+                                key={iconOption.key}
+                                type="button"
+                                onClick={() => setEditCategoryIcon(iconOption.key)}
+                                className={`p-2 rounded-lg transition-colors ${
+                                  editCategoryIcon === iconOption.key
+                                    ? "bg-primary text-primary-foreground"
+                                    : "bg-secondary hover:bg-secondary/80"
+                                }`}
+                                title={iconOption.key}
+                              >
+                                <IconComp className="h-4 w-4" />
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                      
+                      <div className="flex gap-2 pt-2">
+                        <button
+                          onClick={() => {
+                            setShowEditCategoryModal(false);
+                            setEditingCategory(null);
+                          }}
+                          className="flex-1 rounded-lg border border-border px-4 py-2 text-foreground hover:bg-secondary"
+                        >
+                          Cancelar
+                        </button>
+                        <button
+                          onClick={async () => {
+                            if (!editCategoryLabel.trim()) {
+                              toast({ title: "Erro", description: "Nome é obrigatório", variant: "destructive" });
+                              return;
+                            }
+                            const success = await updateCustomCategory(
+                              editingCategory.key,
+                              editCategoryLabel.trim(),
+                              editCategoryIcon
+                            );
+                            if (success) {
+                              const updatedCategories = await getCustomCategories();
+                              setCustomCategoriesList(updatedCategories);
+                              toast({ title: "Categoria atualizada" });
+                              setShowEditCategoryModal(false);
+                              setEditingCategory(null);
+                            } else {
+                              toast({ title: "Erro", description: "Falha ao atualizar categoria", variant: "destructive" });
+                            }
+                          }}
+                          className="flex-1 rounded-lg bg-primary px-4 py-2 text-primary-foreground hover:bg-primary/80"
+                        >
+                          Salvar
+                        </button>
+                      </div>
                     </div>
                   </div>
-                  
-                  <div className="flex gap-2 pt-4">
-                    <button
-                      onClick={() => setShowNewCategoryModal(false)}
-                      className="flex-1 rounded-lg border border-border px-4 py-2 text-foreground hover:bg-secondary"
-                    >
-                      Cancelar
-                    </button>
-                    <button
-                      onClick={async () => {
-                        if (!newCategoryKey.trim() || !newCategoryLabel.trim()) {
-                          toast({ title: "Erro", description: "Preencha todos os campos", variant: "destructive" });
-                          return;
-                        }
-                        const success = await addCustomCategory(newCategoryKey.trim(), newCategoryLabel.trim(), newCategoryIcon);
-                        if (success) {
-                          const updatedCategories = await getCustomCategories();
-                          setCustomCategoriesList(updatedCategories);
-                          toast({ title: "Categoria adicionada" });
-                          setShowNewCategoryModal(false);
-                          setNewCategoryKey("");
-                          setNewCategoryLabel("");
-                          setNewCategoryIcon("tag");
-                        } else {
-                          toast({ title: "Erro", description: "Falha ao adicionar categoria", variant: "destructive" });
-                        }
-                      }}
-                      className="flex-1 rounded-lg bg-primary px-4 py-2 text-primary-foreground hover:bg-primary/80"
-                    >
-                      Adicionar
-                    </button>
+                </div>
+              )}
+
+              {/* New Category Modal */}
+              {showNewCategoryModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+                  <div className="w-full max-w-md rounded-xl bg-card p-6 shadow-xl border border-border">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-lg font-semibold">Nova Categoria</h3>
+                      <button
+                        onClick={() => setShowNewCategoryModal(false)}
+                        className="text-muted-foreground hover:text-foreground"
+                      >
+                        <X className="h-5 w-5" />
+                      </button>
+                    </div>
+                    
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium mb-1">Chave (identificador único)</label>
+                        <input
+                          type="text"
+                          value={newCategoryKey}
+                          onChange={(e) => setNewCategoryKey(e.target.value.toLowerCase().replace(/\s+/g, '_'))}
+                          placeholder="ex: eletronicos"
+                          className="w-full rounded-lg border border-border bg-background px-4 py-2 text-foreground focus:border-primary focus:outline-none"
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium mb-1">Nome da Categoria</label>
+                        <input
+                          type="text"
+                          value={newCategoryLabel}
+                          onChange={(e) => setNewCategoryLabel(e.target.value)}
+                          placeholder="ex: Eletrônicos"
+                          className="w-full rounded-lg border border-border bg-background px-4 py-2 text-foreground focus:border-primary focus:outline-none"
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium mb-2">Ícone</label>
+                        <div className="grid grid-cols-8 gap-2 max-h-40 overflow-y-auto p-2 border border-border rounded-lg">
+                          {availableIcons.slice(0, 80).map((iconItem) => {
+                            const IconComponent = iconItem.icon;
+                            return (
+                              <button
+                                key={iconItem.key}
+                                type="button"
+                                onClick={() => setNewCategoryIcon(iconItem.key)}
+                                className={`p-2 rounded-lg transition-colors ${
+                                  newCategoryIcon === iconItem.key
+                                    ? 'bg-primary text-primary-foreground'
+                                    : 'bg-secondary hover:bg-secondary/80'
+                                }`}
+                                title={iconItem.key}
+                              >
+                                <IconComponent className="h-4 w-4" />
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                      
+                      <div className="flex gap-2 pt-4">
+                        <button
+                          onClick={() => setShowNewCategoryModal(false)}
+                          className="flex-1 rounded-lg border border-border px-4 py-2 text-foreground hover:bg-secondary"
+                        >
+                          Cancelar
+                        </button>
+                        <button
+                          onClick={async () => {
+                            if (!newCategoryKey.trim() || !newCategoryLabel.trim()) {
+                              toast({ title: "Erro", description: "Preencha todos os campos", variant: "destructive" });
+                              return;
+                            }
+                            const success = await addCustomCategory(newCategoryKey.trim(), newCategoryLabel.trim(), newCategoryIcon);
+                            if (success) {
+                              const updatedCategories = await getCustomCategories();
+                              setCustomCategoriesList(updatedCategories);
+                              toast({ title: "Categoria adicionada" });
+                              setShowNewCategoryModal(false);
+                              setNewCategoryKey("");
+                              setNewCategoryLabel("");
+                              setNewCategoryIcon("tag");
+                            } else {
+                              toast({ title: "Erro", description: "Falha ao adicionar categoria", variant: "destructive" });
+                            }
+                          }}
+                          className="flex-1 rounded-lg bg-primary px-4 py-2 text-primary-foreground hover:bg-primary/80"
+                        >
+                          Adicionar
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
             </div>
           )}
 
