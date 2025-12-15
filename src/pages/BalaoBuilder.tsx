@@ -28,6 +28,8 @@ import {
 } from 'lucide-react';
 import { useCompany } from '@/contexts/CompanyContext';
 
+const API_BASE = 'https://www.n8nbalao.com/api';
+
 interface LandingPage {
   id: string;
   name: string;
@@ -66,7 +68,7 @@ const BalaoBuilder = () => {
 
   const loadLandingPages = async () => {
     try {
-      const response = await fetch('/api/landing-builder.php?action=list');
+      const response = await fetch(`${API_BASE}/landing-builder.php?action=list`);
       if (response.ok) {
         const data = await response.json();
         setLandingPages(data.pages || []);
@@ -84,7 +86,7 @@ const BalaoBuilder = () => {
 
     setIsLoading(true);
     try {
-      const response = await fetch('/api/screenshot.php', {
+      const response = await fetch(`${API_BASE}/screenshot.php`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url: pageUrl })
@@ -112,7 +114,7 @@ const BalaoBuilder = () => {
 
     setIsLoading(true);
     try {
-      const response = await fetch('/api/seo-generator.php', {
+      const response = await fetch(`${API_BASE}/seo-generator.php`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
@@ -144,7 +146,7 @@ const BalaoBuilder = () => {
 
     setIsLoading(true);
     try {
-      const response = await fetch('/api/landing-builder.php', {
+      const response = await fetch(`${API_BASE}/landing-builder.php`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -182,7 +184,7 @@ const BalaoBuilder = () => {
 
     setIsLoading(true);
     try {
-      const response = await fetch('/api/landing-builder.php', {
+      const response = await fetch(`${API_BASE}/landing-builder.php`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -213,7 +215,7 @@ const BalaoBuilder = () => {
     if (!confirm('Tem certeza que deseja excluir esta página?')) return;
 
     try {
-      const response = await fetch('/api/landing-builder.php', {
+      const response = await fetch(`${API_BASE}/landing-builder.php`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'delete', id })
