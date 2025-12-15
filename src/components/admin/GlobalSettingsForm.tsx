@@ -13,8 +13,9 @@ interface SettingsData {
   elevenlabs_api_key: string;
   elevenlabs_voice_id: string;
   elevenlabs_enabled: string;
-  resend_api_key: string;
-  sender_email: string;
+  smtp_email: string;
+  smtp_password: string;
+  smtp_name: string;
 }
 
 const availableModels = [
@@ -42,7 +43,7 @@ export function GlobalSettingsForm() {
   const [saving, setSaving] = useState(false);
   const [showApiKey, setShowApiKey] = useState(false);
   const [showElevenlabsKey, setShowElevenlabsKey] = useState(false);
-  const [showResendKey, setShowResendKey] = useState(false);
+  const [showSmtpPassword, setShowSmtpPassword] = useState(false);
   
   const [settings, setSettings] = useState<SettingsData>({
     openai_api_key: '',
@@ -53,8 +54,9 @@ export function GlobalSettingsForm() {
     elevenlabs_api_key: '',
     elevenlabs_voice_id: 'B93iDjT4HFRCZ3Ju8oaV',
     elevenlabs_enabled: 'false',
-    resend_api_key: '',
-    sender_email: ''
+    smtp_email: '',
+    smtp_password: '',
+    smtp_name: ''
   });
 
   useEffect(() => {
@@ -83,8 +85,9 @@ export function GlobalSettingsForm() {
             elevenlabs_api_key: settingsMap.elevenlabs_api_key || '',
             elevenlabs_voice_id: settingsMap.elevenlabs_voice_id || 'B93iDjT4HFRCZ3Ju8oaV',
             elevenlabs_enabled: settingsMap.elevenlabs_enabled || 'false',
-            resend_api_key: settingsMap.resend_api_key || '',
-            sender_email: settingsMap.sender_email || ''
+            smtp_email: settingsMap.smtp_email || '',
+            smtp_password: settingsMap.smtp_password || '',
+            smtp_name: settingsMap.smtp_name || ''
           }));
         }
       }
@@ -109,8 +112,9 @@ export function GlobalSettingsForm() {
         { key: 'elevenlabs_api_key', value: settings.elevenlabs_api_key },
         { key: 'elevenlabs_voice_id', value: settings.elevenlabs_voice_id },
         { key: 'elevenlabs_enabled', value: settings.elevenlabs_enabled },
-        { key: 'resend_api_key', value: settings.resend_api_key },
-        { key: 'sender_email', value: settings.sender_email }
+        { key: 'smtp_email', value: settings.smtp_email },
+        { key: 'smtp_password', value: settings.smtp_password },
+        { key: 'smtp_name', value: settings.smtp_name }
       ];
 
       for (const setting of settingsToSave) {
@@ -143,7 +147,7 @@ export function GlobalSettingsForm() {
 
   const hasOpenAI = settings.openai_api_key.length > 10;
   const hasElevenLabs = settings.elevenlabs_api_key.length > 10;
-  const hasResend = settings.resend_api_key.length > 10;
+  const hasSmtp = settings.smtp_email.length > 5 && settings.smtp_password.length > 5;
 
   return (
     <div className="space-y-6">
@@ -169,12 +173,12 @@ export function GlobalSettingsForm() {
           </div>
         </div>
         
-        <div className={`rounded-xl p-4 border ${hasResend ? 'border-green-500 bg-green-50' : 'border-muted bg-muted/20'}`}>
+        <div className={`rounded-xl p-4 border ${hasSmtp ? 'border-green-500 bg-green-50' : 'border-muted bg-muted/20'}`}>
           <div className="flex items-center gap-3">
-            {hasResend ? <CheckCircle className="h-5 w-5 text-green-600" /> : <Mail className="h-5 w-5 text-muted-foreground" />}
+            {hasSmtp ? <CheckCircle className="h-5 w-5 text-green-600" /> : <Mail className="h-5 w-5 text-muted-foreground" />}
             <div>
-              <p className="font-medium text-foreground">Resend (Email)</p>
-              <p className="text-sm text-muted-foreground">{hasResend ? 'Configurado' : 'Opcional'}</p>
+              <p className="font-medium text-foreground">Gmail SMTP (Email)</p>
+              <p className="text-sm text-muted-foreground">{hasSmtp ? 'Configurado' : 'Opcional'}</p>
             </div>
           </div>
         </div>
@@ -342,53 +346,76 @@ export function GlobalSettingsForm() {
         )}
       </div>
 
-      {/* Resend Settings */}
+      {/* Gmail SMTP Settings */}
       <div className="rounded-2xl border border-border bg-card p-6">
         <div className="flex items-center gap-3 mb-6">
-          <div className="p-2 rounded-lg bg-blue-100">
-            <Mail className="h-5 w-5 text-blue-600" />
+          <div className="p-2 rounded-lg bg-red-100">
+            <Mail className="h-5 w-5 text-red-600" />
           </div>
           <div>
-            <h3 className="font-semibold text-lg text-foreground">Resend - Email Marketing</h3>
-            <p className="text-sm text-muted-foreground">Envio de emails e campanhas (opcional)</p>
+            <h3 className="font-semibold text-lg text-foreground">Gmail SMTP - Email Marketing</h3>
+            <p className="text-sm text-muted-foreground">Envio de emails via conta Google</p>
           </div>
+        </div>
+
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4">
+          <p className="text-sm text-amber-800">
+            <strong>Como criar uma Senha de App:</strong><br />
+            1. Acesse <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noopener" className="underline">myaccount.google.com/apppasswords</a><br />
+            2. Selecione "Outro (Nome personalizado)" e digite o nome do seu site<br />
+            3. Clique em "Gerar" e copie a senha de 16 caracteres<br />
+            4. Cole a senha no campo abaixo
+          </p>
         </div>
 
         <div className="space-y-4">
           <div>
             <label className="flex items-center gap-2 text-sm font-medium text-foreground mb-2">
+              <Mail className="h-4 w-4" />
+              Email Gmail
+            </label>
+            <input
+              type="email"
+              value={settings.smtp_email}
+              onChange={(e) => setSettings(prev => ({ ...prev, smtp_email: e.target.value }))}
+              className="w-full rounded-lg border border-border bg-background px-4 py-3 text-foreground focus:border-primary focus:outline-none"
+              placeholder="seuemail@gmail.com"
+            />
+          </div>
+
+          <div>
+            <label className="flex items-center gap-2 text-sm font-medium text-foreground mb-2">
               <Key className="h-4 w-4" />
-              Chave API Resend
+              Senha de App Google
             </label>
             <div className="relative">
               <input
-                type={showResendKey ? 'text' : 'password'}
-                value={settings.resend_api_key}
-                onChange={(e) => setSettings(prev => ({ ...prev, resend_api_key: e.target.value }))}
+                type={showSmtpPassword ? 'text' : 'password'}
+                value={settings.smtp_password}
+                onChange={(e) => setSettings(prev => ({ ...prev, smtp_password: e.target.value }))}
                 className="w-full rounded-lg border border-border bg-background px-4 py-3 pr-12 text-foreground focus:border-primary focus:outline-none"
-                placeholder="re_..."
+                placeholder="xxxx xxxx xxxx xxxx"
               />
               <button
                 type="button"
-                onClick={() => setShowResendKey(!showResendKey)}
+                onClick={() => setShowSmtpPassword(!showSmtpPassword)}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
               >
-                {showResendKey ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                {showSmtpPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
               </button>
             </div>
           </div>
 
           <div>
             <label className="flex items-center gap-2 text-sm font-medium text-foreground mb-2">
-              <Mail className="h-4 w-4" />
-              Email Remetente
+              Nome do Remetente
             </label>
             <input
-              type="email"
-              value={settings.sender_email}
-              onChange={(e) => setSettings(prev => ({ ...prev, sender_email: e.target.value }))}
+              type="text"
+              value={settings.smtp_name}
+              onChange={(e) => setSettings(prev => ({ ...prev, smtp_name: e.target.value }))}
               className="w-full rounded-lg border border-border bg-background px-4 py-3 text-foreground focus:border-primary focus:outline-none"
-              placeholder="noreply@seudominio.com"
+              placeholder="Nome da Empresa"
             />
           </div>
         </div>
