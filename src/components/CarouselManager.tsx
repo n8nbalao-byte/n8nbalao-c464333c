@@ -51,7 +51,7 @@ const BASE_CAROUSEL_CONFIGS: CarouselConfig[] = [
   {
     key: "automacao_phone",
     label: "Banner Principal Automação",
-    description: "Imagem principal na página de Automação (PNG com fundo transparente, recomendado: 400x800px)"
+    description: "Imagem ou prints do WhatsApp para a página de Automação. Ative 'Frame iPhone' para exibir prints dentro de um mockup de celular."
   },
   {
     key: "nocode_section",
@@ -75,6 +75,7 @@ export function CarouselManager() {
   const [linkValue, setLinkValue] = useState("");
   const [removingBackground, setRemovingBackground] = useState(false);
   const [removeBackgroundEnabled, setRemoveBackgroundEnabled] = useState(false);
+  const [useIPhoneFrame, setUseIPhoneFrame] = useState(false);
 
   useEffect(() => {
     fetchCarousels();
@@ -106,6 +107,14 @@ export function CarouselManager() {
       data[config.key] = images.map((img: string | CarouselImage) => 
         typeof img === 'string' ? { url: img, link: '' } : img
       );
+    }
+    
+    // Load iPhone frame config
+    const frameConfig = await api.getCarousel('automacao_phone_config');
+    if (frameConfig.images && frameConfig.images.length > 0) {
+      const config = frameConfig.images[0];
+      const configUrl = typeof config === 'string' ? config : config.url;
+      setUseIPhoneFrame(configUrl === 'frame');
     }
     
     setCarousels(data);
@@ -373,16 +382,39 @@ export function CarouselManager() {
 
             {/* Add Image Button */}
             {config.key === 'automacao_phone' && (
-              <div className="col-span-full flex items-center gap-3 mb-2">
+              <div className="col-span-full flex flex-wrap items-center gap-4 mb-2 p-3 bg-gray-100 rounded-lg">
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
                     type="checkbox"
-                    checked={removeBackgroundEnabled}
-                    onChange={(e) => setRemoveBackgroundEnabled(e.target.checked)}
+                    checked={useIPhoneFrame}
+                    onChange={async (e) => {
+                      setUseIPhoneFrame(e.target.checked);
+                      // Save config
+                      await api.saveCarousel('automacao_phone_config', [{ url: e.target.checked ? 'frame' : 'image', link: '' }]);
+                      toast({ title: "Configuração salva", description: e.target.checked ? "Modo Frame iPhone ativado" : "Modo imagem simples" });
+                    }}
                     className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary"
                   />
-                  <span className="text-sm text-gray-600">Remover fundo com IA</span>
+                  <span className="text-sm text-gray-700 font-medium">Frame iPhone (prints do WhatsApp)</span>
                 </label>
+                
+                {!useIPhoneFrame && (
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={removeBackgroundEnabled}
+                      onChange={(e) => setRemoveBackgroundEnabled(e.target.checked)}
+                      className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary"
+                    />
+                    <span className="text-sm text-gray-600">Remover fundo com IA</span>
+                  </label>
+                )}
+                
+                <span className="text-xs text-gray-500">
+                  {useIPhoneFrame 
+                    ? "📱 Envie prints do WhatsApp - serão exibidos dentro do frame do iPhone" 
+                    : "🖼️ Envie uma imagem PNG com fundo transparente"}
+                </span>
               </div>
             )}
             <label 
@@ -399,13 +431,15 @@ export function CarouselManager() {
               ) : (
                 <>
                   <Upload className="h-8 w-8 text-gray-400 mb-2" />
-                  <span className="text-sm text-gray-500">Adicionar</span>
+                  <span className="text-sm text-gray-500">
+                    {config.key === 'automacao_phone' && useIPhoneFrame ? 'Adicionar prints' : 'Adicionar'}
+                  </span>
                 </>
               )}
               <input
                 type="file"
                 accept="image/*"
-                multiple={config.key !== 'automacao_phone'}
+                multiple={config.key !== 'automacao_phone' || useIPhoneFrame}
                 onChange={(e) => handleImageUpload(config.key, e)}
                 className="hidden"
                 disabled={removingBackground && config.key === 'automacao_phone'}
