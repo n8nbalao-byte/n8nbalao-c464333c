@@ -194,7 +194,7 @@ export default function Automacao() {
             </div>
 
             <div className="relative flex justify-center">
-              {phoneImage ? (
+              {phoneImage && (
                 <div className="relative">
                   <img
                     src={phoneImage}
@@ -204,10 +204,6 @@ export default function Automacao() {
                   />
                   {/* Glow effect behind phone */}
                   <div className="absolute inset-0 -z-10 blur-3xl rounded-full scale-75" style={{ backgroundColor: `${accentColor}30` }} />
-                </div>
-              ) : (
-                <div className="w-64 h-96 rounded-3xl bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center">
-                  <span className="text-gray-500 text-sm">Adicione imagem em Carrosséis</span>
                 </div>
               )}
             </div>
