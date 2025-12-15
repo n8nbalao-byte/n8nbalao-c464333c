@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Key, Eye, EyeOff, Save, Bot, Volume2, Mail, Sparkles, AlertCircle, CheckCircle } from 'lucide-react';
+import { Key, Eye, EyeOff, Save, Bot, Volume2, Mail, Sparkles, AlertCircle, CheckCircle, Database, Server, HardDrive } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 const API_BASE = 'https://www.n8nbalao.com/api';
@@ -16,6 +16,15 @@ interface SettingsData {
   smtp_email: string;
   smtp_password: string;
   smtp_name: string;
+  // FTP Settings
+  ftp_host: string;
+  ftp_user: string;
+  ftp_password: string;
+  // Database Settings
+  db_host: string;
+  db_name: string;
+  db_user: string;
+  db_password: string;
 }
 
 const availableModels = [
@@ -44,6 +53,8 @@ export function GlobalSettingsForm() {
   const [showApiKey, setShowApiKey] = useState(false);
   const [showElevenlabsKey, setShowElevenlabsKey] = useState(false);
   const [showSmtpPassword, setShowSmtpPassword] = useState(false);
+  const [showFtpPassword, setShowFtpPassword] = useState(false);
+  const [showDbPassword, setShowDbPassword] = useState(false);
   
   const [settings, setSettings] = useState<SettingsData>({
     openai_api_key: '',
@@ -56,7 +67,14 @@ export function GlobalSettingsForm() {
     elevenlabs_enabled: 'false',
     smtp_email: '',
     smtp_password: '',
-    smtp_name: ''
+    smtp_name: '',
+    ftp_host: '',
+    ftp_user: '',
+    ftp_password: '',
+    db_host: 'localhost',
+    db_name: '',
+    db_user: '',
+    db_password: ''
   });
 
   useEffect(() => {
@@ -87,7 +105,14 @@ export function GlobalSettingsForm() {
             elevenlabs_enabled: settingsMap.elevenlabs_enabled || 'false',
             smtp_email: settingsMap.smtp_email || '',
             smtp_password: settingsMap.smtp_password || '',
-            smtp_name: settingsMap.smtp_name || ''
+            smtp_name: settingsMap.smtp_name || '',
+            ftp_host: settingsMap.ftp_host || '',
+            ftp_user: settingsMap.ftp_user || '',
+            ftp_password: settingsMap.ftp_password || '',
+            db_host: settingsMap.db_host || 'localhost',
+            db_name: settingsMap.db_name || '',
+            db_user: settingsMap.db_user || '',
+            db_password: settingsMap.db_password || ''
           }));
         }
       }
@@ -114,7 +139,14 @@ export function GlobalSettingsForm() {
         { key: 'elevenlabs_enabled', value: settings.elevenlabs_enabled },
         { key: 'smtp_email', value: settings.smtp_email },
         { key: 'smtp_password', value: settings.smtp_password },
-        { key: 'smtp_name', value: settings.smtp_name }
+        { key: 'smtp_name', value: settings.smtp_name },
+        { key: 'ftp_host', value: settings.ftp_host },
+        { key: 'ftp_user', value: settings.ftp_user },
+        { key: 'ftp_password', value: settings.ftp_password },
+        { key: 'db_host', value: settings.db_host },
+        { key: 'db_name', value: settings.db_name },
+        { key: 'db_user', value: settings.db_user },
+        { key: 'db_password', value: settings.db_password }
       ];
 
       for (const setting of settingsToSave) {
@@ -148,17 +180,39 @@ export function GlobalSettingsForm() {
   const hasOpenAI = settings.openai_api_key.length > 10;
   const hasElevenLabs = settings.elevenlabs_api_key.length > 10;
   const hasSmtp = settings.smtp_email.length > 5 && settings.smtp_password.length > 5;
+  const hasFtp = settings.ftp_host.length > 3 && settings.ftp_user.length > 3;
+  const hasDb = settings.db_name.length > 3 && settings.db_user.length > 3;
 
   return (
     <div className="space-y-6">
       {/* Status Overview */}
-      <div className="grid md:grid-cols-3 gap-4">
-        <div className={`rounded-xl p-4 border ${hasOpenAI ? 'border-green-500 bg-green-50' : 'border-yellow-500 bg-yellow-50'}`}>
+      <div className="grid md:grid-cols-5 gap-4">
+        <div className={`rounded-xl p-4 border ${hasDb ? 'border-green-500 bg-green-50' : 'border-yellow-500 bg-yellow-50'}`}>
           <div className="flex items-center gap-3">
-            {hasOpenAI ? <CheckCircle className="h-5 w-5 text-green-600" /> : <AlertCircle className="h-5 w-5 text-yellow-600" />}
+            {hasDb ? <CheckCircle className="h-5 w-5 text-green-600" /> : <AlertCircle className="h-5 w-5 text-yellow-600" />}
+            <div>
+              <p className="font-medium text-foreground">Banco de Dados</p>
+              <p className="text-sm text-muted-foreground">{hasDb ? 'Configurado' : 'Necessário'}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className={`rounded-xl p-4 border ${hasFtp ? 'border-green-500 bg-green-50' : 'border-yellow-500 bg-yellow-50'}`}>
+          <div className="flex items-center gap-3">
+            {hasFtp ? <CheckCircle className="h-5 w-5 text-green-600" /> : <AlertCircle className="h-5 w-5 text-yellow-600" />}
+            <div>
+              <p className="font-medium text-foreground">FTP / Hospedagem</p>
+              <p className="text-sm text-muted-foreground">{hasFtp ? 'Configurado' : 'Necessário'}</p>
+            </div>
+          </div>
+        </div>
+        
+        <div className={`rounded-xl p-4 border ${hasOpenAI ? 'border-green-500 bg-green-50' : 'border-muted bg-muted/20'}`}>
+          <div className="flex items-center gap-3">
+            {hasOpenAI ? <CheckCircle className="h-5 w-5 text-green-600" /> : <Sparkles className="h-5 w-5 text-muted-foreground" />}
             <div>
               <p className="font-medium text-foreground">OpenAI (IA)</p>
-              <p className="text-sm text-muted-foreground">{hasOpenAI ? 'Configurado' : 'Não configurado'}</p>
+              <p className="text-sm text-muted-foreground">{hasOpenAI ? 'Configurado' : 'Opcional'}</p>
             </div>
           </div>
         </div>
@@ -167,7 +221,7 @@ export function GlobalSettingsForm() {
           <div className="flex items-center gap-3">
             {hasElevenLabs ? <CheckCircle className="h-5 w-5 text-green-600" /> : <Volume2 className="h-5 w-5 text-muted-foreground" />}
             <div>
-              <p className="font-medium text-foreground">ElevenLabs (Voz)</p>
+              <p className="font-medium text-foreground">ElevenLabs</p>
               <p className="text-sm text-muted-foreground">{hasElevenLabs ? 'Configurado' : 'Opcional'}</p>
             </div>
           </div>
@@ -177,8 +231,154 @@ export function GlobalSettingsForm() {
           <div className="flex items-center gap-3">
             {hasSmtp ? <CheckCircle className="h-5 w-5 text-green-600" /> : <Mail className="h-5 w-5 text-muted-foreground" />}
             <div>
-              <p className="font-medium text-foreground">Gmail SMTP (Email)</p>
+              <p className="font-medium text-foreground">Gmail SMTP</p>
               <p className="text-sm text-muted-foreground">{hasSmtp ? 'Configurado' : 'Opcional'}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Database Settings */}
+      <div className="rounded-2xl border border-border bg-card p-6">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="p-2 rounded-lg bg-blue-100">
+            <Database className="h-5 w-5 text-blue-600" />
+          </div>
+          <div>
+            <h3 className="font-semibold text-lg text-foreground">Banco de Dados MySQL</h3>
+            <p className="text-sm text-muted-foreground">Conexão com o banco de dados da hospedagem</p>
+          </div>
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-4">
+          <div>
+            <label className="flex items-center gap-2 text-sm font-medium text-foreground mb-2">
+              <Server className="h-4 w-4" />
+              Host do Servidor
+            </label>
+            <input
+              type="text"
+              value={settings.db_host}
+              onChange={(e) => setSettings(prev => ({ ...prev, db_host: e.target.value }))}
+              className="w-full rounded-lg border border-border bg-background px-4 py-3 text-foreground focus:border-primary focus:outline-none"
+              placeholder="localhost ou 127.0.0.1"
+            />
+          </div>
+
+          <div>
+            <label className="flex items-center gap-2 text-sm font-medium text-foreground mb-2">
+              <HardDrive className="h-4 w-4" />
+              Nome do Banco de Dados
+            </label>
+            <input
+              type="text"
+              value={settings.db_name}
+              onChange={(e) => setSettings(prev => ({ ...prev, db_name: e.target.value }))}
+              className="w-full rounded-lg border border-border bg-background px-4 py-3 text-foreground focus:border-primary focus:outline-none"
+              placeholder="u123456_meubanco"
+            />
+          </div>
+
+          <div>
+            <label className="flex items-center gap-2 text-sm font-medium text-foreground mb-2">
+              Usuário do Banco
+            </label>
+            <input
+              type="text"
+              value={settings.db_user}
+              onChange={(e) => setSettings(prev => ({ ...prev, db_user: e.target.value }))}
+              className="w-full rounded-lg border border-border bg-background px-4 py-3 text-foreground focus:border-primary focus:outline-none"
+              placeholder="u123456_usuario"
+            />
+          </div>
+
+          <div>
+            <label className="flex items-center gap-2 text-sm font-medium text-foreground mb-2">
+              <Key className="h-4 w-4" />
+              Senha do Banco
+            </label>
+            <div className="relative">
+              <input
+                type={showDbPassword ? 'text' : 'password'}
+                value={settings.db_password}
+                onChange={(e) => setSettings(prev => ({ ...prev, db_password: e.target.value }))}
+                className="w-full rounded-lg border border-border bg-background px-4 py-3 pr-12 text-foreground focus:border-primary focus:outline-none"
+                placeholder="••••••••"
+              />
+              <button
+                type="button"
+                onClick={() => setShowDbPassword(!showDbPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              >
+                {showDbPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* FTP Settings */}
+      <div className="rounded-2xl border border-border bg-card p-6">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="p-2 rounded-lg bg-orange-100">
+            <Server className="h-5 w-5 text-orange-600" />
+          </div>
+          <div>
+            <h3 className="font-semibold text-lg text-foreground">FTP / Hospedagem</h3>
+            <p className="text-sm text-muted-foreground">Acesso ao servidor de arquivos</p>
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          <div>
+            <label className="flex items-center gap-2 text-sm font-medium text-foreground mb-2">
+              <Server className="h-4 w-4" />
+              Host FTP
+            </label>
+            <input
+              type="text"
+              value={settings.ftp_host}
+              onChange={(e) => setSettings(prev => ({ ...prev, ftp_host: e.target.value }))}
+              className="w-full rounded-lg border border-border bg-background px-4 py-3 text-foreground focus:border-primary focus:outline-none"
+              placeholder="ftp://seusite.com.br ou IP"
+            />
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-4">
+            <div>
+              <label className="flex items-center gap-2 text-sm font-medium text-foreground mb-2">
+                Usuário FTP
+              </label>
+              <input
+                type="text"
+                value={settings.ftp_user}
+                onChange={(e) => setSettings(prev => ({ ...prev, ftp_user: e.target.value }))}
+                className="w-full rounded-lg border border-border bg-background px-4 py-3 text-foreground focus:border-primary focus:outline-none"
+                placeholder="u123456.seusite.com"
+              />
+            </div>
+
+            <div>
+              <label className="flex items-center gap-2 text-sm font-medium text-foreground mb-2">
+                <Key className="h-4 w-4" />
+                Senha FTP
+              </label>
+              <div className="relative">
+                <input
+                  type={showFtpPassword ? 'text' : 'password'}
+                  value={settings.ftp_password}
+                  onChange={(e) => setSettings(prev => ({ ...prev, ftp_password: e.target.value }))}
+                  className="w-full rounded-lg border border-border bg-background px-4 py-3 pr-12 text-foreground focus:border-primary focus:outline-none"
+                  placeholder="••••••••"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowFtpPassword(!showFtpPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  {showFtpPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                </button>
+              </div>
             </div>
           </div>
         </div>
