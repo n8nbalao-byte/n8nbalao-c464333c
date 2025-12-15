@@ -9,6 +9,7 @@ interface CarouselConfig {
   label: string;
   description: string;
   aspectRatio?: string; // For display preview
+  acceptVideo?: boolean; // Allow video uploads
 }
 
 interface CarouselImage {
@@ -61,7 +62,8 @@ const BASE_CAROUSEL_CONFIGS: CarouselConfig[] = [
   {
     key: "workflow_section",
     label: "Seção Workflow (Automação)",
-    description: "Imagens na página de Automação - seção 'Automatize processos'"
+    description: "Imagens ou vídeos na página de Automação - seção 'Automatize processos'. Suporta fotos, vídeos e arquivos base64 com reprodução automática.",
+    acceptVideo: true
   }
 ];
 
@@ -335,17 +337,32 @@ export function CarouselManager() {
 
           {/* Image Grid */}
           <div className={`grid ${config.aspectRatio === '3/4' ? 'grid-cols-2 md:grid-cols-4 lg:grid-cols-6' : 'grid-cols-2 md:grid-cols-4 lg:grid-cols-6'} gap-4`}>
-            {(carousels[config.key] || []).map((image, index) => (
+            {(carousels[config.key] || []).map((image, index) => {
+              const isVideo = image.url.startsWith('data:video/') || 
+                ['.mp4', '.webm', '.ogg'].some(ext => image.url.toLowerCase().includes(ext));
+              
+              return (
               <div 
                 key={index} 
                 className="relative group rounded-lg overflow-hidden border border-gray-200"
                 style={{ aspectRatio: config.aspectRatio || '16/9' }}
               >
-                <img
-                  src={image.url}
-                  alt={`${config.label} ${index + 1}`}
-                  className="w-full h-full object-cover"
-                />
+                {isVideo ? (
+                  <video
+                    src={image.url}
+                    className="w-full h-full object-cover"
+                    muted
+                    loop
+                    autoPlay
+                    playsInline
+                  />
+                ) : (
+                  <img
+                    src={image.url}
+                    alt={`${config.label} ${index + 1}`}
+                    className="w-full h-full object-cover"
+                  />
+                )}
                 
                 {/* Overlay with actions */}
                 <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
@@ -378,7 +395,8 @@ export function CarouselManager() {
                   </div>
                 )}
               </div>
-            ))}
+            );
+            })}
 
             {/* Add Image Button */}
             {config.key === 'automacao_phone' && (
@@ -432,13 +450,13 @@ export function CarouselManager() {
                 <>
                   <Upload className="h-8 w-8 text-gray-400 mb-2" />
                   <span className="text-sm text-gray-500">
-                    {config.key === 'automacao_phone' && useIPhoneFrame ? 'Adicionar prints' : 'Adicionar'}
+                    {config.key === 'automacao_phone' && useIPhoneFrame ? 'Adicionar prints' : config.acceptVideo ? 'Adicionar foto/vídeo' : 'Adicionar'}
                   </span>
                 </>
               )}
               <input
                 type="file"
-                accept="image/*"
+                accept={config.acceptVideo ? "image/*,video/mp4,video/webm,video/ogg" : "image/*"}
                 multiple={config.key !== 'automacao_phone' || useIPhoneFrame}
                 onChange={(e) => handleImageUpload(config.key, e)}
                 className="hidden"
