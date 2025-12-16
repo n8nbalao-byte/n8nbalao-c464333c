@@ -142,6 +142,10 @@ const ExtractProducts = () => {
     costUSD: number;
     costBRL: number;
   } | null>(null);
+  
+  // AI Title editing states
+  const [isEditingTitles, setIsEditingTitles] = useState(false);
+  const [titleEditProgress, setTitleEditProgress] = useState({ current: 0, total: 0 });
 
   // Check authentication on mount
   useEffect(() => {
@@ -853,6 +857,93 @@ const ExtractProducts = () => {
     }
   };
 
+  // Edit titles with AI - simplify and clean up product names
+  const editTitlesWithAI = async () => {
+    const toProcess = parsedProducts.filter(p => p.selected);
+    if (toProcess.length === 0) {
+      toast({
+        title: "Nenhum produto selecionado",
+        description: "Selecione pelo menos um produto para editar títulos.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsEditingTitles(true);
+    setTitleEditProgress({ current: 0, total: toProcess.length });
+
+    try {
+      // Process in batches of 10
+      const batchSize = 10;
+      const batches = [];
+      for (let i = 0; i < toProcess.length; i += batchSize) {
+        batches.push(toProcess.slice(i, i + batchSize));
+      }
+
+      let processedCount = 0;
+      const allResults: { id: string; newTitle: string }[] = [];
+
+      for (const batch of batches) {
+        const response = await fetch('https://www.n8nbalao.com/api/edit-titles.php', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            products: batch.map(p => ({ id: p.id, title: p.title }))
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to edit titles');
+        }
+
+        const data = await response.json();
+        
+        if (data.success && data.results) {
+          allResults.push(...data.results);
+        }
+        
+        // Accumulate usage data
+        if (data.usage) {
+          setLastGenerationUsage(prev => ({
+            model: data.usage.model,
+            inputTokens: (prev?.inputTokens || 0) + data.usage.inputTokens,
+            outputTokens: (prev?.outputTokens || 0) + data.usage.outputTokens,
+            totalTokens: (prev?.totalTokens || 0) + data.usage.totalTokens,
+            costUSD: (prev?.costUSD || 0) + data.usage.costUSD,
+            costBRL: (prev?.costBRL || 0) + data.usage.costBRL,
+          }));
+        }
+
+        processedCount += batch.length;
+        setTitleEditProgress({ current: processedCount, total: toProcess.length });
+      }
+
+      // Update products with edited titles
+      setParsedProducts(prev => prev.map(product => {
+        const result = allResults.find(r => r.id === product.id);
+        if (result && result.newTitle) {
+          return { ...product, title: result.newTitle };
+        }
+        return product;
+      }));
+
+      toast({
+        title: "Títulos editados!",
+        description: `${allResults.length} títulos simplificados com IA.`
+      });
+    } catch (error) {
+      console.error('Error editing titles:', error);
+      toast({
+        title: "Erro ao editar títulos",
+        description: "Verifique se a API key do OpenAI está configurada em Admin > Configurações.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsEditingTitles(false);
+      setTitleEditProgress({ current: 0, total: 0 });
+    }
+  };
+
   const importProducts = async () => {
     const toImport = parsedProducts.filter(p => p.selected);
     if (toImport.length === 0) {
@@ -1024,6 +1115,10 @@ const ExtractProducts = () => {
     }
 
     // Import products
+    // Check if user manually selected a category (not "_auto")
+    const manualCategorySelected = category && category !== '_auto';
+    const manualTypeSelected = productType && productType !== '_auto';
+    
     for (let i = 0; i < productItems.length; i++) {
       const product = productItems[i];
       setImportProgress({ current: hardwareItems.length + i + 1, total: toImport.length });
@@ -1032,10 +1127,24 @@ const ExtractProducts = () => {
         const finalPrice = calculateFinalPrice(product.costPrice);
         const media = product.imageUrl ? [{ type: 'image' as const, url: product.imageUrl }] : [];
         
-        // Use detected category, fallback to selected category, productType, or 'outro'
-        const fallbackCategory = (category && category !== '_auto') ? category : ((productType && productType !== '_auto') ? productType : 'outro');
-        const productCategory = product.detectedCategory || fallbackCategory;
-        const productTypeValue = product.detectedCategory || ((productType && productType !== '_auto') ? productType : fallbackCategory);
+        // PRIORITY: Manual selection > Auto-detected > Default 'outro'
+        // If user manually selected a category, use it and IGNORE AI detection
+        let productCategory: string;
+        let productTypeValue: string;
+        
+        if (manualCategorySelected) {
+          // User explicitly selected a category - use it for ALL products
+          productCategory = category;
+          productTypeValue = manualTypeSelected ? productType : category;
+        } else if (manualTypeSelected) {
+          // User selected a type but not category - use type for both
+          productCategory = productType;
+          productTypeValue = productType;
+        } else {
+          // Auto mode - use detected category or fallback to 'outro'
+          productCategory = product.detectedCategory || 'outro';
+          productTypeValue = product.detectedCategory || 'outro';
+        }
 
         await api.createProduct({
           title: product.title,
@@ -1345,79 +1454,115 @@ const ExtractProducts = () => {
               </div>
             </CardContent>
             
-            {/* AI Description Generation */}
+            {/* AI Tools */}
             <CardContent className="border-t pt-4">
-              <div className="space-y-3">
-                <div className="flex items-center gap-2 text-gray-700">
-                  <Sparkles className="h-4 w-4" style={{ color: '#DC2626' }} />
-                  <Label className="font-semibold">Gerar Descrições com IA</Label>
-                </div>
-                <div className="flex gap-3">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <Store className="h-4 w-4 text-gray-500" />
-                      <span className="text-sm text-gray-600">Texto da Loja (adicionado às descrições)</span>
+              <div className="space-y-4">
+                {/* AI Title Editing */}
+                <div className="p-4 rounded-lg border" style={{ backgroundColor: '#FEF3C7', borderColor: '#FCD34D' }}>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="flex items-center gap-2 text-gray-700 mb-1">
+                        <Sparkles className="h-4 w-4" style={{ color: '#D97706' }} />
+                        <Label className="font-semibold">Editar Títulos com IA</Label>
+                      </div>
+                      <p className="text-xs text-gray-500">
+                        Simplifica e limpa os nomes dos produtos automaticamente (remove códigos, padroniza formato).
+                      </p>
                     </div>
-                    <Input
-                      value={storeText}
-                      onChange={(e) => setStoreText(e.target.value)}
-                      placeholder="Ex: Balão da Informática - A melhor loja do Brasil"
-                      className="border-2 bg-white text-gray-800 placeholder:text-gray-400"
-                      style={{ borderColor: '#E5E7EB' }}
-                    />
+                    <Button
+                      onClick={editTitlesWithAI}
+                      disabled={isEditingTitles || selectedCount === 0}
+                      className="text-white hover:opacity-90"
+                      style={{ backgroundColor: '#D97706' }}
+                    >
+                      {isEditingTitles ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          {titleEditProgress.current}/{titleEditProgress.total}
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="h-4 w-4 mr-2" />
+                          Editar com IA ({selectedCount})
+                        </>
+                      )}
+                    </Button>
                   </div>
-                  <Button
-                    onClick={generateDescriptions}
-                    disabled={isGeneratingDescriptions || selectedCount === 0}
-                    className="self-end text-white hover:opacity-90"
-                    style={{ backgroundColor: '#7C3AED' }}
-                  >
-                    {isGeneratingDescriptions ? (
-                      <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        {descriptionProgress.current}/{descriptionProgress.total}
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles className="h-4 w-4 mr-2" />
-                        Gerar Descrições ({selectedCount})
-                      </>
-                    )}
-                  </Button>
                 </div>
-                <p className="text-xs text-gray-500">
-                  A IA criará descrições simples e completas baseadas no nome de cada produto selecionado.
-                </p>
                 
-                {/* Token Usage Display */}
-                {lastGenerationUsage && (
-                  <div className="mt-3 p-3 rounded-lg border" style={{ backgroundColor: '#F0FDF4', borderColor: '#BBF7D0' }}>
-                    <div className="flex items-center justify-between flex-wrap gap-3">
-                      <div className="flex items-center gap-4 text-sm">
-                        <span className="font-medium text-gray-700">
-                          📊 Última geração:
-                        </span>
-                        <span className="text-gray-600">
-                          Modelo: <strong>{lastGenerationUsage.model}</strong>
-                        </span>
-                        <span className="text-gray-600">
-                          Tokens: <strong>{lastGenerationUsage.totalTokens.toLocaleString()}</strong>
-                          <span className="text-xs ml-1 text-gray-400">
-                            (in: {lastGenerationUsage.inputTokens.toLocaleString()} / out: {lastGenerationUsage.outputTokens.toLocaleString()})
-                          </span>
-                        </span>
+                {/* AI Description Generation */}
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 text-gray-700">
+                    <Sparkles className="h-4 w-4" style={{ color: '#DC2626' }} />
+                    <Label className="font-semibold">Gerar Descrições com IA</Label>
+                  </div>
+                  <div className="flex gap-3">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Store className="h-4 w-4 text-gray-500" />
+                        <span className="text-sm text-gray-600">Texto da Loja (adicionado às descrições)</span>
                       </div>
-                      <div className="flex items-center gap-3">
-                        <span className="text-sm px-2 py-1 rounded-full font-semibold" style={{ backgroundColor: '#DCFCE7', color: '#166534' }}>
-                          💰 R$ {lastGenerationUsage.costBRL.toFixed(4)}
-                        </span>
-                        <span className="text-xs text-gray-400">
-                          (${lastGenerationUsage.costUSD.toFixed(6)} USD)
-                        </span>
+                      <Input
+                        value={storeText}
+                        onChange={(e) => setStoreText(e.target.value)}
+                        placeholder="Ex: Balão da Informática - A melhor loja do Brasil"
+                        className="border-2 bg-white text-gray-800 placeholder:text-gray-400"
+                        style={{ borderColor: '#E5E7EB' }}
+                      />
+                    </div>
+                    <Button
+                      onClick={generateDescriptions}
+                      disabled={isGeneratingDescriptions || selectedCount === 0}
+                      className="self-end text-white hover:opacity-90"
+                      style={{ backgroundColor: '#7C3AED' }}
+                    >
+                      {isGeneratingDescriptions ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          {descriptionProgress.current}/{descriptionProgress.total}
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="h-4 w-4 mr-2" />
+                          Gerar Descrições ({selectedCount})
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                  <p className="text-xs text-gray-500">
+                    A IA criará descrições simples e completas baseadas no nome de cada produto selecionado.
+                  </p>
+                  
+                  {/* Token Usage Display */}
+                  {lastGenerationUsage && (
+                    <div className="mt-3 p-3 rounded-lg border" style={{ backgroundColor: '#F0FDF4', borderColor: '#BBF7D0' }}>
+                      <div className="flex items-center justify-between flex-wrap gap-3">
+                        <div className="flex items-center gap-4 text-sm">
+                          <span className="font-medium text-gray-700">
+                            📊 Última operação IA:
+                          </span>
+                          <span className="text-gray-600">
+                            Modelo: <strong>{lastGenerationUsage.model}</strong>
+                          </span>
+                          <span className="text-gray-600">
+                            Tokens: <strong>{lastGenerationUsage.totalTokens.toLocaleString()}</strong>
+                            <span className="text-xs ml-1 text-gray-400">
+                              (in: {lastGenerationUsage.inputTokens.toLocaleString()} / out: {lastGenerationUsage.outputTokens.toLocaleString()})
+                            </span>
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className="text-sm px-2 py-1 rounded-full font-semibold" style={{ backgroundColor: '#DCFCE7', color: '#166534' }}>
+                            💰 R$ {lastGenerationUsage.costBRL.toFixed(4)}
+                          </span>
+                          <span className="text-xs text-gray-400">
+                            (${lastGenerationUsage.costUSD.toFixed(6)} USD)
+                          </span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
             </CardContent>
           </Card>

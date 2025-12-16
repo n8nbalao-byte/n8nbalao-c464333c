@@ -7,7 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useCompany } from "@/contexts/CompanyContext";
 import { useAdminAuth, checkAdminAuth } from "@/hooks/useAdminAuth";
 import { AdminLoginModal } from "@/components/AdminLoginModal";
-import { Plus, Pencil, Trash2, Save, X, Upload, Play, Image, Cpu, CircuitBoard, MemoryStick, HardDrive, Monitor, Zap, Box, Package, Download, Droplets, Building2, Laptop, Bot, Code, Wrench, Key, Tv, Armchair, Tag, LucideIcon, Search, Sparkles, LayoutDashboard, Images, Users, UserPlus, Shield, Mail, Settings, Eye, EyeOff, Volume2, GripVertical, Palette, LogOut } from "lucide-react";
+import { Plus, Pencil, Trash2, Save, X, Upload, Play, Image, Cpu, CircuitBoard, MemoryStick, HardDrive, Monitor, Zap, Box, Package, Download, Droplets, Building2, Laptop, Bot, Code, Wrench, Key, Tv, Armchair, Tag, LucideIcon, Search, Sparkles, LayoutDashboard, Images, Users, UserPlus, Shield, Mail, Settings, Eye, EyeOff, Volume2, GripVertical, Palette, LogOut, Filter, Calendar, DollarSign, ImageIcon, ChevronDown, ChevronUp, RotateCcw } from "lucide-react";
 import * as XLSX from "xlsx";
 import { availableIcons, getIconFromKey } from "@/lib/icons";
 import { HardwareCard } from "@/components/HardwareCard";
@@ -285,7 +285,7 @@ export default function Admin() {
   const [newCategory, setNewCategory] = useState("");
   const [newProductSpecKey, setNewProductSpecKey] = useState("");
   const [newProductSpecValue, setNewProductSpecValue] = useState("");
-  const [productSortColumn, setProductSortColumn] = useState<'title' | 'type' | 'price'>('title');
+  const [productSortColumn, setProductSortColumn] = useState<'title' | 'type' | 'price' | 'date'>('title');
   const [productSortDirection, setProductSortDirection] = useState<'asc' | 'desc'>('asc');
   const [productSearchTerm, setProductSearchTerm] = useState("");
   const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set());
@@ -294,6 +294,15 @@ export default function Admin() {
   const [bulkEditCategory, setBulkEditCategory] = useState<string>("");
   const [bulkEditCategoryAction, setBulkEditCategoryAction] = useState<'add' | 'replace' | 'remove'>('add');
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string | null>(null);
+  
+  // Advanced filters state
+  const [priceFilterMin, setPriceFilterMin] = useState<string>("");
+  const [priceFilterMax, setPriceFilterMax] = useState<string>("");
+  const [dateFilterStart, setDateFilterStart] = useState<string>("");
+  const [dateFilterEnd, setDateFilterEnd] = useState<string>("");
+  const [typeFilter, setTypeFilter] = useState<string>("all");
+  const [hasImageFilter, setHasImageFilter] = useState<string>("all");
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
 
   // Hardware state
   const [activeHardwareCategory, setActiveHardwareCategory] = useState<HardwareCategory>('processor');
@@ -1271,7 +1280,7 @@ export default function Admin() {
     });
   }
 
-  // Get filtered products based on search term and category filter
+  // Get filtered products based on search term, category filter, and advanced filters
   const getFilteredProducts = () => {
     let filtered = products;
     
@@ -1280,18 +1289,77 @@ export default function Admin() {
       filtered = filtered.filter(p => p.productType === selectedCategoryFilter);
     }
     
+    // Filter by type if selected
+    if (typeFilter && typeFilter !== 'all') {
+      filtered = filtered.filter(p => p.productType === typeFilter);
+    }
+    
+    // Filter by price range
+    if (priceFilterMin) {
+      const minPrice = parseFloat(priceFilterMin);
+      if (!isNaN(minPrice)) {
+        filtered = filtered.filter(p => (p.totalPrice || 0) >= minPrice);
+      }
+    }
+    if (priceFilterMax) {
+      const maxPrice = parseFloat(priceFilterMax);
+      if (!isNaN(maxPrice)) {
+        filtered = filtered.filter(p => (p.totalPrice || 0) <= maxPrice);
+      }
+    }
+    
+    // Filter by date range
+    if (dateFilterStart) {
+      const startDate = new Date(dateFilterStart);
+      filtered = filtered.filter(p => {
+        if (!p.createdAt) return true;
+        return new Date(p.createdAt) >= startDate;
+      });
+    }
+    if (dateFilterEnd) {
+      const endDate = new Date(dateFilterEnd);
+      endDate.setHours(23, 59, 59, 999);
+      filtered = filtered.filter(p => {
+        if (!p.createdAt) return true;
+        return new Date(p.createdAt) <= endDate;
+      });
+    }
+    
+    // Filter by has image
+    if (hasImageFilter === 'with') {
+      filtered = filtered.filter(p => p.media && p.media.length > 0 && p.media[0]?.url);
+    } else if (hasImageFilter === 'without') {
+      filtered = filtered.filter(p => !p.media || p.media.length === 0 || !p.media[0]?.url);
+    }
+    
     // Filter by search term
     if (productSearchTerm) {
       const search = productSearchTerm.toLowerCase();
       filtered = filtered.filter(p => 
         p.title.toLowerCase().includes(search) ||
         (p.subtitle || '').toLowerCase().includes(search) ||
-        (p.productType || '').toLowerCase().includes(search)
+        (p.productType || '').toLowerCase().includes(search) ||
+        (p.description || '').toLowerCase().includes(search)
       );
     }
     
     return filtered;
   };
+  
+  // Clear all filters
+  const clearAllFilters = () => {
+    setProductSearchTerm("");
+    setSelectedCategoryFilter(null);
+    setPriceFilterMin("");
+    setPriceFilterMax("");
+    setDateFilterStart("");
+    setDateFilterEnd("");
+    setTypeFilter("all");
+    setHasImageFilter("all");
+  };
+  
+  // Check if any filter is active
+  const hasActiveFilters = productSearchTerm || selectedCategoryFilter || priceFilterMin || priceFilterMax || dateFilterStart || dateFilterEnd || typeFilter !== 'all' || hasImageFilter !== 'all';
 
   function toggleAllProducts() {
     const filtered = getFilteredProducts();
@@ -2555,70 +2623,253 @@ export default function Admin() {
           {activeTab === 'products' && (
             <>
               {/* Search and bulk actions for products */}
-              <div className="mb-4 flex flex-wrap gap-4">
-                <div className="relative flex-1 min-w-[250px]">
-                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <input
-                    type="text"
-                    value={productSearchTerm}
-                    onChange={(e) => setProductSearchTerm(e.target.value)}
-                    placeholder="Buscar produtos por nome, tipo..."
-                    className="w-full rounded-lg border border-border bg-background pl-10 pr-4 py-2 text-foreground focus:border-primary focus:outline-none"
-                  />
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => {
-                      if (selectedProducts.size === 0) {
-                        // Select all products first
-                        const allIds = new Set(getFilteredProducts().map(p => p.id));
-                        setSelectedProducts(allIds);
-                        toast({ title: "Produtos selecionados", description: `${allIds.size} produtos selecionados para classificação` });
-                      }
-                      setShowAIClassifier(true);
-                    }}
-                    className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors hover:opacity-90"
-                    style={{ background: 'linear-gradient(135deg, #8B5CF6 0%, #EC4899 100%)' }}
-                  >
-                    <Sparkles className="h-4 w-4" />
-                    Classificar com IA {selectedProducts.size > 0 && `(${selectedProducts.size})`}
-                  </button>
-                  {selectedProducts.size > 0 && (
-                    <>
-                      <button
-                        onClick={() => setShowBulkEditModal(true)}
-                        className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/80"
-                      >
-                        <Pencil className="h-4 w-4" />
-                        Editar ({selectedProducts.size})
-                      </button>
-                      <button
-                        onClick={handleBulkDeleteProducts}
-                        className="inline-flex items-center gap-2 rounded-lg bg-destructive px-4 py-2 text-sm font-medium text-destructive-foreground transition-colors hover:bg-destructive/80"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                        Excluir ({selectedProducts.size})
-                      </button>
-                    </>
-                  )}
-                  <button
-                    onClick={downloadProductExcelTemplate}
-                    className="inline-flex items-center gap-2 rounded-lg bg-secondary px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-secondary/80"
-                  >
-                    <Download className="h-4 w-4" />
-                    Baixar Template
-                  </button>
-                  <label className="cursor-pointer inline-flex items-center gap-2 rounded-lg bg-secondary px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-secondary/80">
-                    <Upload className="h-4 w-4" />
-                    Importar Excel
+              <div className="mb-4 space-y-3">
+                <div className="flex flex-wrap gap-4">
+                  <div className="relative flex-1 min-w-[250px]">
+                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                     <input
-                      type="file"
-                      accept=".xlsx,.xls"
-                      onChange={handleProductBulkUpload}
-                      className="hidden"
+                      type="text"
+                      value={productSearchTerm}
+                      onChange={(e) => setProductSearchTerm(e.target.value)}
+                      placeholder="Buscar produtos por nome, tipo, descrição..."
+                      className="w-full rounded-lg border border-border bg-background pl-10 pr-4 py-2 text-foreground focus:border-primary focus:outline-none"
                     />
-                  </label>
+                  </div>
+                  <button
+                    onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+                    className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+                      showAdvancedFilters || hasActiveFilters 
+                        ? 'bg-primary text-primary-foreground' 
+                        : 'bg-secondary text-foreground hover:bg-secondary/80'
+                    }`}
+                  >
+                    <Filter className="h-4 w-4" />
+                    Filtros {hasActiveFilters && `(${getFilteredProducts().length})`}
+                    {showAdvancedFilters ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => {
+                        if (selectedProducts.size === 0) {
+                          const allIds = new Set(getFilteredProducts().map(p => p.id));
+                          setSelectedProducts(allIds);
+                          toast({ title: "Produtos selecionados", description: `${allIds.size} produtos selecionados para classificação` });
+                        }
+                        setShowAIClassifier(true);
+                      }}
+                      className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors hover:opacity-90"
+                      style={{ background: 'linear-gradient(135deg, #8B5CF6 0%, #EC4899 100%)' }}
+                    >
+                      <Sparkles className="h-4 w-4" />
+                      Classificar com IA {selectedProducts.size > 0 && `(${selectedProducts.size})`}
+                    </button>
+                    {selectedProducts.size > 0 && (
+                      <>
+                        <button
+                          onClick={() => setShowBulkEditModal(true)}
+                          className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/80"
+                        >
+                          <Pencil className="h-4 w-4" />
+                          Editar ({selectedProducts.size})
+                        </button>
+                        <button
+                          onClick={handleBulkDeleteProducts}
+                          className="inline-flex items-center gap-2 rounded-lg bg-destructive px-4 py-2 text-sm font-medium text-destructive-foreground transition-colors hover:bg-destructive/80"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          Excluir ({selectedProducts.size})
+                        </button>
+                      </>
+                    )}
+                    <button
+                      onClick={downloadProductExcelTemplate}
+                      className="inline-flex items-center gap-2 rounded-lg bg-secondary px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-secondary/80"
+                    >
+                      <Download className="h-4 w-4" />
+                      Baixar Template
+                    </button>
+                    <label className="cursor-pointer inline-flex items-center gap-2 rounded-lg bg-secondary px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-secondary/80">
+                      <Upload className="h-4 w-4" />
+                      Importar Excel
+                      <input
+                        type="file"
+                        accept=".xlsx,.xls"
+                        onChange={handleProductBulkUpload}
+                        className="hidden"
+                      />
+                    </label>
+                  </div>
                 </div>
+                
+                {/* Advanced Filters Panel */}
+                {showAdvancedFilters && (
+                  <div className="p-4 rounded-lg border border-border bg-secondary/30 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                        <Filter className="h-4 w-4" />
+                        Filtros Avançados
+                      </h4>
+                      {hasActiveFilters && (
+                        <button
+                          onClick={clearAllFilters}
+                          className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
+                        >
+                          <RotateCcw className="h-3 w-3" />
+                          Limpar filtros
+                        </button>
+                      )}
+                    </div>
+                    
+                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                      {/* Type Filter */}
+                      <div className="space-y-1">
+                        <label className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                          <Tag className="h-3 w-3" />
+                          Tipo
+                        </label>
+                        <select
+                          value={typeFilter}
+                          onChange={(e) => setTypeFilter(e.target.value)}
+                          className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm text-foreground focus:border-primary focus:outline-none"
+                        >
+                          <option value="all">Todos</option>
+                          {productTypes.map(type => (
+                            <option key={type.key} value={type.key}>{type.label}</option>
+                          ))}
+                        </select>
+                      </div>
+                      
+                      {/* Price Min */}
+                      <div className="space-y-1">
+                        <label className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                          <DollarSign className="h-3 w-3" />
+                          Preço Mín
+                        </label>
+                        <input
+                          type="number"
+                          value={priceFilterMin}
+                          onChange={(e) => setPriceFilterMin(e.target.value)}
+                          placeholder="0"
+                          className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm text-foreground focus:border-primary focus:outline-none"
+                        />
+                      </div>
+                      
+                      {/* Price Max */}
+                      <div className="space-y-1">
+                        <label className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                          <DollarSign className="h-3 w-3" />
+                          Preço Máx
+                        </label>
+                        <input
+                          type="number"
+                          value={priceFilterMax}
+                          onChange={(e) => setPriceFilterMax(e.target.value)}
+                          placeholder="∞"
+                          className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm text-foreground focus:border-primary focus:outline-none"
+                        />
+                      </div>
+                      
+                      {/* Date Start */}
+                      <div className="space-y-1">
+                        <label className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                          <Calendar className="h-3 w-3" />
+                          Data Início
+                        </label>
+                        <input
+                          type="date"
+                          value={dateFilterStart}
+                          onChange={(e) => setDateFilterStart(e.target.value)}
+                          className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm text-foreground focus:border-primary focus:outline-none"
+                        />
+                      </div>
+                      
+                      {/* Date End */}
+                      <div className="space-y-1">
+                        <label className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                          <Calendar className="h-3 w-3" />
+                          Data Fim
+                        </label>
+                        <input
+                          type="date"
+                          value={dateFilterEnd}
+                          onChange={(e) => setDateFilterEnd(e.target.value)}
+                          className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm text-foreground focus:border-primary focus:outline-none"
+                        />
+                      </div>
+                      
+                      {/* Has Image Filter */}
+                      <div className="space-y-1">
+                        <label className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                          <ImageIcon className="h-3 w-3" />
+                          Imagem
+                        </label>
+                        <select
+                          value={hasImageFilter}
+                          onChange={(e) => setHasImageFilter(e.target.value)}
+                          className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm text-foreground focus:border-primary focus:outline-none"
+                        >
+                          <option value="all">Todos</option>
+                          <option value="with">Com imagem</option>
+                          <option value="without">Sem imagem</option>
+                        </select>
+                      </div>
+                    </div>
+                    
+                    {/* Active filters summary */}
+                    {hasActiveFilters && (
+                      <div className="flex items-center gap-2 pt-2 border-t border-border">
+                        <span className="text-xs text-muted-foreground">Filtros ativos:</span>
+                        <div className="flex flex-wrap gap-1">
+                          {productSearchTerm && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs">
+                              Busca: "{productSearchTerm}"
+                              <button onClick={() => setProductSearchTerm("")} className="hover:text-primary/70"><X className="h-3 w-3" /></button>
+                            </span>
+                          )}
+                          {typeFilter !== 'all' && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs">
+                              Tipo: {productTypes.find(t => t.key === typeFilter)?.label || typeFilter}
+                              <button onClick={() => setTypeFilter("all")} className="hover:text-primary/70"><X className="h-3 w-3" /></button>
+                            </span>
+                          )}
+                          {priceFilterMin && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs">
+                              Preço ≥ R$ {priceFilterMin}
+                              <button onClick={() => setPriceFilterMin("")} className="hover:text-primary/70"><X className="h-3 w-3" /></button>
+                            </span>
+                          )}
+                          {priceFilterMax && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs">
+                              Preço ≤ R$ {priceFilterMax}
+                              <button onClick={() => setPriceFilterMax("")} className="hover:text-primary/70"><X className="h-3 w-3" /></button>
+                            </span>
+                          )}
+                          {dateFilterStart && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs">
+                              Desde: {dateFilterStart}
+                              <button onClick={() => setDateFilterStart("")} className="hover:text-primary/70"><X className="h-3 w-3" /></button>
+                            </span>
+                          )}
+                          {dateFilterEnd && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs">
+                              Até: {dateFilterEnd}
+                              <button onClick={() => setDateFilterEnd("")} className="hover:text-primary/70"><X className="h-3 w-3" /></button>
+                            </span>
+                          )}
+                          {hasImageFilter !== 'all' && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs">
+                              {hasImageFilter === 'with' ? 'Com imagem' : 'Sem imagem'}
+                              <button onClick={() => setHasImageFilter("all")} className="hover:text-primary/70"><X className="h-3 w-3" /></button>
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-xs font-medium text-foreground ml-auto">
+                          {getFilteredProducts().length} de {products.length} produtos
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               {loading ? (
