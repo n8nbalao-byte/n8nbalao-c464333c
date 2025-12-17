@@ -29,7 +29,7 @@ const personalizeHtml = (html: string, customerName: string): string => {
 };
 
 // Email templates with dynamic logo support
-const createEmailTemplates = (logoBase64: string, companyName: string) => [
+const createEmailTemplates = (companyName: string) => [
   {
     id: 'promocao',
     name: '🔥 Promoção Especial',
@@ -43,7 +43,7 @@ const createEmailTemplates = (logoBase64: string, companyName: string) => [
 <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Arial, sans-serif; background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);">
   <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
     <div style="background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%); border-radius: 20px 20px 0 0; padding: 40px; text-align: center;">
-      ${logoBase64 ? `<img src="${logoBase64}" alt="${companyName}" style="height: 60px; margin-bottom: 20px;">` : `<h2 style="color: white; margin-bottom: 20px;">${companyName}</h2>`}
+      <h2 style="color: white; margin-bottom: 20px;">${companyName}</h2>
       <h1 style="color: white; margin: 0; font-size: 32px; text-shadow: 2px 2px 4px rgba(0,0,0,0.3);">🔥 PROMOÇÃO ESPECIAL 🔥</h1>
     </div>
     <div style="background: white; padding: 40px; border-radius: 0 0 20px 20px;">
@@ -80,7 +80,7 @@ const createEmailTemplates = (logoBase64: string, companyName: string) => [
   <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
     <div style="background: white; border-radius: 20px; overflow: hidden; box-shadow: 0 10px 40px rgba(0,0,0,0.1);">
       <div style="background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%); padding: 30px; text-align: center;">
-        ${logoBase64 ? `<img src="${logoBase64}" alt="${companyName}" style="height: 50px;">` : `<h2 style="color: white;">${companyName}</h2>`}
+        <h2 style="color: white; margin: 0;">${companyName}</h2>
       </div>
       <div style="padding: 40px;">
         <div style="text-align: center; margin-bottom: 30px;">
@@ -115,8 +115,7 @@ const createEmailTemplates = (logoBase64: string, companyName: string) => [
   <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
     <div style="background: white; border-radius: 24px; overflow: hidden; box-shadow: 0 20px 60px rgba(220, 38, 38, 0.15);">
       <div style="background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%); padding: 50px 30px; text-align: center;">
-        ${logoBase64 ? `<img src="${logoBase64}" alt="${companyName}" style="height: 70px; margin-bottom: 20px;">` : ``}
-        <h1 style="color: white; margin: 0; font-size: 36px;">Bem-vindo, {{primeiro_nome}}! 🎈</h1>
+        <h2 style="color: white; margin: 0; font-size: 36px;">Bem-vindo, {{primeiro_nome}}! 🎈</h2>
       </div>
       <div style="padding: 40px;">
         <p style="color: #374151; font-size: 18px; line-height: 1.7;">É um prazer ter você conosco, {{nome}}!</p>
@@ -153,7 +152,7 @@ const createEmailTemplates = (logoBase64: string, companyName: string) => [
   <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
     <div style="background: linear-gradient(180deg, #1f2937 0%, #111827 100%); border-radius: 20px; border: 1px solid #374151;">
       <div style="padding: 30px; border-bottom: 1px solid #374151; text-align: center;">
-        ${logoBase64 ? `<img src="${logoBase64}" alt="${companyName}" style="height: 40px;">` : `<h2 style="color: white; margin: 0;">${companyName}</h2>`}
+        <h2 style="color: white; margin: 0;">${companyName}</h2>
       </div>
       <div style="padding: 40px;">
         <h1 style="color: white; margin: 0 0 20px 0; font-size: 28px;">📰 Olá, {{primeiro_nome}}!</h1>
@@ -192,7 +191,7 @@ const createEmailTemplates = (logoBase64: string, companyName: string) => [
   <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
     <div style="background: white; border-radius: 24px; overflow: hidden; box-shadow: 0 10px 40px rgba(0,0,0,0.1); border: 1px solid #e2e8f0;">
       <div style="background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%); padding: 40px; text-align: center;">
-        ${logoBase64 ? `<img src="${logoBase64}" alt="${companyName}" style="height: 60px; margin-bottom: 15px;">` : `<h2 style="color: white; margin: 0 0 15px 0;">${companyName}</h2>`}
+        <h2 style="color: white; margin: 0 0 15px 0;">${companyName}</h2>
         <div style="font-size: 50px; margin-bottom: 15px;">🖥️</div>
         <h1 style="color: white; margin: 0; font-size: 28px;">Monte seu PC ideal!</h1>
       </div>
@@ -235,7 +234,6 @@ const createEmailTemplates = (logoBase64: string, companyName: string) => [
   <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
     <div style="background: linear-gradient(135deg, #000 0%, #1a1a1a 100%); border-radius: 20px; border: 2px solid #fbbf24; overflow: hidden;">
       <div style="padding: 40px; text-align: center; background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);">
-        ${logoBase64 ? `<img src="${logoBase64}" alt="${companyName}" style="height: 50px; margin-bottom: 15px;">` : ``}
         <h1 style="color: #000; margin: 0; font-size: 42px; font-weight: 900;">BLACK FRIDAY</h1>
         <p style="color: #000; font-size: 20px; margin: 10px 0 0 0;">ATÉ 70% OFF</p>
       </div>
@@ -268,7 +266,6 @@ const createEmailTemplates = (logoBase64: string, companyName: string) => [
   <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
     <div style="background: white; border-radius: 20px; overflow: hidden; box-shadow: 0 10px 40px rgba(0,0,0,0.1);">
       <div style="background: linear-gradient(135deg, #16a34a 0%, #15803d 100%); padding: 40px; text-align: center;">
-        ${logoBase64 ? `<img src="${logoBase64}" alt="${companyName}" style="height: 50px; margin-bottom: 15px;">` : ``}
         <div style="font-size: 50px; margin-bottom: 10px;">🚚</div>
         <h1 style="color: white; margin: 0; font-size: 32px;">FRETE GRÁTIS!</h1>
       </div>
@@ -333,7 +330,7 @@ const EmailMarketing = () => {
   const [sending, setSending] = useState(false);
   const [sendResults, setSendResults] = useState<{ email: string; success: boolean }[]>([]);
   const [selectedTemplate, setSelectedTemplate] = useState('');
-  const [useTestMode, setUseTestMode] = useState(true);
+  
   
   // Products state
   const [products, setProducts] = useState<Product[]>([]);
@@ -350,8 +347,7 @@ const EmailMarketing = () => {
   const [scheduleTime, setScheduleTime] = useState('09:00');
 
   const companyName = company?.name || 'Balão da Informática';
-  const companyLogo = company?.logo || '';
-  const emailTemplates = createEmailTemplates(companyLogo, companyName);
+  const emailTemplates = createEmailTemplates(companyName);
 
   useEffect(() => {
     Promise.all([fetchCustomers(), fetchProducts()]);
@@ -460,10 +456,6 @@ const EmailMarketing = () => {
   };
 
   const addProduct = (product: Product) => {
-    if (selectedProducts.length >= 3) {
-      toast.error('Máximo de 3 produtos por email');
-      return;
-    }
     if (selectedProducts.find(p => p.id === product.id)) {
       toast.error('Produto já selecionado');
       return;
@@ -646,15 +638,6 @@ Retorne APENAS o código HTML do email, sem explicações.`,
       </div>
 
       <div className="max-w-7xl mx-auto p-6">
-        {/* Info Alert */}
-        <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-3">
-          <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
-          <div className="text-sm text-amber-800">
-            <p className="font-semibold">Modo de Teste Ativo</p>
-            <p>Usando <code className="bg-amber-100 px-1 rounded">onboarding@resend.dev</code> como remetente.</p>
-          </div>
-        </div>
-
         {/* Top Row: Clients and Compose */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
           {/* Left: Customer List */}
@@ -736,17 +719,10 @@ Retorne APENAS o código HTML do email, sem explicações.`,
               </div>
             )}
 
-            <div className="mt-4 pt-4 border-t border-border flex items-center justify-between">
+            <div className="mt-4 pt-4 border-t border-border">
               <p className="text-sm text-muted-foreground">
                 <strong>{selectedEmails.length}</strong> selecionado(s)
               </p>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <Checkbox 
-                  checked={useTestMode} 
-                  onCheckedChange={(checked) => setUseTestMode(!!checked)}
-                />
-                <span className="text-sm">Modo Teste</span>
-              </label>
             </div>
           </div>
 
@@ -779,7 +755,7 @@ Retorne APENAS o código HTML do email, sem explicações.`,
               <div>
                 <label className="block text-sm font-medium mb-2 flex items-center gap-2">
                   <Package className="w-4 h-4" />
-                  Produtos (até 3)
+                  Produtos no Email
                 </label>
                 
                 {selectedProducts.length > 0 && (
