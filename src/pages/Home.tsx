@@ -314,7 +314,7 @@ export default function Home() {
       {/* Top Bar */}
       <div className="bg-primary text-white py-2 text-sm">
         <div className="container flex justify-between items-center">
-          <span>Bem-vindo à Balão da Informática!</span>
+          <span>Bem-vindo à {company?.name || 'Nossa Loja'}!</span>
           <div className="flex gap-4">
             <Link to="/cliente" className="hover:underline">Minha Conta</Link>
             <Link to="/meus-pedidos" className="hover:underline">Meus Pedidos</Link>

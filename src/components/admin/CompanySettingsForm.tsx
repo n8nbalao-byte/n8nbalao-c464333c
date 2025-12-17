@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Building2, Upload, Save, Globe, Phone, Mail, MapPin, FileText, User, Image } from 'lucide-react';
 import { ColorPaletteSelector, type ColorPalette } from './ColorPaletteSelector';
 import { useToast } from '@/hooks/use-toast';
+import { useCompany } from '@/contexts/CompanyContext';
 
 interface CompanyData {
   id?: number;
@@ -26,6 +27,7 @@ interface CompanySettingsFormProps {
 
 export function CompanySettingsForm({ companyData, onSave, isSaving }: CompanySettingsFormProps) {
   const { toast } = useToast();
+  const { applyColors } = useCompany();
   const [formData, setFormData] = useState<CompanyData>(companyData);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -88,7 +90,9 @@ export function CompanySettingsForm({ companyData, onSave, isSaving }: CompanySe
       secondaryColor: palette.secondary,
       accentColor: palette.accent
     }));
-    toast({ title: `Paleta "${palette.name}" aplicada!` });
+    // Apply colors immediately to the site for preview
+    applyColors(palette.primary, palette.secondary, palette.accent);
+    toast({ title: `Paleta "${palette.name}" aplicada! Clique em Salvar para persistir.` });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
