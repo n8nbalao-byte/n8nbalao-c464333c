@@ -294,6 +294,7 @@ export default function Admin() {
   const [bulkEditCategory, setBulkEditCategory] = useState<string>("");
   const [bulkEditCategoryAction, setBulkEditCategoryAction] = useState<'add' | 'replace' | 'remove'>('add');
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string | null>(null);
+  const [simpleProductCategoryFilter, setSimpleProductCategoryFilter] = useState<string | null>(null);
   
   // Advanced filters state
   const [priceFilterMin, setPriceFilterMin] = useState<string>("");
@@ -2935,6 +2936,11 @@ export default function Admin() {
                     </thead>
                     <tbody className="divide-y divide-border">
                       {getFilteredProducts()
+                        .filter((p) => {
+                          // Configurações Montadas: show ONLY pc and kit types
+                          const type = p.productType || '';
+                          return type === 'pc' || type === 'kit';
+                        })
                         .sort((a, b) => {
                           const direction = productSortDirection === 'asc' ? 1 : -1;
                           if (productSortColumn === 'title') {
@@ -3251,6 +3257,45 @@ export default function Admin() {
           {/* Simple Products Tab - Individual product registration without mandatory hardware */}
           {activeTab === 'simple_products' && (
             <>
+              {/* Category Filter Buttons */}
+              <div className="mb-4 flex flex-wrap gap-2">
+                <button
+                  onClick={() => setSimpleProductCategoryFilter(null)}
+                  className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
+                    !simpleProductCategoryFilter
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-secondary text-foreground hover:bg-secondary/80'
+                  }`}
+                >
+                  Todos
+                </button>
+                {customCategoriesList
+                  .filter(c => c.key !== 'pc' && c.key !== 'kit' && c.key !== 'hardware')
+                  .map((category) => {
+                    const Icon = getIconFromKey(category.icon || 'tag');
+                    const count = products.filter(p => 
+                      p.productType === category.key && 
+                      p.productType !== 'pc' && 
+                      p.productType !== 'kit'
+                    ).length;
+                    return (
+                      <button
+                        key={category.key}
+                        onClick={() => setSimpleProductCategoryFilter(category.key)}
+                        className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
+                          simpleProductCategoryFilter === category.key
+                            ? 'bg-primary text-primary-foreground'
+                            : 'bg-secondary text-foreground hover:bg-secondary/80'
+                        }`}
+                      >
+                        <Icon className="h-3.5 w-3.5" />
+                        {category.label}
+                        <span className="text-[10px] opacity-70">({count})</span>
+                      </button>
+                    );
+                  })}
+              </div>
+
               {/* Search and actions for simple products */}
               <div className="mb-4 flex flex-wrap gap-4">
                 <div className="relative flex-1 min-w-[250px]">
@@ -3269,7 +3314,9 @@ export default function Admin() {
                       if (selectedProducts.size === 0) {
                         const allIds = new Set(getFilteredProducts().filter(p => {
                           const type = p.productType || '';
-                          return type !== 'pc' && type !== 'kit';
+                          if (type === 'pc' || type === 'kit') return false;
+                          if (simpleProductCategoryFilter && type !== simpleProductCategoryFilter) return false;
+                          return true;
                         }).map(p => p.id));
                         setSelectedProducts(allIds);
                         toast({ title: "Produtos selecionados", description: `${allIds.size} produtos selecionados` });
@@ -3331,7 +3378,9 @@ export default function Admin() {
                             checked={(() => {
                               const filtered = getFilteredProducts().filter(p => {
                                 const type = p.productType || '';
-                                return type !== 'pc' && type !== 'kit';
+                                if (type === 'pc' || type === 'kit') return false;
+                                if (simpleProductCategoryFilter && type !== simpleProductCategoryFilter) return false;
+                                return true;
                               });
                               return filtered.length > 0 && filtered.every(p => selectedProducts.has(p.id));
                             })()}
@@ -3387,7 +3436,10 @@ export default function Admin() {
                         .filter((p) => {
                           // Only show products that are NOT pc or kit (those go to "Montar Configurações")
                           const type = p.productType || '';
-                          return type !== 'pc' && type !== 'kit';
+                          if (type === 'pc' || type === 'kit') return false;
+                          // Apply category filter if set
+                          if (simpleProductCategoryFilter && type !== simpleProductCategoryFilter) return false;
+                          return true;
                         })
                         .sort((a, b) => {
                           const direction = productSortDirection === 'asc' ? 1 : -1;

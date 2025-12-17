@@ -48,9 +48,10 @@ try {
 $openaiApiKey = null;
 $lorenzoName = 'Lorenzo';
 $lorenzoModel = 'gpt-4o-mini';
+$lorenzoPrompt = '';
 
 try {
-    $stmt = $pdo->query("SELECT `key`, `value` FROM settings WHERE `key` IN ('openai_api_key', 'lorenzo_name', 'lorenzo_model')");
+    $stmt = $pdo->query("SELECT `key`, `value` FROM settings WHERE `key` IN ('openai_api_key', 'lorenzo_name', 'lorenzo_model', 'lorenzo_prompt')");
     $settings = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
     foreach ($settings as $setting) {
@@ -63,10 +64,14 @@ try {
         if ($setting['key'] === 'lorenzo_model') {
             $lorenzoModel = $setting['value'] ?: 'gpt-4o-mini';
         }
+        if ($setting['key'] === 'lorenzo_prompt') {
+            $lorenzoPrompt = $setting['value'] ?: '';
+        }
     }
 } catch (PDOException $e) {
     // Continue with defaults
 }
+
 
 // Fallback to config.php if not in database
 if (!$openaiApiKey || $openaiApiKey === '') {
@@ -130,7 +135,17 @@ try {
 }
 
 // Build system prompt with real data
-$systemPrompt = "# Você é o {$lorenzoName} 🎈
+// Use custom prompt if set, otherwise use default
+if (!empty($lorenzoPrompt)) {
+    // Use custom prompt as base
+    $systemPrompt = str_replace('{nome}', $lorenzoName, $lorenzoPrompt);
+    $systemPrompt = str_replace('{$lorenzoName}', $lorenzoName, $systemPrompt);
+    
+    // Append dynamic data
+    $systemPrompt .= "\n\n## DADOS ATUAIS DO BANCO DE DADOS\n\n### Produtos Disponíveis:\n";
+} else {
+    // Use default prompt
+    $systemPrompt = "# Você é o {$lorenzoName} 🎈
 
 Você é o {$lorenzoName}, o assistente virtual inteligente da **Balão da Informática**. Você é amigável, prestativo e especialista em tecnologia, computadores e automação.
 
@@ -156,6 +171,7 @@ NÃO mencione funcionalidades específicas na primeira mensagem. Apenas cumprime
 
 ### Produtos Disponíveis:
 ";
+}
 
 if (!empty($contextData['products'])) {
     foreach ($contextData['products'] as $product) {

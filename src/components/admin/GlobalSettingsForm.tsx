@@ -8,6 +8,7 @@ interface SettingsData {
   openai_api_key: string;
   assistant_name: string;
   assistant_model: string;
+  assistant_prompt: string;
   bulk_gen_model: string;
   single_gen_model: string;
   elevenlabs_api_key: string;
@@ -60,6 +61,7 @@ export function GlobalSettingsForm() {
     openai_api_key: '',
     assistant_name: 'Assistente',
     assistant_model: 'gpt-4o-mini',
+    assistant_prompt: '',
     bulk_gen_model: 'gpt-4o-mini',
     single_gen_model: 'gpt-4o-mini',
     elevenlabs_api_key: '',
@@ -98,6 +100,7 @@ export function GlobalSettingsForm() {
             openai_api_key: settingsMap.openai_api_key || '',
             assistant_name: settingsMap.lorenzo_name || settingsMap.assistant_name || 'Assistente',
             assistant_model: settingsMap.lorenzo_model || settingsMap.assistant_model || 'gpt-4o-mini',
+            assistant_prompt: settingsMap.lorenzo_prompt || settingsMap.assistant_prompt || '',
             bulk_gen_model: settingsMap.bulk_gen_model || 'gpt-4o-mini',
             single_gen_model: settingsMap.single_gen_model || 'gpt-4o-mini',
             elevenlabs_api_key: settingsMap.elevenlabs_api_key || '',
@@ -132,6 +135,8 @@ export function GlobalSettingsForm() {
         { key: 'assistant_name', value: settings.assistant_name },
         { key: 'lorenzo_model', value: settings.assistant_model },
         { key: 'assistant_model', value: settings.assistant_model },
+        { key: 'lorenzo_prompt', value: settings.assistant_prompt },
+        { key: 'assistant_prompt', value: settings.assistant_prompt },
         { key: 'bulk_gen_model', value: settings.bulk_gen_model },
         { key: 'single_gen_model', value: settings.single_gen_model },
         { key: 'elevenlabs_api_key', value: settings.elevenlabs_api_key },
@@ -475,6 +480,22 @@ export function GlobalSettingsForm() {
                 ))}
               </select>
             </div>
+          </div>
+
+          <div>
+            <label className="flex items-center gap-2 text-sm font-medium text-foreground mb-2">
+              <Bot className="h-4 w-4" />
+              Prompt / Persona do Assistente
+            </label>
+            <textarea
+              value={settings.assistant_prompt}
+              onChange={(e) => setSettings(prev => ({ ...prev, assistant_prompt: e.target.value }))}
+              className="w-full rounded-lg border border-border bg-background px-4 py-3 text-foreground focus:border-primary focus:outline-none min-h-[200px] resize-y"
+              placeholder="Defina a personalidade e instruções do assistente. Ex: Você é um assistente simpático e prestativo especializado em tecnologia..."
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              Deixe em branco para usar o prompt padrão. Este texto define como o assistente se comporta e responde.
+            </p>
           </div>
         </div>
       </div>
