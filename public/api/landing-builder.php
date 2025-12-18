@@ -29,9 +29,13 @@ $pdo->exec("CREATE TABLE IF NOT EXISTS landing_pages (
     slug VARCHAR(255) UNIQUE NOT NULL,
     html LONGTEXT,
     screenshot LONGTEXT,
+    target_url VARCHAR(500),
+    redirect_url VARCHAR(500),
     seo_title VARCHAR(255),
     seo_description TEXT,
     seo_keywords TEXT,
+    seo_content TEXT,
+    page_type ENUM('landing', 'seo') DEFAULT 'landing',
     visits INT DEFAULT 0,
     status ENUM('draft', 'published') DEFAULT 'draft',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -53,7 +57,7 @@ function generateSlug($name) {
     return $slug . '-' . substr(uniqid(), -6);
 }
 
-// Call OpenAI API
+// Call OpenAI API with better error handling
 function callOpenAI($apiKey, $prompt, $systemPrompt = '') {
     $ch = curl_init('https://api.openai.com/v1/chat/completions');
     
@@ -77,11 +81,24 @@ function callOpenAI($apiKey, $prompt, $systemPrompt = '') {
         CURLOPT_HTTPHEADER => [
             'Content-Type: application/json',
             'Authorization: Bearer ' . $apiKey
-        ]
+        ],
+        CURLOPT_TIMEOUT => 60
     ]);
     
     $response = curl_exec($ch);
+    $curlError = curl_error($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
+    
+    if ($curlError) {
+        error_log("OpenAI cURL error: " . $curlError);
+        return null;
+    }
+    
+    if ($httpCode !== 200) {
+        error_log("OpenAI HTTP error: " . $httpCode . " - " . $response);
+        return null;
+    }
     
     $result = json_decode($response, true);
     return $result['choices'][0]['message']['content'] ?? null;
@@ -232,6 +249,171 @@ Empresa: $companyName
         echo json_encode(['success' => true]);
         exit;
     }
+    
+    // Generate SEO Keywords with AI (200+ keywords)
+    if ($action === 'generate-seo-keywords') {
+        $apiKey = getOpenAIKey($pdo);
+        if (!$apiKey) {
+            echo json_encode(['success' => false, 'error' => 'OpenAI API key not configured']);
+            exit;
+        }
+        
+        $url = $input['url'] ?? '';
+        $title = $input['title'] ?? '';
+        $description = $input['description'] ?? '';
+        
+        $systemPrompt = "Você é um especialista em SEO e geração de palavras-chave. Gere palavras-chave altamente relevantes e otimizadas para mecanismos de busca.";
+        
+        $prompt = "Analise a URL: $url\nTítulo: $title\nDescrição: $description\n\n" .
+                  "Gere uma lista de 200 palavras-chave altamente relevantes para SEO, separadas por vírgulas. " .
+                  "Inclua variações longas (long-tail keywords), sinônimos e termos relacionados. " .
+                  "Retorne APENAS as palavras-chave, sem explicações.";
+        
+        $keywords = callOpenAI($apiKey, $prompt, $systemPrompt);
+        
+        if ($keywords) {
+            echo json_encode([
+                'success' => true,
+                'keywords' => $keywords
+            ]);
+        } else {
+            echo json_encode(['success' => false, 'error' => 'Failed to generate keywords']);
+        }
+        exit;
+    }
+    
+    // Generate SEO Content with AI
+    if ($action === 'generate-seo-content') {
+        $apiKey = getOpenAIKey($pdo);
+        if (!$apiKey) {
+            echo json_encode(['success' => false, 'error' => 'OpenAI API key not configured']);
+            exit;
+        }
+        
+        $url = $input['url'] ?? '';
+        $title = $input['title'] ?? '';
+        $description = $input['description'] ?? '';
+        
+        $systemPrompt = "Você é um especialista em SEO e criação de conteúdo otimizado. Crie conteúdo natural, relevante e rico em palavras-chave.";
+        
+        $prompt = "Crie um texto de conteúdo SEO para a página: $url\n" .
+                  "Título: $title\n" .
+                  "Descrição: $description\n\n" .
+                  "Gere 3-4 parágrafos de conteúdo rico em palavras-chave, bem estruturado e natural. " .
+                  "O texto será invisível ao usuário (divs ocultos), mas relevante para SEO. " .
+                  "Inclua variações de palavras-chave, sinônimos e termos relacionados. " .
+                  "Retorne APENAS o texto, sem HTML ou formatação.";
+        
+        $content = callOpenAI($apiKey, $prompt, $systemPrompt);
+        
+        if ($content) {
+            echo json_encode([
+                'success' => true,
+                'content' => $content
+            ]);
+        } else {
+            echo json_encode(['success' => false, 'error' => 'Failed to generate SEO content']);
+        }
+        exit;
+    }
+    
+    // Publish SEO Page
+    if ($action === 'publish-seo') {
+        $name = $input['name'] ?? '';
+        $targetUrl = $input['targetUrl'] ?? '';
+        $redirectUrl = $input['redirectUrl'] ?? $targetUrl;
+        $html = $input['html'] ?? '';
+        $screenshot = $input['screenshotUrl'] ?? '';
+        $keywords = $input['keywords'] ?? '';
+        $seo = $input['seo'] ?? [];
+        
+        if (!$name || !$html) {
+            echo json_encode(['success' => false, 'error' => 'Name and HTML are required']);
+            exit;
+        }
+        
+        $slug = generateSlug($name);
+        
+        $stmt = $pdo->prepare("INSERT INTO landing_pages (name, slug, html, screenshot, target_url, redirect_url, seo_title, seo_description, seo_keywords, page_type, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'seo', 'published')");
+        $stmt->execute([
+            $name,
+            $slug,
+            $html,
+            $screenshot,
+            $targetUrl,
+            $redirectUrl,
+            $seo['title'] ?? $name,
+            $seo['description'] ?? '',
+            $keywords
+        ]);
+        
+        echo json_encode([
+            'success' => true,
+            'id' => $pdo->lastInsertId(),
+            'url' => '/seo/' . $slug
+        ]);
+        exit;
+    }
+    
+    // Delete SEO Page (alias)
+    if ($action === 'delete-seo') {
+        $id = $input['id'] ?? '';
+        
+        $stmt = $pdo->prepare("DELETE FROM landing_pages WHERE id = ?");
+        $stmt->execute([$id]);
+        
+        echo json_encode(['success' => true]);
+        exit;
+    }
+}
+
+// Handle GET for SEO pages list
+if ($_SERVER['REQUEST_METHOD'] === 'GET' && ($_GET['action'] ?? '') === 'list-seo') {
+    $stmt = $pdo->query("SELECT * FROM landing_pages WHERE page_type = 'seo' ORDER BY created_at DESC");
+    $pages = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    $formattedPages = array_map(function($page) {
+        return [
+            'id' => $page['id'],
+            'name' => $page['name'],
+            'url' => '/seo/' . $page['slug'],
+            'screenshot' => $page['screenshot'],
+            'targetUrl' => $page['target_url'],
+            'redirectUrl' => $page['redirect_url'],
+            'seo' => [
+                'title' => $page['seo_title'],
+                'description' => $page['seo_description'],
+                'keywords' => $page['seo_keywords']
+            ],
+            'visits' => (int)$page['visits'],
+            'status' => $page['status'],
+            'createdAt' => $page['created_at']
+        ];
+    }, $pages);
+    
+    echo json_encode(['success' => true, 'pages' => $formattedPages]);
+    exit;
+}
+
+// View SEO Page
+if ($_SERVER['REQUEST_METHOD'] === 'GET' && ($_GET['action'] ?? '') === 'view-seo') {
+    $slug = $_GET['slug'] ?? '';
+    $stmt = $pdo->prepare("SELECT * FROM landing_pages WHERE slug = ? AND page_type = 'seo'");
+    $stmt->execute([$slug]);
+    $page = $stmt->fetch(PDO::FETCH_ASSOC);
+    
+    if ($page) {
+        // Increment visits
+        $pdo->prepare("UPDATE landing_pages SET visits = visits + 1 WHERE id = ?")->execute([$page['id']]);
+        
+        // Return HTML directly
+        header('Content-Type: text/html');
+        echo $page['html'];
+    } else {
+        http_response_code(404);
+        echo '<!DOCTYPE html><html><head><title>Página não encontrada</title></head><body><h1>404 - Página não encontrada</h1></body></html>';
+    }
+    exit;
 }
 
 echo json_encode(['success' => false, 'error' => 'Invalid request']);

@@ -78,24 +78,42 @@ curl_setopt_array($ch, [
     CURLOPT_HTTPHEADER => [
         'Content-Type: application/json',
         'Authorization: Bearer ' . $apiKey
-    ]
+    ],
+    CURLOPT_TIMEOUT => 30
 ]);
 
 $response = curl_exec($ch);
+$curlError = curl_error($ch);
 $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 curl_close($ch);
 
+// Debug: log errors
+if ($curlError) {
+    echo json_encode(['success' => false, 'error' => 'cURL error: ' . $curlError]);
+    exit;
+}
+
 if ($httpCode !== 200) {
-    echo json_encode(['success' => false, 'error' => 'OpenAI API error']);
+    $errorData = json_decode($response, true);
+    $errorMessage = $errorData['error']['message'] ?? 'HTTP ' . $httpCode;
+    echo json_encode(['success' => false, 'error' => 'OpenAI API error: ' . $errorMessage, 'httpCode' => $httpCode]);
     exit;
 }
 
 $result = json_decode($response, true);
-$content = $result['choices'][0]['message']['content'] ?? '';
 
-// Parse JSON from response
-$content = preg_replace('/^```json\s*/', '', $content);
-$content = preg_replace('/\s*```$/', '', $content);
+if (!$result || !isset($result['choices'][0]['message']['content'])) {
+    echo json_encode(['success' => false, 'error' => 'Invalid OpenAI response']);
+    exit;
+}
+
+$content = $result['choices'][0]['message']['content'];
+
+// Parse JSON from response - handle various formats
+$content = trim($content);
+$content = preg_replace('/^```json\s*/i', '', $content);
+$content = preg_replace('/^```\s*/i', '', $content);
+$content = preg_replace('/\s*```$/i', '', $content);
 
 $seo = json_decode($content, true);
 
@@ -105,13 +123,14 @@ if ($seo && isset($seo['title'])) {
         'seo' => $seo
     ]);
 } else {
-    // Fallback
+    // Fallback with better defaults
     echo json_encode([
         'success' => true,
         'seo' => [
-            'title' => substr($name, 0, 60),
-            'description' => substr($description ?: $name, 0, 160),
-            'keywords' => explode(' ', strtolower($name))
-        ]
+            'title' => substr($name ?: 'Página Otimizada', 0, 60),
+            'description' => substr($description ?: $name ?: 'Página otimizada para SEO', 0, 160),
+            'keywords' => array_filter(array_map('trim', explode(' ', strtolower($name ?: 'seo landing page'))))
+        ],
+        'fallback' => true
     ]);
 }
