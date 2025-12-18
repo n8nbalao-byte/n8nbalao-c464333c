@@ -42,7 +42,8 @@ $screenshotServices = [
 ];
 
 // Try microlink first as it's most reliable
-$microlinkUrl = 'https://api.microlink.io/?url=' . urlencode($url) . '&screenshot=true&meta=false';
+// Wait 30 seconds before screenshot to ensure all content loads
+$microlinkUrl = 'https://api.microlink.io/?url=' . urlencode($url) . '&screenshot=true&meta=false&waitFor=30000';
 
 $ch = curl_init($microlinkUrl);
 curl_setopt_array($ch, [
