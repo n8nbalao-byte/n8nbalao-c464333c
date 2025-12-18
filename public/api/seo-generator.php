@@ -95,8 +95,26 @@ if ($curlError) {
 
 if ($httpCode !== 200) {
     $errorData = json_decode($response, true);
-    $errorMessage = $errorData['error']['message'] ?? 'HTTP ' . $httpCode;
-    echo json_encode(['success' => false, 'error' => 'OpenAI API error: ' . $errorMessage, 'httpCode' => $httpCode]);
+    $openAiError = $errorData['error'] ?? null;
+
+    $errorMessage = is_array($openAiError)
+        ? ($openAiError['message'] ?? null)
+        : null;
+
+    // Fallback: show a short response snippet (useful when OpenAI returns non-JSON HTML/text)
+    $snippet = $response ? mb_substr(trim($response), 0, 400) : null;
+
+    echo json_encode([
+        'success' => false,
+        'error' => 'OpenAI API error: ' . ($errorMessage ?: ('HTTP ' . $httpCode)),
+        'httpCode' => $httpCode,
+        'openai' => [
+            'type' => is_array($openAiError) ? ($openAiError['type'] ?? null) : null,
+            'code' => is_array($openAiError) ? ($openAiError['code'] ?? null) : null,
+            'param' => is_array($openAiError) ? ($openAiError['param'] ?? null) : null,
+            'snippet' => $errorMessage ? null : $snippet,
+        ],
+    ]);
     exit;
 }
 
