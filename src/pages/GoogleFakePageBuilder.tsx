@@ -127,12 +127,14 @@ const GoogleFakePageBuilder = () => {
       const data = await response.json();
       if (data.success) {
         setSeoData(data.seo);
-        toast.success('SEO gerado com IA!');
+        toast.success(data.fallback ? 'SEO gerado (fallback)' : 'SEO gerado com IA!');
       } else {
+        console.error('SEO error:', data);
         toast.error(data.error || 'Erro ao gerar SEO');
       }
     } catch (error) {
-      toast.error('Erro ao gerar SEO');
+      console.error('SEO generation error:', error);
+      toast.error('Erro de conexão ao gerar SEO');
     } finally {
       setIsLoading(false);
     }
@@ -167,10 +169,12 @@ const GoogleFakePageBuilder = () => {
         toast.success('Landing page gerada com sucesso!');
         setActiveTab('preview');
       } else {
+        console.error('Landing page error:', data);
         toast.error(data.error || 'Erro ao gerar página');
       }
     } catch (error) {
-      toast.error('Erro ao gerar landing page');
+      console.error('Landing page generation error:', error);
+      toast.error('Erro de conexão ao gerar landing page');
     } finally {
       setIsLoading(false);
     }
