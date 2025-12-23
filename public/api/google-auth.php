@@ -17,12 +17,16 @@ $clientSecret = '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';
 $redirectUri = 'https://www.n8nbalao.com/api/google-auth.php';
 
 // Database connection
-require_once __DIR__ . '/_db.php';
+$host = 'localhost';
+$dbname = 'u770915504_n8nbalao';
+$username = 'u770915504_n8nbalao';
+$password = 'Balao2025';
 
 try {
-    $pdo = balao_get_pdo();
-} catch (Throwable $e) {
-    echo json_encode(['error' => 'Database connection failed']);
+    $pdo = new PDO("mysql:host=$host;dbname=$dbname;charset=utf8mb4", $username, $password);
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+} catch (PDOException $e) {
+    echo json_encode(['error' => 'Database connection failed: ' . $e->getMessage()]);
     exit();
 }
 

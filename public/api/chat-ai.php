@@ -17,11 +17,15 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 // Database connection
-require_once __DIR__ . '/_db.php';
+$host = 'localhost';
+$dbname = 'u770915504_n8nbalao';
+$username = 'u770915504_n8nbalao';
+$password = 'Balao2025';
 
 try {
-    $pdo = balao_get_pdo();
-} catch (Throwable $e) {
+    $pdo = new PDO("mysql:host=$host;dbname=$dbname;charset=utf8mb4", $username, $password);
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+} catch (PDOException $e) {
     http_response_code(500);
     echo json_encode(['error' => 'Database connection failed']);
     exit();
