@@ -211,13 +211,20 @@ const EmailMarketing = () => {
       const validCustomers = custData.filter((c: any) => c.email && c.email.includes("@"));
       setCustomers(validCustomers);
 
-      // Normalizar Hardware para parecer Produto
-      const hardwareAsProducts = hardwareData.map((h: any) => ({
-        id: h.id,
+      // Normalizar Hardware para o formato de Product
+      const hardwareAsProducts: Product[] = hardwareData.map((h: any) => ({
+        id: String(h.id),
         title: `${h.brand || ""} ${h.model || ""} ${h.name || ""}`.trim(),
-        totalPrice: h.price || 0,
-        media: h.image ? [{ url: h.image }] : [],
-        category: h.category,
+        subtitle: "",
+        description: "",
+        categories: [String(h.category || "hardware")],
+        media: h.image ? [{ type: "image", url: String(h.image) }] : [],
+        specs: (h.specs && typeof h.specs === "object") ? h.specs : {},
+        components: {},
+        totalPrice: Number(h.price || 0),
+        createdAt: String(h.createdAt || new Date().toISOString()),
+        productType: "hardware",
+        downloadUrl: "",
       }));
 
       setProducts([...prodData, ...hardwareAsProducts]);
@@ -239,6 +246,9 @@ const EmailMarketing = () => {
     setIsGenerating(true);
     const template = getTemplates(companyName).find((t) => t.id === selectedTemplateId);
 
+    const productCategory =
+      selectedProduct.categories?.[0] || selectedProduct.productType || "Tecnologia";
+
     // Prompt focado em Vendas
     const prompt = `
       Atue como um copywriter expert em tecnologia e e-commerce.
@@ -246,7 +256,7 @@ const EmailMarketing = () => {
       
       Produto: ${selectedProduct.title}
       Preço: R$ ${selectedProduct.totalPrice}
-      Categoria: ${selectedProduct.category || "Tecnologia"}
+      Categoria: ${productCategory}
       
       O tom deve ser: ${template?.id === "minimalista" ? "Sofisticado e direto" : "Urgente e promocional"}.
       
@@ -547,7 +557,7 @@ const EmailMarketing = () => {
               <CardContent className="p-4 flex-1 flex flex-col gap-4">
                 <div className="flex items-center justify-between">
                   <h3 className="font-semibold text-sm uppercase text-gray-500">Ajustes Manuais</h3>
-                  <Badge variant={aiText ? "success" : "secondary"}>
+                  <Badge variant={aiText ? "secondary" : "outline"}>
                     {aiText ? "Conteúdo Gerado" : "Aguardando Geração"}
                   </Badge>
                 </div>
