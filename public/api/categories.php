@@ -15,16 +15,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit();
 }
 
-// Database configuration for Hostinger
-$host = 'localhost';
-$dbname = 'u770915504_n8nbalao';
-$username = 'u770915504_n8nbalao';
-$password = 'Balao2025';
+require_once __DIR__ . '/_db.php';
 
 try {
-    $pdo = new PDO("mysql:host=$host;dbname=$dbname;charset=utf8mb4", $username, $password);
+    $pdo = balao_get_pdo();
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-} catch (PDOException $e) {
+} catch (Throwable $e) {
     http_response_code(500);
     echo json_encode(['error' => 'Database connection failed']);
     exit();
