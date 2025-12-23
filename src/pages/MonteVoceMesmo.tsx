@@ -18,6 +18,7 @@ import {
   ShoppingCart,
   ArrowLeft,
   Plus,
+  Minus,
   X,
   Search,
   Package,
@@ -357,6 +358,20 @@ export default function MonteVoceMesmo() {
       },
     ]);
     toast({ title: "Adicionado!", description: product.title });
+  }
+
+  function getProductCount(productId: string) {
+    return selectedProducts.filter((p) => p.id === productId).length;
+  }
+
+  function removeOneProduct(productId: string) {
+    setSelectedProducts((prev) => {
+      const idx = prev.findIndex((p) => p.id === productId);
+      if (idx < 0) return prev;
+      const next = [...prev];
+      next.splice(idx, 1);
+      return next;
+    });
   }
 
   function removeProduct(uniqueKey: string) {
@@ -1001,15 +1016,14 @@ export default function MonteVoceMesmo() {
                           {item.brand} {item.model}
                         </h4>
                         <div className="flex gap-2 mt-1 flex-wrap">
-                          {/* Exemplo de specs, pode ajustar conforme API */}
-                          {item.capacity && (
+                          {item.specs?.capacity && (
                             <Badge variant="secondary" className="text-[10px]">
-                              {item.capacity}
+                              {item.specs.capacity}
                             </Badge>
                           )}
-                          {item.frequency && (
+                          {item.specs?.frequency && (
                             <Badge variant="secondary" className="text-[10px]">
-                              {item.frequency}
+                              {item.specs.frequency}
                             </Badge>
                           )}
                         </div>
