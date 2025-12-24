@@ -293,7 +293,7 @@ export default function Home() {
                 onClick={() => handleAdminChoice('builder')}
                 className="w-full py-3 px-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg font-medium hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
               >
-                <span>✨</span> Google Fake Page Builder
+                <span>✨</span> SEO Page Generator
               </button>
               <button
                 onClick={() => handleAdminChoice('extrator')}
