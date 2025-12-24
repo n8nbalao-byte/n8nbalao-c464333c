@@ -27,6 +27,8 @@ import {
   RefreshCw
 } from 'lucide-react';
 import { useCompany } from '@/contexts/CompanyContext';
+import { AdminLoginModal } from "@/components/AdminLoginModal";
+import { checkAdminAuth } from "@/hooks/useAdminAuth";
 
 const API_BASE = 'https://www.n8nbalao.com/api';
 
@@ -53,6 +55,9 @@ const GoogleFakePageBuilder = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [landingPages, setLandingPages] = useState<LandingPage[]>([]);
   
+  // Authentication state
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  
   // Form states
   const [pageUrl, setPageUrl] = useState('');
   const [pageName, setPageName] = useState('');
@@ -62,9 +67,17 @@ const GoogleFakePageBuilder = () => {
   const [screenshot, setScreenshot] = useState('');
   const [seoData, setSeoData] = useState<{ title: string; description: string; keywords: string[] } | null>(null);
 
+  // Check authentication on mount
   useEffect(() => {
-    loadLandingPages();
+    const isAuth = checkAdminAuth() || sessionStorage.getItem('admin_auth') === 'true';
+    setIsAuthenticated(isAuth);
   }, []);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      loadLandingPages();
+    }
+  }, [isAuthenticated]);
 
   const loadLandingPages = async () => {
     try {
@@ -241,6 +254,16 @@ const GoogleFakePageBuilder = () => {
     navigator.clipboard.writeText(url);
     toast.success('URL copiada!');
   };
+
+  const handleLoginSuccess = () => {
+    setIsAuthenticated(true);
+    sessionStorage.setItem('admin_auth', 'true');
+  };
+
+  // Show login modal if not authenticated
+  if (!isAuthenticated) {
+    return <AdminLoginModal onSuccess={handleLoginSuccess} />;
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
