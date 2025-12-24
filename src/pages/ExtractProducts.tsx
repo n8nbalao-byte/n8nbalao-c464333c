@@ -12,7 +12,7 @@ import { api, getCustomCategories, addCustomCategory, getHardwareCategories, add
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { AdminLoginModal } from "@/components/AdminLoginModal";
+import { AdminFullPageLogin } from "@/components/AdminFullPageLogin";
 import { checkAdminAuth } from "@/hooks/useAdminAuth";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -1212,9 +1212,9 @@ const ExtractProducts = () => {
     );
   }
 
-  // Show login modal if not authenticated
+  // Show login page if not authenticated
   if (!isAuthenticated) {
-    return <AdminLoginModal onSuccess={handleLoginSuccess} />;
+    return <AdminFullPageLogin onSuccess={handleLoginSuccess} />;
   }
 
   return (
