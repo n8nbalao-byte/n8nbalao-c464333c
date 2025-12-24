@@ -27,7 +27,7 @@ import {
   RefreshCw
 } from 'lucide-react';
 import { useCompany } from '@/contexts/CompanyContext';
-import { AdminLoginModal } from "@/components/AdminLoginModal";
+import { AdminFullPageLogin } from "@/components/AdminFullPageLogin";
 import { checkAdminAuth } from "@/hooks/useAdminAuth";
 
 const API_BASE = 'https://www.n8nbalao.com/api';
@@ -260,9 +260,9 @@ const GoogleFakePageBuilder = () => {
     sessionStorage.setItem('admin_auth', 'true');
   };
 
-  // Show login modal if not authenticated
+  // Show login page if not authenticated
   if (!isAuthenticated) {
-    return <AdminLoginModal onSuccess={handleLoginSuccess} />;
+    return <AdminFullPageLogin onSuccess={handleLoginSuccess} />;
   }
 
   return (
