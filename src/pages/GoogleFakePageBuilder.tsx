@@ -279,8 +279,8 @@ const GoogleFakePageBuilder = () => {
                 <Wand2 className="h-5 w-5 text-primary" />
               </div>
               <div>
-                <h1 className="text-xl font-bold">Google Fake Page Builder</h1>
-                <p className="text-xs text-muted-foreground">Criador de Páginas Falsas com IA</p>
+                <h1 className="text-xl font-bold">SEO Page Generator</h1>
+                <p className="text-xs text-muted-foreground">Gerador de Landing Pages com IA</p>
               </div>
             </div>
           </div>
