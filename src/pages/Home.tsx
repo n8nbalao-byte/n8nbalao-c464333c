@@ -2,10 +2,11 @@ import { useEffect, useState, useRef } from "react";
 import { Link } from "react-router-dom";
 import { api, type Product, type HardwareItem, getCategories, type Category } from "@/lib/api";
 import { getIconFromKey } from "@/lib/icons";
-import { ChevronRight, Cpu, Package, Search, Building2 } from "lucide-react";
+import { ChevronRight, Cpu, Package, Search, Building2, Bot } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
 import { useViewMode } from "@/contexts/ViewModeContext";
 import { useCompany } from "@/contexts/CompanyContext";
+import { useTenant } from "@/contexts/TenantContext";
 import { ViewModeSelector } from "@/components/ViewModeSelector";
 import { Button } from "@/components/ui/button";
 import { HomeCarousel } from "@/components/HomeCarousel";
@@ -27,6 +28,7 @@ export default function Home() {
   const { addToCart } = useCart();
   const { viewMode } = useViewMode();
   const { company } = useCompany();
+  const { hasFeature } = useTenant();
   const [searchQuery, setSearchQuery] = useState("");
   const [showAdminChoice, setShowAdminChoice] = useState(false);
   const [hoveredProduct, setHoveredProduct] = useState<string | null>(null);
@@ -354,11 +356,22 @@ export default function Home() {
               </div>
             </form>
 
-            {/* Monte seu PC */}
-            <Link to="/monte-voce-mesmo" className="flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors">
-              <Cpu className="h-5 w-5" />
-              <span className="hidden md:inline font-medium">Monte seu PC</span>
-            </Link>
+            {/* Action Buttons */}
+            <div className="flex items-center gap-2">
+              {/* Agente WhatsApp - Enterprise only */}
+              {hasFeature('n8n') && (
+                <Link to="/agente-whatsapp" className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors">
+                  <Bot className="h-5 w-5" />
+                  <span className="hidden md:inline font-medium">Agente I.A</span>
+                </Link>
+              )}
+              
+              {/* Monte seu PC */}
+              <Link to="/monte-voce-mesmo" className="flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors">
+                <Cpu className="h-5 w-5" />
+                <span className="hidden md:inline font-medium">Monte seu PC</span>
+              </Link>
+            </div>
           </div>
         </div>
       </header>

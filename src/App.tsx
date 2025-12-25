@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { CartProvider } from "@/contexts/CartContext";
 import { ViewModeProvider } from "@/contexts/ViewModeContext";
 import { CompanyProvider } from "@/contexts/CompanyContext";
+import { TenantProvider } from "@/contexts/TenantContext";
 import { CartDrawer } from "@/components/CartDrawer";
 import Home from "./pages/Home";
 import Automacao from "./pages/Automacao";
@@ -22,6 +23,11 @@ import Hardware from "./pages/Hardware";
 import EmailMarketing from "./pages/EmailMarketing";
 import LandingVendas from "./pages/LandingVendas";
 import GoogleFakePageBuilder from "./pages/GoogleFakePageBuilder";
+import MasterAdmin from "./pages/MasterAdmin";
+import Onboarding from "./pages/Onboarding";
+import AgenteWhatsApp from "./pages/AgenteWhatsApp";
+import Consignacao from "./pages/Consignacao";
+import Marketplace from "./pages/Marketplace";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -30,7 +36,8 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <BrowserRouter>
-        <CompanyProvider>
+        <TenantProvider>
+          <CompanyProvider>
           <CartProvider>
             <ViewModeProvider>
               <Toaster />
@@ -52,12 +59,18 @@ const App = () => (
                 <Route path="/email-marketing" element={<EmailMarketing />} />
                 <Route path="/vender" element={<LandingVendas />} />
                 <Route path="/balao-builder" element={<GoogleFakePageBuilder />} />
+                <Route path="/master-admin" element={<MasterAdmin />} />
+                <Route path="/onboarding" element={<Onboarding />} />
+                <Route path="/agente-whatsapp" element={<AgenteWhatsApp />} />
+                <Route path="/consignacao" element={<Consignacao />} />
+                <Route path="/marketplace" element={<Marketplace />} />
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </ViewModeProvider>
           </CartProvider>
-        </CompanyProvider>
+          </CompanyProvider>
+        </TenantProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

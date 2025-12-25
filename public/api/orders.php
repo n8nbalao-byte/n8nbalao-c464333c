@@ -9,6 +9,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit();
 }
 
+// Multi-Tenant: Detect company
+require_once __DIR__ . '/helpers.php';
+$company_id = detectCompanyId();
+
 $host = 'localhost';
 $dbname = 'u770915504_n8nbalao';
 $username = 'u770915504_n8nbalao';
@@ -44,9 +48,9 @@ switch ($method) {
                 SELECT o.*, c.name as customerName, c.email as customerEmail, c.phone as customerPhone 
                 FROM orders o 
                 LEFT JOIN customers c ON o.customerId = c.id 
-                WHERE o.id = ?
+                WHERE o.id = ? AND o.company_id = ?
             ");
-            $stmt->execute([$_GET['id']]);
+            $stmt->execute([$_GET['id'], $company_id]);
             $order = $stmt->fetch(PDO::FETCH_ASSOC);
             
             if ($order) {
@@ -58,8 +62,8 @@ switch ($method) {
             }
         } elseif (isset($_GET['customerId'])) {
             // Get orders by customer
-            $stmt = $pdo->prepare("SELECT * FROM orders WHERE customerId = ? ORDER BY createdAt DESC");
-            $stmt->execute([$_GET['customerId']]);
+            $stmt = $pdo->prepare("SELECT * FROM orders WHERE customerId = ? AND company_id = ? ORDER BY createdAt DESC");
+            $stmt->execute([$_GET['customerId'], $company_id]);
             $orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
             
             foreach ($orders as &$order) {
@@ -69,12 +73,14 @@ switch ($method) {
             echo json_encode($orders);
         } else {
             // Get all orders with customer info
-            $stmt = $pdo->query("
+            $stmt = $pdo->prepare("
                 SELECT o.*, c.name as customerName, c.email as customerEmail, c.phone as customerPhone 
                 FROM orders o 
                 LEFT JOIN customers c ON o.customerId = c.id 
+                WHERE o.company_id = ?
                 ORDER BY o.createdAt DESC
             ");
+            $stmt->execute([$company_id]);
             $orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
             
             foreach ($orders as &$order) {
@@ -96,14 +102,15 @@ switch ($method) {
         
         $id = $data['id'] ?? uniqid('ord_', true);
         
-        $stmt = $pdo->prepare("INSERT INTO orders (id, customerId, items, totalPrice, status, notes) VALUES (?, ?, ?, ?, ?, ?)");
+        $stmt = $pdo->prepare("INSERT INTO orders (id, customerId, items, totalPrice, status, notes, company_id) VALUES (?, ?, ?, ?, ?, ?, ?)");
         $stmt->execute([
             $id,
             $data['customerId'],
             json_encode($data['items']),
             $data['totalPrice'],
             $data['status'] ?? 'pending',
-            $data['notes'] ?? null
+            $data['notes'] ?? null,
+            $company_id
         ]);
         
         echo json_encode(['success' => true, 'orderId' => $id]);
@@ -137,7 +144,8 @@ switch ($method) {
         }
         
         $params[] = $_GET['id'];
-        $sql = "UPDATE orders SET " . implode(", ", $updates) . " WHERE id = ?";
+        $params[] = $company_id;
+        $sql = "UPDATE orders SET " . implode(", ", $updates) . " WHERE id = ? AND company_id = ?";
         $stmt = $pdo->prepare($sql);
         $stmt->execute($params);
         
@@ -151,8 +159,8 @@ switch ($method) {
             exit();
         }
         
-        $stmt = $pdo->prepare("DELETE FROM orders WHERE id = ?");
-        $stmt->execute([$_GET['id']]);
+        $stmt = $pdo->prepare("DELETE FROM orders WHERE id = ? AND company_id = ?");
+        $stmt->execute([$_GET['id'], $company_id]);
         
         echo json_encode(['success' => true]);
         break;

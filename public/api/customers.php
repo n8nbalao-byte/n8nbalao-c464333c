@@ -9,6 +9,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit();
 }
 
+// Multi-Tenant: Detect company
+require_once __DIR__ . '/helpers.php';
+$company_id = detectCompanyId();
+
 $host = 'localhost';
 $dbname = 'u770915504_n8nbalao';
 $username = 'u770915504_n8nbalao';
@@ -56,8 +60,8 @@ switch ($method) {
     case 'GET':
         if (isset($_GET['id'])) {
             // Get single customer
-            $stmt = $pdo->prepare("SELECT * FROM customers WHERE id = ?");
-            $stmt->execute([$_GET['id']]);
+            $stmt = $pdo->prepare("SELECT * FROM customers WHERE id = ? AND company_id = ?");
+            $stmt->execute([$_GET['id'], $company_id]);
             $customer = $stmt->fetch(PDO::FETCH_ASSOC);
             
             if ($customer) {
@@ -68,8 +72,8 @@ switch ($method) {
             }
         } elseif (isset($_GET['email'])) {
             // Find customer by email
-            $stmt = $pdo->prepare("SELECT * FROM customers WHERE email = ?");
-            $stmt->execute([$_GET['email']]);
+            $stmt = $pdo->prepare("SELECT * FROM customers WHERE email = ? AND company_id = ?");
+            $stmt->execute([$_GET['email'], $company_id]);
             $customer = $stmt->fetch(PDO::FETCH_ASSOC);
             
             if ($customer) {
@@ -80,7 +84,8 @@ switch ($method) {
             }
         } else {
             // Get all customers
-            $stmt = $pdo->query("SELECT * FROM customers ORDER BY createdAt DESC");
+            $stmt = $pdo->prepare("SELECT * FROM customers WHERE company_id = ? ORDER BY createdAt DESC");
+            $stmt->execute([$company_id]);
             $customers = $stmt->fetchAll(PDO::FETCH_ASSOC);
             echo json_encode($customers);
         }
@@ -96,13 +101,13 @@ switch ($method) {
         }
         
         // Check if customer exists
-        $stmt = $pdo->prepare("SELECT * FROM customers WHERE email = ?");
-        $stmt->execute([$data['email']]);
+        $stmt = $pdo->prepare("SELECT * FROM customers WHERE email = ? AND company_id = ?");
+        $stmt->execute([$data['email'], $company_id]);
         $existingCustomer = $stmt->fetch(PDO::FETCH_ASSOC);
         
         if ($existingCustomer) {
             // Update existing customer
-            $stmt = $pdo->prepare("UPDATE customers SET name = ?, phone = ?, cpf = ?, address = ?, city = ?, state = ?, cep = ? WHERE email = ?");
+            $stmt = $pdo->prepare("UPDATE customers SET name = ?, phone = ?, cpf = ?, address = ?, city = ?, state = ?, cep = ? WHERE email = ? AND company_id = ?");
             $stmt->execute([
                 $data['name'],
                 $data['phone'] ?? null,
@@ -111,11 +116,12 @@ switch ($method) {
                 $data['city'] ?? null,
                 $data['state'] ?? null,
                 $data['cep'] ?? null,
-                $data['email']
+                $data['email'],
+                $company_id
             ]);
             
-            $stmt = $pdo->prepare("SELECT * FROM customers WHERE email = ?");
-            $stmt->execute([$data['email']]);
+            $stmt = $pdo->prepare("SELECT * FROM customers WHERE email = ? AND company_id = ?");
+            $stmt->execute([$data['email'], $company_id]);
             $customer = $stmt->fetch(PDO::FETCH_ASSOC);
             
             echo json_encode(['success' => true, 'customer' => $customer, 'isNew' => false]);
@@ -123,7 +129,7 @@ switch ($method) {
             // Create new customer
             $id = $data['id'] ?? uniqid('cust_', true);
             
-            $stmt = $pdo->prepare("INSERT INTO customers (id, name, email, phone, cpf, address, city, state, cep) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            $stmt = $pdo->prepare("INSERT INTO customers (id, name, email, phone, cpf, address, city, state, cep, company_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
             $stmt->execute([
                 $id,
                 $data['name'],
@@ -133,11 +139,12 @@ switch ($method) {
                 $data['address'] ?? null,
                 $data['city'] ?? null,
                 $data['state'] ?? null,
-                $data['cep'] ?? null
+                $data['cep'] ?? null,
+                $company_id
             ]);
             
-            $stmt = $pdo->prepare("SELECT * FROM customers WHERE id = ?");
-            $stmt->execute([$id]);
+            $stmt = $pdo->prepare("SELECT * FROM customers WHERE id = ? AND company_id = ?");
+            $stmt->execute([$id, $company_id]);
             $customer = $stmt->fetch(PDO::FETCH_ASSOC);
             
             echo json_encode(['success' => true, 'customer' => $customer, 'isNew' => true]);
@@ -151,8 +158,8 @@ switch ($method) {
             exit();
         }
         
-        $stmt = $pdo->prepare("DELETE FROM customers WHERE id = ?");
-        $stmt->execute([$_GET['id']]);
+        $stmt = $pdo->prepare("DELETE FROM customers WHERE id = ? AND company_id = ?");
+        $stmt->execute([$_GET['id'], $company_id]);
         
         echo json_encode(['success' => true]);
         break;

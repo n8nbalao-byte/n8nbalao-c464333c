@@ -15,6 +15,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit();
 }
 
+// Multi-Tenant: Detect company
+require_once __DIR__ . '/helpers.php';
+$company_id = detectCompanyId();
+
 // Configurações do Banco de Dados Hostinger
 define('DB_HOST', 'localhost');
 define('DB_USER', 'u770915504_n8nbalao');
@@ -74,8 +78,8 @@ switch ($method) {
         $id = $_GET['id'] ?? null;
 
         if ($id) {
-            $stmt = $pdo->prepare("SELECT * FROM hardware WHERE id = ?");
-            $stmt->execute([$id]);
+            $stmt = $pdo->prepare("SELECT * FROM hardware WHERE id = ? AND company_id = ?");
+            $stmt->execute([$id, $company_id]);
             $hardware = $stmt->fetch(PDO::FETCH_ASSOC);
             
             if ($hardware) {
@@ -89,10 +93,11 @@ switch ($method) {
             }
         } else {
             if ($category) {
-                $stmt = $pdo->prepare("SELECT * FROM hardware WHERE category = ? ORDER BY price ASC");
-                $stmt->execute([$category]);
+                $stmt = $pdo->prepare("SELECT * FROM hardware WHERE category = ? AND company_id = ? ORDER BY price ASC");
+                $stmt->execute([$category, $company_id]);
             } else {
-                $stmt = $pdo->query("SELECT * FROM hardware ORDER BY category, price ASC");
+                $stmt = $pdo->prepare("SELECT * FROM hardware WHERE company_id = ? ORDER BY category, price ASC");
+                $stmt->execute([$company_id]);
             }
             
             $hardwareList = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -117,8 +122,8 @@ switch ($method) {
         }
 
         $stmt = $pdo->prepare("
-            INSERT INTO hardware (id, name, brand, model, price, image, specs, category, socket, memoryType, formFactor, tdp, createdAt)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO hardware (id, name, brand, model, price, image, specs, category, socket, memoryType, formFactor, tdp, createdAt, company_id)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ");
 
         $stmt->execute([
@@ -134,7 +139,8 @@ switch ($method) {
             $data['memoryType'] ?? null,
             $data['formFactor'] ?? null,
             $data['tdp'] ?? null,
-            $data['createdAt'] ?? date('Y-m-d H:i:s')
+            $data['createdAt'] ?? date('Y-m-d H:i:s'),
+            $company_id
         ]);
 
         echo json_encode(['success' => true, 'id' => $data['id']]);
@@ -173,8 +179,9 @@ switch ($method) {
         }
 
         $params[] = $data['id'];
+        $params[] = $company_id;
         
-        $sql = "UPDATE hardware SET " . implode(', ', $updates) . " WHERE id = ?";
+        $sql = "UPDATE hardware SET " . implode(', ', $updates) . " WHERE id = ? AND company_id = ?";
         $stmt = $pdo->prepare($sql);
         $stmt->execute($params);
 
@@ -190,8 +197,8 @@ switch ($method) {
             exit();
         }
 
-        $stmt = $pdo->prepare("DELETE FROM hardware WHERE id = ?");
-        $stmt->execute([$id]);
+        $stmt = $pdo->prepare("DELETE FROM hardware WHERE id = ? AND company_id = ?");
+        $stmt->execute([$id, $company_id]);
 
         echo json_encode(['success' => true]);
         break;

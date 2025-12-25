@@ -9,6 +9,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit();
 }
 
+// Multi-Tenant: Detect company
+require_once __DIR__ . '/helpers.php';
+$company_id = detectCompanyId();
+
 $host = 'localhost';
 $dbname = 'u770915504_n8nbalao';
 $username = 'u770915504_n8nbalao';
@@ -59,8 +63,8 @@ switch ($action) {
         }
         
         // Check if email already exists
-        $stmt = $pdo->prepare("SELECT id FROM customers WHERE email = ?");
-        $stmt->execute([$data['email']]);
+        $stmt = $pdo->prepare("SELECT id FROM customers WHERE email = ? AND company_id = ?");
+        $stmt->execute([$data['email'], $company_id]);
         if ($stmt->fetch()) {
             http_response_code(400);
             echo json_encode(['error' => 'Este email já está cadastrado']);
@@ -70,7 +74,7 @@ switch ($action) {
         $id = uniqid('cust_', true);
         $hashedPassword = password_hash($data['password'], PASSWORD_DEFAULT);
         
-        $stmt = $pdo->prepare("INSERT INTO customers (id, name, email, password, phone, cpf, address, city, state, cep) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        $stmt = $pdo->prepare("INSERT INTO customers (id, name, email, password, phone, cpf, address, city, state, cep, company_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
         $stmt->execute([
             $id,
             $data['name'],
@@ -81,15 +85,16 @@ switch ($action) {
             $data['address'] ?? null,
             $data['city'] ?? null,
             $data['state'] ?? null,
-            $data['cep'] ?? null
+            $data['cep'] ?? null,
+            $company_id
         ]);
         
         // Generate simple token
         $token = bin2hex(random_bytes(32));
         
         // Return customer without password
-        $stmt = $pdo->prepare("SELECT id, name, email, phone, cpf, address, city, state, cep, createdAt FROM customers WHERE id = ?");
-        $stmt->execute([$id]);
+        $stmt = $pdo->prepare("SELECT id, name, email, phone, cpf, address, city, state, cep, createdAt FROM customers WHERE id = ? AND company_id = ?");
+        $stmt->execute([$id, $company_id]);
         $customer = $stmt->fetch(PDO::FETCH_ASSOC);
         
         echo json_encode([
@@ -107,8 +112,8 @@ switch ($action) {
             exit();
         }
         
-        $stmt = $pdo->prepare("SELECT * FROM customers WHERE email = ?");
-        $stmt->execute([$data['email']]);
+        $stmt = $pdo->prepare("SELECT * FROM customers WHERE email = ? AND company_id = ?");
+        $stmt->execute([$data['email'], $company_id]);
         $customer = $stmt->fetch(PDO::FETCH_ASSOC);
         
         if (!$customer) {
@@ -167,13 +172,14 @@ switch ($action) {
         }
         
         $params[] = $data['email'];
-        $sql = "UPDATE customers SET " . implode(", ", $updates) . " WHERE email = ?";
+        $params[] = $company_id;
+        $sql = "UPDATE customers SET " . implode(", ", $updates) . " WHERE email = ? AND company_id = ?";
         $stmt = $pdo->prepare($sql);
         $stmt->execute($params);
         
         // Return updated customer
-        $stmt = $pdo->prepare("SELECT id, name, email, phone, cpf, address, city, state, cep, createdAt FROM customers WHERE email = ?");
-        $stmt->execute([$data['email']]);
+        $stmt = $pdo->prepare("SELECT id, name, email, phone, cpf, address, city, state, cep, createdAt FROM customers WHERE email = ? AND company_id = ?");
+        $stmt->execute([$data['email'], $company_id]);
         $customer = $stmt->fetch(PDO::FETCH_ASSOC);
         
         echo json_encode(['success' => true, 'customer' => $customer]);
@@ -189,8 +195,8 @@ switch ($action) {
         
         $customerId = $data['customerId'] ?? $_GET['customerId'];
         
-        $stmt = $pdo->prepare("SELECT * FROM orders WHERE customerId = ? ORDER BY createdAt DESC");
-        $stmt->execute([$customerId]);
+        $stmt = $pdo->prepare("SELECT * FROM orders WHERE customerId = ? AND company_id = ? ORDER BY createdAt DESC");
+        $stmt->execute([$customerId, $company_id]);
         $orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
         foreach ($orders as &$order) {
@@ -210,8 +216,8 @@ switch ($action) {
         
         $hashedPassword = password_hash($data['newPassword'], PASSWORD_DEFAULT);
         
-        $stmt = $pdo->prepare("UPDATE customers SET password = ? WHERE id = ?");
-        $stmt->execute([$hashedPassword, $data['customerId']]);
+        $stmt = $pdo->prepare("UPDATE customers SET password = ? WHERE id = ? AND company_id = ?");
+        $stmt->execute([$hashedPassword, $data['customerId'], $company_id]);
         
         if ($stmt->rowCount() > 0) {
             echo json_encode(['success' => true, 'message' => 'Senha resetada com sucesso']);

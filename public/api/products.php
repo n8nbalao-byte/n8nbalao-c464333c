@@ -15,6 +15,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit();
 }
 
+// Multi-Tenant: Detect company
+require_once __DIR__ . '/helpers.php';
+$company_id = detectCompanyId();
+
 // Database configuration for Hostinger
 $host = 'localhost';
 $dbname = 'u770915504_n8nbalao';
@@ -73,8 +77,8 @@ switch ($method) {
     case 'GET':
         if (isset($_GET['id'])) {
             // Get single product by ID
-            $stmt = $pdo->prepare("SELECT * FROM products WHERE id = ?");
-            $stmt->execute([$_GET['id']]);
+            $stmt = $pdo->prepare("SELECT * FROM products WHERE id = ? AND company_id = ?");
+            $stmt->execute([$_GET['id'], $company_id]);
             $product = $stmt->fetch(PDO::FETCH_ASSOC);
             
             if ($product) {
@@ -91,10 +95,11 @@ switch ($method) {
         } else {
             // Get all products, optionally filtered by productType
             if (isset($_GET['productType'])) {
-                $stmt = $pdo->prepare("SELECT * FROM products WHERE productType = ? ORDER BY createdAt DESC");
-                $stmt->execute([$_GET['productType']]);
+                $stmt = $pdo->prepare("SELECT * FROM products WHERE productType = ? AND company_id = ? ORDER BY createdAt DESC");
+                $stmt->execute([$_GET['productType'], $company_id]);
             } else {
-                $stmt = $pdo->query("SELECT * FROM products ORDER BY createdAt DESC");
+                $stmt = $pdo->prepare("SELECT * FROM products WHERE company_id = ? ORDER BY createdAt DESC");
+                $stmt->execute([$company_id]);
             }
             $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
             
@@ -119,7 +124,7 @@ switch ($method) {
             exit();
         }
 
-        $stmt = $pdo->prepare("INSERT INTO products (id, title, subtitle, description, categories, media, specs, components, totalPrice, productType, downloadUrl, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        $stmt = $pdo->prepare("INSERT INTO products (id, title, subtitle, description, categories, media, specs, components, totalPrice, productType, downloadUrl, createdAt, company_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
         
         $success = $stmt->execute([
             $data['id'] ?? uniqid(),
@@ -133,7 +138,8 @@ switch ($method) {
             $data['totalPrice'] ?? 0,
             $data['productType'] ?? 'pc',
             $data['downloadUrl'] ?? '',
-            $data['createdAt'] ?? date('Y-m-d H:i:s')
+            $data['createdAt'] ?? date('Y-m-d H:i:s'),
+            $company_id
         ]);
 
         if ($success) {
@@ -204,7 +210,8 @@ switch ($method) {
         }
 
         $values[] = $data['id'];
-        $sql = "UPDATE products SET " . implode(', ', $fields) . " WHERE id = ?";
+        $values[] = $company_id;
+        $sql = "UPDATE products SET " . implode(', ', $fields) . " WHERE id = ? AND company_id = ?";
         $stmt = $pdo->prepare($sql);
         $success = $stmt->execute($values);
 
@@ -219,7 +226,8 @@ switch ($method) {
     case 'DELETE':
         // Delete all products if 'all' parameter is set
         if (isset($_GET['all']) && $_GET['all'] === 'true') {
-            $stmt = $pdo->exec("DELETE FROM products");
+            $stmt = $pdo->prepare("DELETE FROM products WHERE company_id = ?");
+            $stmt->execute([$company_id]);
             echo json_encode(['success' => true, 'message' => 'All products deleted']);
             break;
         }
@@ -230,8 +238,8 @@ switch ($method) {
             exit();
         }
 
-        $stmt = $pdo->prepare("DELETE FROM products WHERE id = ?");
-        $success = $stmt->execute([$_GET['id']]);
+        $stmt = $pdo->prepare("DELETE FROM products WHERE id = ? AND company_id = ?");
+        $success = $stmt->execute([$_GET['id'], $company_id]);
 
         if ($success) {
             echo json_encode(['success' => true]);
