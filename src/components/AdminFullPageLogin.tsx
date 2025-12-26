@@ -67,9 +67,26 @@ export function AdminFullPageLogin({ onSuccess }: AdminFullPageLoginProps) {
     setIsLoggingIn(false);
   }
 
-  function handleGoogleLogin() {
-    const currentUrl = window.location.href;
-    window.location.href = `https://www.n8nbalao.com/api/google-auth.php?redirect=${encodeURIComponent(currentUrl)}`;
+  async function handleGoogleLogin() {
+    try {
+      const response = await fetch('https://www.n8nbalao.com/api/google-auth.php?action=get_auth_url&type=admin');
+      const data = await response.json();
+      if (data.success && data.auth_url) {
+        window.location.href = data.auth_url;
+      } else {
+        toast({ 
+          title: "Erro", 
+          description: "Falha ao conectar com Google", 
+          variant: "destructive" 
+        });
+      }
+    } catch (error) {
+      toast({ 
+        title: "Erro", 
+        description: "Falha na conexão com Google", 
+        variant: "destructive" 
+      });
+    }
   }
 
   return (

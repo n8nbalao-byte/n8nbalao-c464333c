@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useLocation, useSearchParams } from "react-router-dom";
 import { getCategories, Category } from "@/lib/api";
 import { getIconFromKey } from "@/lib/icons";
-import { Package, Cpu, Bot, Home, ChevronRight, ChevronDown, HardDrive, LucideIcon } from "lucide-react";
+import { Package, Cpu, Bot, Home, ChevronRight, ChevronDown, HardDrive, LucideIcon, HandCoins, Store } from "lucide-react";
 import { SidebarBanners } from "./SidebarBanners";
 
 interface CategoryWithIcon extends Category {
@@ -132,6 +132,20 @@ export function CategorySidebar({
           >
             <Bot className="h-5 w-5 animate-vibrate" />
             <span className="font-medium">Fluxos n8n</span>
+          </Link>
+          <Link
+            to="/consignacao"
+            className="flex items-center gap-3 px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors"
+          >
+            <HandCoins className="h-5 w-5" />
+            <span className="font-medium">Consignação</span>
+          </Link>
+          <Link
+            to="/marketplace"
+            className="flex items-center gap-3 px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors"
+          >
+            <Store className="h-5 w-5" />
+            <span className="font-medium">Marketplace</span>
           </Link>
         </div>
         

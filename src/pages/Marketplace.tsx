@@ -4,6 +4,7 @@ import { useTenant } from "@/contexts/TenantContext";
 import { Package, Search, Filter } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { AdminFullPageLogin } from "@/components/AdminFullPageLogin";
 
 interface MarketplaceProduct {
   id: number;
@@ -21,10 +22,35 @@ export default function Marketplace() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [checkingAuth, setCheckingAuth] = useState(true);
+
+  // Verificar autenticação
+  useEffect(() => {
+    const authStatus = localStorage.getItem('adminAuthenticated');
+    setIsAuthenticated(authStatus === 'true');
+    setCheckingAuth(false);
+  }, []);
 
   useEffect(() => {
-    fetchProducts();
-  }, [company]);
+    if (isAuthenticated) {
+      fetchProducts();
+    }
+  }, [company, isAuthenticated]);
+
+  // Mostrar loading enquanto verifica auth
+  if (checkingAuth) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  // Mostrar login se não autenticado
+  if (!isAuthenticated) {
+    return <AdminFullPageLogin onSuccess={() => setIsAuthenticated(true)} />;
+  }
 
   const fetchProducts = async () => {
     try {
