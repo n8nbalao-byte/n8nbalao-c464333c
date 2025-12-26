@@ -180,17 +180,18 @@ export default function Onboarding() {
       const result = await response.json();
 
       if (result.success) {
+        const newSubdomain = `${data.slug}.n8nbalao.com`;
         toast({
           title: 'Empresa criada com sucesso!',
           description: data.hasLicense 
-            ? 'Sua conta foi ativada. Redirecionando...'
-            : 'Você tem 7 dias de trial grátis. Redirecionando...',
+            ? `Sua conta foi ativada! Acesse: ${newSubdomain}`
+            : `Você tem 7 dias de trial grátis! Acesse: ${newSubdomain}`,
         });
 
-        // Redirecionar para o subdomínio ou página de sucesso
+        // Redirecionar para o subdomínio da empresa criada
         setTimeout(() => {
-          navigate('/');
-        }, 2000);
+          window.location.href = `https://${newSubdomain}`;
+        }, 2500);
       } else {
         setError(result.error || 'Erro ao criar empresa');
       }
@@ -438,7 +439,30 @@ function Step1({ data, updateData }: any) {
 // STEP 2: Personalização
 // =====================================================
 
+// Paletas de cores disponíveis para seleção rápida
+const colorPalettes = [
+  { id: 'vermelho-elegante', name: 'Vermelho Elegante', primary: '#E31C23', secondary: '#FFFFFF', accent: '#DC2626', preview: ['#E31C23', '#DC2626', '#FECACA', '#FEF2F2'] },
+  { id: 'azul-profissional', name: 'Azul Profissional', primary: '#2563EB', secondary: '#FFFFFF', accent: '#1D4ED8', preview: ['#2563EB', '#1D4ED8', '#BFDBFE', '#EFF6FF'] },
+  { id: 'verde-natureza', name: 'Verde Natureza', primary: '#16A34A', secondary: '#FFFFFF', accent: '#15803D', preview: ['#16A34A', '#15803D', '#BBF7D0', '#F0FDF4'] },
+  { id: 'roxo-moderno', name: 'Roxo Moderno', primary: '#9333EA', secondary: '#FFFFFF', accent: '#7C3AED', preview: ['#9333EA', '#7C3AED', '#DDD6FE', '#FAF5FF'] },
+  { id: 'laranja-vibrante', name: 'Laranja Vibrante', primary: '#EA580C', secondary: '#FFFFFF', accent: '#DC2626', preview: ['#EA580C', '#C2410C', '#FED7AA', '#FFF7ED'] },
+  { id: 'rosa-feminino', name: 'Rosa Feminino', primary: '#DB2777', secondary: '#FFFFFF', accent: '#BE185D', preview: ['#DB2777', '#BE185D', '#FBCFE8', '#FDF2F8'] },
+  { id: 'ciano-tech', name: 'Ciano Tech', primary: '#0891B2', secondary: '#FFFFFF', accent: '#0E7490', preview: ['#0891B2', '#0E7490', '#A5F3FC', '#ECFEFF'] },
+  { id: 'escuro-premium', name: 'Escuro Premium', primary: '#18181B', secondary: '#FAFAFA', accent: '#3F3F46', preview: ['#18181B', '#27272A', '#71717A', '#F4F4F5'] },
+  { id: 'dourado-luxo', name: 'Dourado Luxo', primary: '#CA8A04', secondary: '#FFFBEB', accent: '#A16207', preview: ['#CA8A04', '#A16207', '#FDE68A', '#FFFBEB'] },
+  { id: 'marinho-corporativo', name: 'Marinho Corporativo', primary: '#1E3A5F', secondary: '#FFFFFF', accent: '#0F172A', preview: ['#1E3A5F', '#0F172A', '#94A3B8', '#F1F5F9'] },
+];
+
 function Step2({ data, updateData }: any) {
+  const handleSelectPalette = (palette: typeof colorPalettes[0]) => {
+    updateData('primaryColor', palette.primary);
+    updateData('secondaryColor', palette.secondary);
+    updateData('accentColor', palette.accent);
+  };
+
+  const isSelected = (palette: typeof colorPalettes[0]) => 
+    palette.primary.toLowerCase() === data.primaryColor?.toLowerCase();
+
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2 mb-4">
@@ -460,78 +484,67 @@ function Step2({ data, updateData }: any) {
           </p>
         </div>
 
-        <div className="grid grid-cols-3 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="primaryColor">Cor Primária *</Label>
-            <div className="flex gap-2">
-              <Input
-                id="primaryColor"
-                type="color"
-                value={data.primaryColor}
-                onChange={(e) => updateData('primaryColor', e.target.value)}
-                className="h-10 w-20"
-              />
-              <Input
-                value={data.primaryColor}
-                onChange={(e) => updateData('primaryColor', e.target.value)}
-                placeholder="#E31C23"
-              />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="secondaryColor">Cor Secundária</Label>
-            <div className="flex gap-2">
-              <Input
-                id="secondaryColor"
-                type="color"
-                value={data.secondaryColor}
-                onChange={(e) => updateData('secondaryColor', e.target.value)}
-                className="h-10 w-20"
-              />
-              <Input
-                value={data.secondaryColor}
-                onChange={(e) => updateData('secondaryColor', e.target.value)}
-                placeholder="#FFFFFF"
-              />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="accentColor">Cor de Destaque</Label>
-            <div className="flex gap-2">
-              <Input
-                id="accentColor"
-                type="color"
-                value={data.accentColor}
-                onChange={(e) => updateData('accentColor', e.target.value)}
-                className="h-10 w-20"
-              />
-              <Input
-                value={data.accentColor}
-                onChange={(e) => updateData('accentColor', e.target.value)}
-                placeholder="#DC2626"
-              />
-            </div>
+        {/* Paletas de Cores - 1 Click */}
+        <div className="space-y-3">
+          <Label>Escolha uma Paleta de Cores (1 clique)</Label>
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+            {colorPalettes.map((palette) => (
+              <button
+                key={palette.id}
+                type="button"
+                onClick={() => handleSelectPalette(palette)}
+                className={`relative group rounded-lg border-2 p-2 transition-all hover:scale-105 hover:shadow-md ${
+                  isSelected(palette)
+                    ? 'border-blue-500 ring-2 ring-blue-500/30'
+                    : 'border-gray-200 hover:border-blue-300'
+                }`}
+              >
+                {isSelected(palette) && (
+                  <div className="absolute -top-1.5 -right-1.5 bg-blue-500 text-white rounded-full p-0.5">
+                    <CheckCircle className="h-3 w-3" />
+                  </div>
+                )}
+                
+                <div className="flex gap-0.5 mb-1 rounded overflow-hidden">
+                  {palette.preview.map((color, idx) => (
+                    <div
+                      key={idx}
+                      className="h-5 flex-1"
+                      style={{ backgroundColor: color }}
+                    />
+                  ))}
+                </div>
+                
+                <p className="text-xs font-medium text-center truncate">
+                  {palette.name}
+                </p>
+              </button>
+            ))}
           </div>
         </div>
 
         {/* Preview */}
         <div className="border rounded-lg p-4 space-y-2">
-          <p className="text-sm font-medium">Prévia das Cores:</p>
-          <div className="flex gap-2">
+          <p className="text-sm font-medium">Prévia das Cores Selecionadas:</p>
+          <div className="flex gap-2 items-center">
             <div
-              className="w-20 h-20 rounded-lg border-2"
+              className="w-16 h-16 rounded-lg border-2 flex items-center justify-center text-white text-xs font-medium"
               style={{ backgroundColor: data.primaryColor }}
-            />
+            >
+              Primária
+            </div>
             <div
-              className="w-20 h-20 rounded-lg border-2"
+              className="w-16 h-16 rounded-lg border-2 flex items-center justify-center text-xs font-medium"
               style={{ backgroundColor: data.secondaryColor }}
-            />
+            >
+              Secundária
+            </div>
             <div
-              className="w-20 h-20 rounded-lg border-2"
+              className="w-16 h-16 rounded-lg border-2 flex items-center justify-center text-white text-xs font-medium"
               style={{ backgroundColor: data.accentColor }}
-            />
+            >
+              Destaque
+            </div>
           </div>
         </div>
       </div>

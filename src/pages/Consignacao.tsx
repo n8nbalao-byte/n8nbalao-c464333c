@@ -40,7 +40,9 @@ export default function Consignacao() {
     setCheckingAuth(false);
   }, []);
 
-  // Mostrar login se não autenticado
+  // Consignação agora funciona em todos os planos - sem verificação de feature
+
+  // Mostrar loading enquanto verifica auth
   if (checkingAuth) {
     return (
       <div className="min-h-screen flex items-center justify-center">

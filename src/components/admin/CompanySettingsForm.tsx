@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Building2, Upload, Save, Globe, Phone, Mail, MapPin, FileText, User, Image } from 'lucide-react';
+import { Building2, Upload, Save, Globe, Phone, Mail, MapPin, FileText, User, Image, Percent } from 'lucide-react';
 import { ColorPaletteSelector, type ColorPalette } from './ColorPaletteSelector';
 import { useToast } from '@/hooks/use-toast';
 import { useCompany } from '@/contexts/CompanyContext';
@@ -17,6 +17,7 @@ interface CompanyData {
   primaryColor?: string;
   secondaryColor?: string;
   accentColor?: string;
+  commission_percent?: number;
 }
 
 interface CompanySettingsFormProps {
@@ -252,7 +253,7 @@ export function CompanySettingsForm({ companyData, onSave, isSaving }: CompanySe
             />
           </div>
 
-          <div className="md:col-span-2">
+          <div>
             <label className="flex items-center gap-2 text-sm font-medium text-foreground mb-2">
               <User className="h-4 w-4" />
               Vendedor / Responsável
@@ -264,6 +265,26 @@ export function CompanySettingsForm({ companyData, onSave, isSaving }: CompanySe
               className="w-full rounded-lg border border-border bg-background px-4 py-3 text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
               placeholder="Nome do vendedor ou responsável"
             />
+          </div>
+
+          <div>
+            <label className="flex items-center gap-2 text-sm font-medium text-foreground mb-2">
+              <Percent className="h-4 w-4" />
+              Comissão Marketplace (%)
+            </label>
+            <input
+              type="number"
+              min="0"
+              max="100"
+              step="0.5"
+              value={formData.commission_percent || 15}
+              onChange={(e) => setFormData(prev => ({ ...prev, commission_percent: parseFloat(e.target.value) || 15 }))}
+              className="w-full rounded-lg border border-border bg-background px-4 py-3 text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+              placeholder="15"
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              Percentual cobrado sobre vendas do marketplace
+            </p>
           </div>
         </div>
       </div>

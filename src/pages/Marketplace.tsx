@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useTenant } from "@/contexts/TenantContext";
-import { Package, Search, Filter } from "lucide-react";
+import { Package, Search, Filter, ArrowLeft } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { AdminFullPageLogin } from "@/components/AdminFullPageLogin";
@@ -17,6 +17,7 @@ interface MarketplaceProduct {
 }
 
 export default function Marketplace() {
+  const navigate = useNavigate();
   const { company } = useTenant();
   const [products, setProducts] = useState<MarketplaceProduct[]>([]);
   const [loading, setLoading] = useState(true);
@@ -31,6 +32,8 @@ export default function Marketplace() {
     setIsAuthenticated(authStatus === 'true');
     setCheckingAuth(false);
   }, []);
+
+  // Marketplace agora funciona em todos os planos - sem verificação de feature
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -84,8 +87,19 @@ export default function Marketplace() {
       {/* Header */}
       <div className="bg-white shadow-sm">
         <div className="container py-6">
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">Marketplace</h1>
-          <p className="text-gray-600">Produtos em consignação disponíveis</p>
+          <div className="flex items-center gap-4 mb-2">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => navigate('/')}
+              className="flex items-center gap-2"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Voltar
+            </Button>
+            <h1 className="text-3xl font-bold text-gray-800">Marketplace</h1>
+          </div>
+          <p className="text-gray-600 ml-[88px]">Produtos em consignação disponíveis</p>
         </div>
       </div>
 
