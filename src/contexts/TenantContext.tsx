@@ -29,6 +29,7 @@ export interface Company {
   feature_monte_pc: boolean;
   feature_marketplace: boolean;
   feature_consignacao: boolean;
+  commission_percent?: number;
   settings: Record<string, any> | null;
   created_at: string;
   updated_at: string;

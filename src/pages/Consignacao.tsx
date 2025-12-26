@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTenant } from "@/contexts/TenantContext";
 import { Button } from "@/components/ui/button";
@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Upload, X, ChevronRight, ChevronLeft, Check } from "lucide-react";
+import { AdminFullPageLogin } from "@/components/AdminFullPageLogin";
 
 interface ConsignmentData {
   product_name: string;
@@ -21,6 +22,8 @@ export default function Consignacao() {
   const { company, hasFeature } = useTenant();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [checkingAuth, setCheckingAuth] = useState(true);
   
   const [formData, setFormData] = useState<ConsignmentData>({
     product_name: '',
@@ -30,7 +33,27 @@ export default function Consignacao() {
     media: []
   });
 
-  // Verificar se tem acesso
+  // Verificar autenticação
+  useEffect(() => {
+    const authStatus = localStorage.getItem('adminAuthenticated');
+    setIsAuthenticated(authStatus === 'true');
+    setCheckingAuth(false);
+  }, []);
+
+  // Mostrar login se não autenticado
+  if (checkingAuth) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <AdminFullPageLogin onSuccess={() => setIsAuthenticated(true)} />;
+  }
+
+  // Verificar se tem acesso à feature
   if (!hasFeature('consignacao')) {
     toast({
       title: "Acesso negado",
@@ -40,6 +63,9 @@ export default function Consignacao() {
     navigate('/');
     return null;
   }
+  
+  // Get commission percent safely
+  const commissionPercent = company?.commission_percent ?? 25;
 
   const handleMediaUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -300,10 +326,10 @@ export default function Consignacao() {
                       <strong>Valor para você:</strong> R$ {parseFloat(formData.client_value).toFixed(2)}
                     </p>
                     <p className="text-sm text-gray-700 mt-1">
-                      <strong>Comissão ({company?.commission_percent || 25}%):</strong> R$ {(parseFloat(formData.client_value) * ((company?.commission_percent || 25) / 100)).toFixed(2)}
+                      <strong>Comissão ({commissionPercent}%):</strong> R$ {(parseFloat(formData.client_value) * (commissionPercent / 100)).toFixed(2)}
                     </p>
                     <p className="text-sm font-bold text-gray-800 mt-2">
-                      <strong>Preço de venda:</strong> R$ {(parseFloat(formData.client_value) * (1 + ((company?.commission_percent || 25) / 100))).toFixed(2)}
+                      <strong>Preço de venda:</strong> R$ {(parseFloat(formData.client_value) * (1 + (commissionPercent / 100))).toFixed(2)}
                     </p>
                   </div>
                 )}

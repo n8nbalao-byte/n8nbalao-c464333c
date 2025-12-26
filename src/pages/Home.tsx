@@ -95,12 +95,14 @@ export default function Home() {
     }
   };
 
-  const handleAdminChoice = (choice: 'admin' | 'extrator' | 'builder') => {
+  const handleAdminChoice = (choice: 'admin' | 'extrator' | 'builder' | 'master') => {
     setShowAdminChoice(false);
     if (choice === 'admin') {
       window.location.href = '/admin';
     } else if (choice === 'builder') {
       window.location.href = '/balao-builder';
+    } else if (choice === 'master') {
+      window.location.href = '/master-admin';
     } else {
       window.location.href = '/extract-products';
     }
@@ -302,6 +304,12 @@ export default function Home() {
                 className="w-full py-3 px-4 bg-gray-800 text-white rounded-lg font-medium hover:bg-gray-700 transition-colors"
               >
                 Extrator de Produtos
+              </button>
+              <button
+                onClick={() => handleAdminChoice('master')}
+                className="w-full py-3 px-4 bg-gradient-to-r from-amber-500 to-orange-600 text-white rounded-lg font-medium hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
+              >
+                🔐 Master Admin
               </button>
               <button
                 onClick={() => setShowAdminChoice(false)}
